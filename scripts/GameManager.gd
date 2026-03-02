@@ -48,6 +48,9 @@ func _ready() -> void:
 	_win_popup.visible = false
 	_no_moves_popup.visible = false
 	
+	# Garantir que nós de UI não bloqueiem toques nas peças
+	_set_ui_mouse_filters(self)
+	
 	# Iniciar primeiro jogo com delay para layout estar pronto
 	await get_tree().create_timer(0.3).timeout
 	_start_game()
@@ -147,3 +150,17 @@ func _show_win_popup() -> void:
 
 func _show_no_moves_popup() -> void:
 	_no_moves_popup.visible = true
+
+
+# ─── Faxina de UI (mouse_filter) ───────────────────────────────────
+
+func _set_ui_mouse_filters(node: Node) -> void:
+	"""Percorre todos os Control Nodes e define mouse_filter = IGNORE
+	para tudo que NÃO é botão. Impede que fundos transparentes da UI
+	bloqueiem toques nas peças do tabuleiro."""
+	for child in node.get_children():
+		if child is BaseButton:
+			continue  # Botões devem permanecer clicáveis
+		if child is Control:
+			child.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_set_ui_mouse_filters(child)

@@ -7,9 +7,6 @@
 class_name MahjongTile
 extends Area2D
 
-## Sinal emitido quando o jogador clica nesta peça.
-signal tile_clicked(tile: MahjongTile)
-
 ## Posição na grade: x (coluna), y (linha), z (camada).
 var grid_pos := Vector3i.ZERO
 ## Identificador da estampa do gato (1–20).

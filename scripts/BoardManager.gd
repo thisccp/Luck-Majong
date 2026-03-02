@@ -362,32 +362,36 @@ func _render_board() -> void:
 
 # ─── Input centralizado ─────────────────────────────────────────────
 
-func _input(event: InputEvent) -> void:
-	"""Top-Down Picker com regras estritas de Mahjong Solitário.
+## Frame do último clique processado — evita dupla emissão por emulação.
+var _last_pick_frame: int = -1
+
+func _unhandled_input(event: InputEvent) -> void:
+	"""Top-Down Picker centralizado — funciona em Mouse e Touch.
 	
-	1. Encontra TODAS as peças sob o cursor via intersect_point
-	2. Seleciona a peça com maior Z (topo da pilha)
-	3. Se a peça do topo NÃO é livre → clique IGNORADO (não atravessa)
-	4. Se a peça do topo É livre → emite tile_pressed
-	5. O evento é SEMPRE consumido quando há peça sob o cursor
+	Com emulate_mouse_from_touch=true, toques no Android viram
+	InputEventMouseButton. Portanto, basta tratar APENAS mouse events.
+	A deduplicação por frame é uma segurança extra.
 	"""
-	var is_click := false
-	
-	if event is InputEventMouseButton and event.is_pressed() and event.button_index == MOUSE_BUTTON_LEFT:
-		is_click = true
-	elif event is InputEventScreenTouch and event.is_pressed():
-		is_click = true
-	
-	if not is_click:
+	# Só trata clique esquerdo do mouse (inclui touch emulado no Android)
+	if not (event is InputEventMouseButton):
+		return
+	if event.button_index != MOUSE_BUTTON_LEFT or event.pressed:
 		return
 	
-	# Posição do clique em coordenadas do canvas (mundo 2D)
-	var mouse_pos := get_global_mouse_position()
+	# Deduplicação: no máximo 1 pick por frame
+	var frame := Engine.get_process_frames()
+	if frame == _last_pick_frame:
+		return
+	_last_pick_frame = frame
+	
+	# get_global_mouse_position() já aplica todas as transforms internas
+	# (viewport stretch, canvas transform) — funciona em qualquer resolução
+	var world_pos := get_global_mouse_position()
 	
 	# Usar o DirectSpaceState para encontrar TODAS as peças sob o clique
 	var space_state := get_world_2d().direct_space_state
 	var query := PhysicsPointQueryParameters2D.new()
-	query.position = mouse_pos
+	query.position = world_pos
 	query.collide_with_areas = true
 	query.collide_with_bodies = false
 	query.collision_mask = 0xFFFFFFFF
