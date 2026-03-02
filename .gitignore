@@ -1,0 +1,17 @@
+# === Python/Kivy (legacy — remover quando migração estiver completa) ===
+*.py
+*.pyc
+*.kv
+__pycache__/
+venv/
+.buildozer/
+buildozer.spec
+build_apk_colab.ipynb
+requirements.txt
+*.bin
+*.apk
+
+# === Godot ===
+.godot/
+*.import
+export_presets.cfg
