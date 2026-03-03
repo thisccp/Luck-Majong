@@ -11,15 +11,15 @@ signal tile_pressed(tile: MahjongTile)
 
 # ─── Constantes de layout ───────────────────────────────────────────
 
-## Tamanho de uma célula (a peça ocupa 2 células de largura × 1 de altura).
-const CELL_W := 40.0
-const CELL_H := 110.0
-## Tamanho real do tile widget (formato dominó vertical).
-const TILE_W := CELL_W * 2  # 80
-const TILE_H := CELL_H       # 110
-## Offset 3D por camada Z.
-const Z_OFFSET_X := 5.0
-const Z_OFFSET_Y := 5.0
+## Tamanho de uma célula (a peça ocupa 2 células de largura × 2 de altura).
+const CELL_W := 38.0
+const CELL_H := 52.0
+## Tamanho real do tile widget (formato ~3:4 visualmente alinhado como carta).
+const TILE_W := CELL_W * 2  # 76
+const TILE_H := CELL_H * 2  # 104
+## Offset 3D por camada Z. (Efeito de pilha vertical limpa)
+const Z_OFFSET_X := 0.0
+const Z_OFFSET_Y := -8.0
 ## Número de tipos de estampa.
 const NUM_TYPES := 20
 
@@ -56,7 +56,7 @@ func active_tiles() -> Array[MahjongTile]:
 func is_tile_free(tile: MahjongTile) -> bool:
 	"""
 	Uma peça está livre se:
-	  1. Nenhuma peça em z+1 sobrepõe qualquer de suas células.
+	  1. Nenhuma peça em qualquer nível z acima sobrepõe qualquer de suas células.
 	  2. Pelo menos um dos lados (esquerdo ou direito) está livre.
 	"""
 	if tile.is_matched:
@@ -64,11 +64,11 @@ func is_tile_free(tile: MahjongTile) -> bool:
 	
 	var tile_cells: Array[Vector2i] = tile.cells_occupied()
 	
-	# --- Bloqueio por sobreposição (z+1) ---
+	# --- Bloqueio por sobreposição (z > atual) ---
 	for other in tiles.values():
 		if not (other is MahjongTile):
 			continue
-		if other.is_matched or other.grid_pos.z != tile.grid_pos.z + 1:
+		if other.is_matched or other.grid_pos.z <= tile.grid_pos.z:
 			continue
 		var other_cells: Array[Vector2i] = other.cells_occupied()
 		for cell in tile_cells:
@@ -76,8 +76,14 @@ func is_tile_free(tile: MahjongTile) -> bool:
 				return false
 	
 	# --- Bloqueio lateral ---
-	var left_blocked := _has_neighbor(tile.grid_pos.x - 2, tile.grid_pos.y, tile.grid_pos.z)
-	var right_blocked := _has_neighbor(tile.grid_pos.x + 2, tile.grid_pos.y, tile.grid_pos.z)
+	# Bloqueio lateral ocorre se há vizinho exato ou 1 célula acima/abaixo em Y.
+	var left_blocked := false
+	var right_blocked := false
+	for dy in range(-1, 2):
+		if _has_neighbor(tile.grid_pos.x - 2, tile.grid_pos.y + dy, tile.grid_pos.z):
+			left_blocked = true
+		if _has_neighbor(tile.grid_pos.x + 2, tile.grid_pos.y + dy, tile.grid_pos.z):
+			right_blocked = true
 	
 	if left_blocked and right_blocked:
 		return false
@@ -182,32 +188,39 @@ func clear_selection() -> void:
 		if tile is MahjongTile and not tile.is_matched:
 			tile.is_selected = false
 			tile.stop_hint_glow()
+	
+	# Recalcula e reaplica o filtro cinza nas peças bloqueadas
+	update_tile_states()
 
 
 # ─── Layout ─────────────────────────────────────────────────────────
 
 func _classic_pyramid_layout() -> Array[Vector3i]:
 	"""
-	Layout de pirâmide clássica.
-	  z=0 — 6×5 = 30 tiles
-	  z=1 — 4×3 = 12 tiles
-	  z=2 — 2×1 =  2 tiles
-	  Total = 44 → 22 pares ✔
+	Layout Mini (Nível 1 / Testes).
+	Total: 40 peças (20 pares). Bom para avaliar mecânicas, gerar soluções rápidas 
+	e introduzir o jogador.
 	"""
 	var slots: Array[Vector3i] = []
-	var layers := [
-		[6, 5, 0, 0],
-		[4, 3, 1, 1],
-		[2, 1, 2, 2],
-	]
-	for z in range(layers.size()):
-		var cols: int = layers[z][0]
-		var rows: int = layers[z][1]
-		var x_off: int = layers[z][2]
-		var y_off: int = layers[z][3]
-		for col in range(cols):
-			for row in range(rows):
-				slots.append(Vector3i(x_off + col, y_off + row, z))
+	
+	var _add_block = func(z: int, x_start: int, y_start: int, width: int, height: int):
+		for col in range(width):
+			for row in range(height):
+				slots.append(Vector3i(x_start + col * 2, y_start + row * 2, z))
+	
+	# Z = 0 (Base)
+	_add_block.call(0, 2, 2, 6, 4)  # Corpo central (24 peças)
+	_add_block.call(0, 0, 4, 1, 2)  # Asa esquerda (2 peças)
+	_add_block.call(0, 14, 4, 1, 2) # Asa direita (2 peças)
+	
+	# Z = 1
+	_add_block.call(1, 4, 4, 4, 2)  # (8 peças)
+	
+	# Z = 2
+	_add_block.call(2, 6, 4, 2, 1)  # (2 peças)
+	_add_block.call(2, 6, 6, 2, 1)  # (2 peças) - Dividido para entender o empilhamento
+	
+	# Total: 24 + 2 + 2 + 8 + 4 = 40 Peças!
 	return slots
 
 
@@ -260,7 +273,7 @@ func _generate_beatable(slots: Array[Vector3i]) -> void:
 
 
 func _find_free_slots_for_generation(
-	remaining: Dictionary, placed: Dictionary
+	remaining: Dictionary, _placed: Dictionary
 ) -> Array[Vector3i]:
 	var free: Array[Vector3i] = []
 	for slot: Vector3i in remaining:
@@ -269,12 +282,17 @@ func _find_free_slots_for_generation(
 		var sz := slot.z
 		
 		var blocked_above := false
-		var cells := [Vector2i(sx, sy), Vector2i(sx + 1, sy)]
-		for placed_pos: Vector3i in placed:
-			if placed_pos.z == sz + 1:
+		var cells := [
+			Vector2i(sx, sy), Vector2i(sx + 1, sy),
+			Vector2i(sx, sy + 1), Vector2i(sx + 1, sy + 1)
+		]
+		for rem_pos: Vector3i in remaining:
+			if rem_pos.z > sz:
+				var p_sx := rem_pos.x
+				var p_sy := rem_pos.y
 				var pcells := [
-					Vector2i(placed_pos.x, placed_pos.y),
-					Vector2i(placed_pos.x + 1, placed_pos.y)
+					Vector2i(p_sx, p_sy), Vector2i(p_sx + 1, p_sy),
+					Vector2i(p_sx, p_sy + 1), Vector2i(p_sx + 1, p_sy + 1)
 				]
 				for cell in cells:
 					if cell in pcells:
@@ -285,8 +303,14 @@ func _find_free_slots_for_generation(
 		if blocked_above:
 			continue
 		
-		var left_blocked := placed.has(Vector3i(sx - 2, sy, sz))
-		var right_blocked := placed.has(Vector3i(sx + 2, sy, sz))
+		var left_blocked := false
+		var right_blocked := false
+		for dy in range(-1, 2):
+			if remaining.has(Vector3i(sx - 2, sy + dy, sz)):
+				left_blocked = true
+			if remaining.has(Vector3i(sx + 2, sy + dy, sz)):
+				right_blocked = true
+				
 		if left_blocked and right_blocked:
 			continue
 		free.append(slot)
@@ -355,34 +379,32 @@ func _render_board() -> void:
 	tiles = tile_nodes
 	
 	# ── Auto-scale e centralização precisa ──
-	# Margens: 10% de cada lado (horizontal) = 80% útil
-	# Vertical: tabuleiro centrado na metade superior, 20% inferior reservada
-	const MARGIN_SIDE := 0.10       # 10% de margem em cada lado
-	const MARGIN_BOTTOM := 0.15     # 15% reservado na parte inferior (ads/UI)
-	const MARGIN_TOP := 0.02        # 2% margem superior
+	# Usando margens proporcionais adaptativas para caber em qualquer tela
+	# As margins definem os espaços reservados para a interface (UI)
+	const MARGIN_SIDE := 0.04       # 4% de margem em cada lado (para deixar as peças grandes)
+	const MARGIN_BOTTOM := 0.15     # 15% reservado no fundo (botões inferiores)
+	const MARGIN_TOP := 0.22        # 22% reservado no topo (placar, botões superiores)
 	
 	var usable_w: float = area_w * (1.0 - MARGIN_SIDE * 2.0)
 	var usable_h: float = area_h * (1.0 - MARGIN_TOP - MARGIN_BOTTOM)
 	
 	var scale_factor: float = minf(usable_w / board_w, usable_h / board_h)
 	scale_factor = minf(scale_factor, 2.5)  # Limite máximo
+	
 	self.scale = Vector2(scale_factor, scale_factor)
 	
-	# Centralizar horizontalmente (margens laterais iguais)
+	# Centralizar horizontalmente
 	var scaled_w: float = board_w * scale_factor
-	var scaled_h: float = board_h * scale_factor
 	var pos_x: float = (area_w - scaled_w) / 2.0
 	
-	# Posicionar verticalmente: centrado na área útil (excluindo margem inferior)
-	var top_margin: float = area_h * MARGIN_TOP
-	var available_vert: float = area_h * (1.0 - MARGIN_TOP - MARGIN_BOTTOM)
-	var pos_y: float = top_margin + (available_vert - scaled_h) / 2.0
+	# Centralizar verticalmente dentro do espaço útil
+	var scaled_h: float = board_h * scale_factor
+	var pos_y: float = (area_h * MARGIN_TOP) + (usable_h - scaled_h) / 2.0
 	
 	self.position = Vector2(pos_x, pos_y)
 	
-	print("[BoardManager] Board: %.0f×%.0f, Scale: %.2f, Pos: (%.0f, %.0f), Margins: side=%.0f bottom=%.0f" % [
-		board_w, board_h, scale_factor, pos_x, pos_y,
-		area_w * MARGIN_SIDE, area_h * MARGIN_BOTTOM
+	print("[BoardManager] Board: %.0f×%.0f, Scale: %.2f, Pos: (%.0f, %.0f)" % [
+		board_w, board_h, scale_factor, pos_x, pos_y
 	])
 	
 	update_tile_states()

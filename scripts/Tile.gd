@@ -29,10 +29,11 @@ var _select_tween: Tween
 const TOTAL_TYPES := 20
 
 ## ─── Atlas do Sprite Sheet de Gatinhos ─────────────────────────────
-## Imagem cats.png (2784x1536), 5 colunas × 4 linhas, 20 gatinhos
-const FRAME_W: float = 556.8  # 2784 / 5
-const FRAME_H: float = 384.0  # 1536 / 4
+## Imagem cats.png, 5 colunas × 4 linhas, 20 gatinhos (fundo branco, sem labels)
+var FRAME_W: float = 0.0
+var FRAME_H: float = 0.0
 const ATLAS_COLS: int = 5
+const ATLAS_ROWS: int = 4
 
 ## Espessura lateral 3D
 const SIDE_DEPTH := 5.0
@@ -65,7 +66,12 @@ func setup(pos: Vector3i, type_id: int, size: Vector2) -> void:
 
 
 func cells_occupied() -> Array[Vector2i]:
-	return [Vector2i(grid_pos.x, grid_pos.y), Vector2i(grid_pos.x + 1, grid_pos.y)]
+	return [
+		Vector2i(grid_pos.x, grid_pos.y), 
+		Vector2i(grid_pos.x + 1, grid_pos.y),
+		Vector2i(grid_pos.x, grid_pos.y + 1), 
+		Vector2i(grid_pos.x + 1, grid_pos.y + 1)
+	]
 
 
 # ─── Atlas ──────────────────────────────────────────────────────────
@@ -77,6 +83,9 @@ func _create_cat_atlas_texture(id: int) -> AtlasTexture:
 	var col: int = idx % ATLAS_COLS
 	@warning_ignore("integer_division")
 	var row: int = idx / ATLAS_COLS
+	
+	# Região limpa: cada célula inteira do grid.
+	# O espaçamento branco faz parte da célula e serve como margem natural.
 	atlas_tex.region = Rect2(
 		col * FRAME_W,
 		row * FRAME_H,
@@ -89,172 +98,68 @@ func _create_cat_atlas_texture(id: int) -> AtlasTexture:
 # ─── Visuais: Bloco Dominó de Resina ───────────────────────────────
 
 func _build_visuals() -> void:
-	var tw := int(tile_size.x)
-	var th := int(tile_size.y)
+	# Calcular dimensões do frame dinamicamente na primeira peça
+	if FRAME_W == 0.0 or FRAME_H == 0.0:
+		FRAME_W = float(_cat_atlas.get_width()) / float(ATLAS_COLS)
+		FRAME_H = float(_cat_atlas.get_height()) / float(ATLAS_ROWS)
+		print("[MahjongTile] Atlas 5x4 calculado: Frame=", FRAME_W, "x", FRAME_H)
 	
-	# ── 1. SOMBRA SUAVE (multi-camada) ──
-	_build_soft_shadow(tw, th)
-	
-	# ── 2. LATERAL 3D com gradiente bevel ──
-	_build_side(tw, th)
-	
-	# ── 3. BASE com CHANFRO (bevel lighting) ──
-	var base_img := _create_beveled_base(tw, th)
-	var base_tex := ImageTexture.create_from_image(base_img)
+	# ── Base: imagem premium do azulejo 3D ──
 	var base_sprite := Sprite2D.new()
-	base_sprite.texture = base_tex
+	base_sprite.texture = load("res://assets/tiles/tile_base.png")
 	base_sprite.name = "Base"
+	
+	var base_w: float = base_sprite.texture.get_width()
+	var base_h: float = base_sprite.texture.get_height()
+	var scale_x := tile_size.x / base_w
+	var scale_y := tile_size.y / base_h
+	base_sprite.scale = Vector2(scale_x, scale_y)
 	add_child(base_sprite)
 	
-	# ── 4. FACE (gatinho centralizado com padding elegante) ──
-	# Sticker Shadow: Sombra sutil para dar efeito de "adesivo colado"
+	# ── Definição da Face Útil ──
+	# tile_base.png tem chanfros 3D no TOPO e na DIREITA.
+	# Centro da face útil em relação ao centro da imagem total:
+	var face_center_x := -(base_w * 0.04) * scale_x  # Empurra para ESQUERDA
+	var face_center_y :=  (base_h * 0.025) * scale_y  # Empurra para BAIXO
+	var center_offset := Vector2(face_center_x, face_center_y)
+	
+	# Dimensões da face útil (descontando chanfros)
+	var face_useful_w: float = tile_size.x * 0.82
+	var face_useful_h: float = tile_size.y * 0.85
+	
+	# ── Sticker do Gato ──
+	var tex_atlas := _create_cat_atlas_texture(cat_id)
+	
+	# Scale: ajustar o frame inteiro para caber na face útil.
+	# O espaçamento branco do atlas serve como padding natural.
+	var scale_fit: float = minf(face_useful_w / FRAME_W, face_useful_h / FRAME_H)
+	
+	# Sombra do sticker (efeito "adesivo colado")
 	var sticker_shadow := Sprite2D.new()
-	sticker_shadow.texture = _create_cat_atlas_texture(cat_id)
-	sticker_shadow.modulate = Color(0, 0, 0, 0.15) # Sombra escura e transparente
-	var face_w: float = tile_size.x - FACE_PADDING * 2.0
-	var face_h: float = tile_size.y - FACE_PADDING * 2.0
-	var scale_fit: float = minf(face_w / FRAME_W, face_h / FRAME_H)
+	sticker_shadow.texture = tex_atlas
+	sticker_shadow.modulate = Color(0, 0, 0, 0.15)
 	sticker_shadow.scale = Vector2(scale_fit, scale_fit)
-	sticker_shadow.position = Vector2(1.0, 1.5) # Deslocamento leve para baixo-direita
+	sticker_shadow.position = center_offset + Vector2(1.0, 1.5)
 	sticker_shadow.name = "StickerShadow"
 	add_child(sticker_shadow)
 	
+	# Sticker principal
 	_sprite = Sprite2D.new()
-	_sprite.texture = sticker_shadow.texture # Reutiliza o atlas texture
+	_sprite.texture = tex_atlas
 	_sprite.scale = Vector2(scale_fit, scale_fit)
+	_sprite.position = center_offset
 	_sprite.name = "CatFace"
-	# Centralizado no bloco (posição 0,0 = centro do Area2D)
 	add_child(_sprite)
 	
-	# ── 5. HITBOX DE PRECISÃO (15% menor) ──
+	# ── Hitbox de precisão ──
 	_collision_shape = CollisionShape2D.new()
 	var shape := RectangleShape2D.new()
 	shape.size = tile_size * (1.0 - HITBOX_SHRINK)
 	_collision_shape.shape = shape
 	_collision_shape.name = "CollisionShape"
+	_collision_shape.position = center_offset
 	add_child(_collision_shape)
 
-
-func _build_soft_shadow(tw: int, th: int) -> void:
-	var base_offset := Vector2(3.0 + grid_pos.z * 2.5, 3.0 + grid_pos.z * 2.5)
-	var layers := [
-		{"expand": 0, "alpha": 0.08, "offset": Vector2(0, 0)},
-		{"expand": 2, "alpha": 0.06, "offset": Vector2(1, 1)},
-		{"expand": 4, "alpha": 0.04, "offset": Vector2(2, 2)},
-	]
-	for i in range(layers.size()):
-		var layer = layers[i]
-		var expand: int = layer["expand"]
-		var sw: int = tw + expand * 2
-		var sh: int = th + expand * 2
-		var simg := Image.create(sw, sh, false, Image.FORMAT_RGBA8)
-		simg.fill(Color(0, 0, 0, layer["alpha"]))
-		var stex := ImageTexture.create_from_image(simg)
-		var sspr := Sprite2D.new()
-		sspr.texture = stex
-		sspr.position = base_offset + layer["offset"]
-		sspr.z_index = -3 + i
-		sspr.name = "Shadow_%d" % i
-		add_child(sspr)
-
-
-func _build_side(tw: int, th: int) -> void:
-	"""Lateral 3D com gradiente creme → cinza (simula arredondamento)."""
-	var sd := int(SIDE_DEPTH)
-	var side_img := Image.create(tw + sd, th + sd, false, Image.FORMAT_RGBA8)
-	
-	# Gradiente na lateral: creme claro no topo → cinza no fundo
-	var color_top := Color(0.78, 0.74, 0.68, 1.0)   # Creme escuro
-	var color_bot := Color(0.62, 0.58, 0.52, 1.0)    # Cinza quente
-	
-	for y in range(th + sd):
-		var t: float = float(y) / float(th + sd - 1)
-		var col: Color = color_top.lerp(color_bot, t)
-		for x in range(tw + sd):
-			side_img.set_pixel(x, y, col)
-	
-	var side_tex := ImageTexture.create_from_image(side_img)
-	var side_sprite := Sprite2D.new()
-	side_sprite.texture = side_tex
-	# Deslocado para baixo-direita para criar espessura
-	side_sprite.position = Vector2(SIDE_DEPTH * 0.5, SIDE_DEPTH * 0.5)
-	side_sprite.z_index = -1
-	side_sprite.name = "Side"
-	add_child(side_sprite)
-
-
-func _create_beveled_base(tw: int, th: int) -> Image:
-	"""Base com chanfro: luz top-left, sombra bottom-right."""
-	var img := Image.create(tw, th, false, Image.FORMAT_RGBA8)
-	
-	# Corpo — cor resina/marfim
-	var body_color := Color(0.97, 0.95, 0.91, 1.0)
-	img.fill(body_color)
-	
-	# Chanfro com gradiente
-	var light_edge  := Color(1.0, 0.99, 0.97, 1.0)
-	var mid_light   := Color(0.98, 0.96, 0.93, 1.0)
-	var dark_edge   := Color(0.80, 0.76, 0.70, 1.0)
-	var darker_edge := Color(0.74, 0.70, 0.64, 1.0)
-	
-	var bevel := 3
-	
-	# Top (luz)
-	for b in range(bevel):
-		var col: Color = light_edge.lerp(mid_light, float(b) / float(bevel))
-		for x in range(b, tw - b):
-			img.set_pixel(x, b, col)
-	
-	# Left (luz)
-	for b in range(bevel):
-		var col: Color = light_edge.lerp(mid_light, float(b) / float(bevel))
-		for y in range(b, th - b):
-			img.set_pixel(b, y, col)
-	
-	# Bottom (sombra)
-	for b in range(bevel):
-		var col: Color = darker_edge.lerp(dark_edge, float(b) / float(bevel))
-		for x in range(b, tw - b):
-			img.set_pixel(x, th - 1 - b, col)
-	
-	# Right (sombra)
-	for b in range(bevel):
-		var col: Color = darker_edge.lerp(dark_edge, float(b) / float(bevel))
-		for y in range(b, th - b):
-			img.set_pixel(tw - 1 - b, y, col)
-	
-	# Cantos arredondados
-	var corner_col := Color(0.88, 0.85, 0.80, 1.0)
-	for cx in range(3):
-		for cy in range(3):
-			if cx + cy < 2:
-				img.set_pixel(cx, cy, corner_col)
-				img.set_pixel(tw - 1 - cx, cy, corner_col)
-				img.set_pixel(cx, th - 1 - cy, corner_col)
-				img.set_pixel(tw - 1 - cx, th - 1 - cy, corner_col)
-	
-	# Brilho Especular (Glow de plástico polido no canto superior esquerdo)
-	var specular_color := Color(1.0, 1.0, 1.0, 0.6) # Branco semi-transparente
-	var glow_radius := 6
-	var center_x := 8
-	var center_y := 8
-	for y in range(center_y - glow_radius, center_y + glow_radius):
-		for x in range(center_x - glow_radius, center_x + glow_radius):
-			var dist := Vector2(x - center_x, y - center_y).length()
-			if dist < glow_radius:
-				# Suavizar o brilho baseado na distância
-				var intensity := 1.0 - (dist / glow_radius)
-				var final_spec := specular_color
-				final_spec.a *= intensity * intensity # Decaimento não-linear (mais natural)
-				
-				# Blend manual com o pixel atual
-				if x >= 0 and y >= 0 and x < tw and y < th:
-					var current_col := img.get_pixel(x, y)
-					var blended := current_col.lerp(final_spec, final_spec.a)
-					blended.a = 1.0 # manter opaco
-					img.set_pixel(x, y, blended)
-	
-	return img
 
 
 # ─── Update Visuals ─────────────────────────────────────────────────
@@ -286,9 +191,9 @@ func set_blocked(blocked: bool) -> void:
 	if is_selected:
 		return
 	if blocked:
-		modulate = Color(0.6, 0.6, 0.6, 0.7)
+		modulate = Color(0.6, 0.6, 0.6)
 	else:
-		modulate = Color.WHITE
+		modulate = Color(1.0, 1.0, 1.0)
 
 
 # ─── Animações ──────────────────────────────────────────────────────

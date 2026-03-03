@@ -1,9 +1,35 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://cjg4wdjlxxya8"]
 
-[ext_resource type="Script" path="res://scripts/GameManager.gd" id="1"]
-[ext_resource type="Script" path="res://scripts/BoardManager.gd" id="2"]
+[ext_resource type="Script" uid="uid://fdjqvmexqqfh" path="res://scripts/GameManager.gd" id="1"]
+[ext_resource type="Script" uid="uid://77miaaatpsyh" path="res://scripts/BoardManager.gd" id="2"]
+[ext_resource type="Theme" path="res://assets/main_theme.tres" id="3_theme"]
+[ext_resource type="Texture2D" uid="uid://bn8to5ewpj1d" path="res://assets/bg/popup_bg.png" id="4_popup_bg"]
+[ext_resource type="Texture2D" uid="uid://cooj844jom3t4" path="res://assets/btn/btn__style_menu.png" id="5_btn_menu"]
+[ext_resource type="Texture2D" uid="uid://b7spc0q0i7gb" path="res://assets/bg/next_bg.png" id="6_next_bg"]
+[ext_resource type="Texture2D" uid="uid://dms52o1v31sbu" path="res://assets/btn/btn_style_hint.png" id="7_btn_hint"]
 
-[node name="Main" type="Control"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_popup_btn"]
+bg_color = Color(0.44, 0.35, 0.26, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_popup_btn_pressed"]
+bg_color = Color(0.33, 0.25, 0.18, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_popup_btn_hover"]
+bg_color = Color(0.52, 0.43, 0.33, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[node name="Main" type="Control" unique_id=1321818194]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,9 +37,10 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme = ExtResource("3_theme")
 script = ExtResource("1")
 
-[node name="Background" type="TextureRect" parent="."]
+[node name="Background" type="TextureRect" parent="." unique_id=68937263]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -22,9 +49,8 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 expand_mode = 1
-stretch_mode = 0
 
-[node name="VBox" type="VBoxContainer" parent="."]
+[node name="BoardContainer" type="Control" parent="." unique_id=1792228558]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -32,124 +58,247 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+
+[node name="BoardManager" type="Node2D" parent="BoardContainer" unique_id=1518675537]
+script = ExtResource("2")
+
+[node name="UILayer" type="CanvasLayer" parent="." unique_id=1285879559]
+
+[node name="VBox" type="VBoxContainer" parent="UILayer" unique_id=1405971771]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("3_theme")
 theme_override_constants/separation = 6
 
-[node name="TitleLabel" type="Label" parent="VBox"]
+[node name="TopMargin" type="MarginContainer" parent="UILayer/VBox" unique_id=98713426]
 layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+
+[node name="TopBar" type="HBoxContainer" parent="UILayer/VBox/TopMargin" unique_id=198713426]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 2
+
+[node name="TitleLabel" type="Label" parent="UILayer/VBox/TopMargin/TopBar" unique_id=95873965]
 custom_minimum_size = Vector2(0, 50)
-mouse_filter = 2
-text = "🐱 Lucky Mahjong"
+layout_mode = 2
+size_flags_horizontal = 3
+text = "🐱 Neko Mahjong"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ButtonBar" type="HBoxContainer" parent="VBox"]
+[node name="MenuBtn" type="TextureButton" parent="UILayer/VBox/TopMargin/TopBar" unique_id=538129571]
+custom_minimum_size = Vector2(80, 80)
 layout_mode = 2
-custom_minimum_size = Vector2(0, 64)
-mouse_filter = 2
-theme_override_constants/separation = 8
+texture_normal = ExtResource("5_btn_menu")
+ignore_texture_size = true
+stretch_mode = 5
 
-[node name="ResetBtn" type="Button" parent="VBox/ButtonBar"]
-layout_mode = 2
-size_flags_horizontal = 3
-custom_minimum_size = Vector2(0, 56)
-text = "🔄 Reset"
-
-[node name="HintBtn" type="Button" parent="VBox/ButtonBar"]
-layout_mode = 2
-size_flags_horizontal = 3
-custom_minimum_size = Vector2(0, 56)
-text = "💡 Hint"
-
-[node name="ShuffleBtn" type="Button" parent="VBox/ButtonBar"]
-layout_mode = 2
-size_flags_horizontal = 3
-custom_minimum_size = Vector2(0, 56)
-text = "🔀 Shuffle"
-
-[node name="BoardContainer" type="Control" parent="VBox"]
-layout_mode = 2
-size_flags_vertical = 3
-mouse_filter = 2
-
-[node name="BoardManager" type="Node2D" parent="VBox/BoardContainer"]
-script = ExtResource("2")
-
-[node name="StatusLabel" type="Label" parent="VBox"]
-layout_mode = 2
+[node name="StatusLabel" type="Label" parent="UILayer/VBox" unique_id=981175672]
 custom_minimum_size = Vector2(0, 30)
-mouse_filter = 2
+layout_mode = 2
 text = "Pares: 0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="WinPopup" type="PanelContainer" parent="."]
+[node name="Spacer" type="Control" parent="UILayer/VBox" unique_id=1538666483]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="BottomMargin" type="MarginContainer" parent="UILayer/VBox" unique_id=489993948]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_bottom = 40
+
+[node name="HintBtn" type="TextureButton" parent="UILayer/VBox/BottomMargin" unique_id=980834066]
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 2
+size_flags_horizontal = 4
+texture_normal = ExtResource("7_btn_hint")
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="DimOverlay" type="ColorRect" parent="UILayer" unique_id=74823901]
 visible = false
-layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.5)
+
+[node name="WinPopup" type="TextureRect" parent="UILayer" unique_id=2019978420]
+visible = false
+custom_minimum_size = Vector2(440, 572)
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -160.0
-offset_top = -100.0
-offset_right = 160.0
-offset_bottom = 100.0
+offset_left = -220.0
+offset_top = -286.0
+offset_right = 220.0
+offset_bottom = 286.0
 grow_horizontal = 2
 grow_vertical = 2
+texture = ExtResource("6_next_bg")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="VBox" type="VBoxContainer" parent="WinPopup"]
+[node name="PlayAgainBtn" type="Button" parent="UILayer/WinPopup" unique_id=1071776058]
+layout_mode = 0
+offset_left = 116.0
+offset_top = 345.0
+offset_right = 354.0
+offset_bottom = 413.0
+focus_mode = 0
+theme_override_font_sizes/font_size = 28
+text = "Nível 2"
+flat = true
+
+[node name="HomeBtn" type="Button" parent="UILayer/WinPopup" unique_id=73921838]
+layout_mode = 0
+offset_left = 110.0
+offset_top = 449.0
+offset_right = 348.0
+offset_bottom = 507.0
+focus_mode = 0
+theme_override_font_sizes/font_size = 28
+text = "Sair"
+flat = true
+
+[node name="NoMovesPopup" type="TextureRect" parent="UILayer" unique_id=617032032]
+visible = false
+custom_minimum_size = Vector2(400, 520)
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -260.0
+offset_right = 200.0
+offset_bottom = 260.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("3_theme")
+texture = ExtResource("4_popup_bg")
+expand_mode = 1
+
+[node name="Margin" type="MarginContainer" parent="UILayer/NoMovesPopup" unique_id=8329412]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 80
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 80
+
+[node name="Center" type="CenterContainer" parent="UILayer/NoMovesPopup/Margin" unique_id=983174]
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="UILayer/NoMovesPopup/Margin/Center" unique_id=1716082386]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="NoMovesLabel" type="Label" parent="UILayer/NoMovesPopup/Margin/Center/VBox" unique_id=1108983094]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.1, 0.05, 1)
+theme_override_font_sizes/font_size = 24
+text = "😿 Sem jogadas 
+disponíveis!"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BtnBar" type="VBoxContainer" parent="UILayer/NoMovesPopup/Margin/Center/VBox" unique_id=1100335460]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="WinLabel" type="Label" parent="WinPopup/VBox"]
+[node name="ShuffleBtn2" type="Button" parent="UILayer/NoMovesPopup/Margin/Center/VBox/BtnBar" unique_id=213934255]
+custom_minimum_size = Vector2(240, 60)
 layout_mode = 2
-text = "🎉 Parabéns! 🎉
-Você completou o tabuleiro!"
-horizontal_alignment = 1
-vertical_alignment = 1
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("StyleBoxFlat_popup_btn")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_popup_btn_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_popup_btn_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_popup_btn")
+theme_override_styles/focus = SubResource("StyleBoxFlat_popup_btn")
+text = "Embaralhar"
 
-[node name="PlayAgainBtn" type="Button" parent="WinPopup/VBox"]
+[node name="ResetBtn2" type="Button" parent="UILayer/NoMovesPopup/Margin/Center/VBox/BtnBar" unique_id=984383986]
+custom_minimum_size = Vector2(240, 60)
 layout_mode = 2
-custom_minimum_size = Vector2(0, 44)
-text = "Jogar de Novo"
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("StyleBoxFlat_popup_btn")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_popup_btn_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_popup_btn_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_popup_btn")
+theme_override_styles/focus = SubResource("StyleBoxFlat_popup_btn")
+text = "Reset"
 
-[node name="NoMovesPopup" type="PanelContainer" parent="."]
+[node name="PausePopup" type="TextureRect" parent="UILayer" unique_id=89123741]
 visible = false
-layout_mode = 1
+custom_minimum_size = Vector2(400, 520)
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -160.0
-offset_top = -80.0
-offset_right = 160.0
-offset_bottom = 80.0
+offset_left = -200.0
+offset_top = -260.0
+offset_right = 200.0
+offset_bottom = 260.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("3_theme")
+texture = ExtResource("4_popup_bg")
+expand_mode = 1
 
-[node name="VBox" type="VBoxContainer" parent="NoMovesPopup"]
-layout_mode = 2
-theme_override_constants/separation = 12
+[node name="SoundToggle" type="CheckButton" parent="UILayer/PausePopup" unique_id=213934256]
+layout_mode = 0
+offset_left = 30.0
+offset_top = 155.0
+offset_right = 70.666664
+offset_bottom = 180.33331
+scale = Vector2(1.5, 1.5)
+focus_mode = 0
+theme_override_styles/normal = SubResource("StyleBoxFlat_popup_btn")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_popup_btn_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_popup_btn_hover")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_popup_btn_pressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_popup_btn")
+theme_override_styles/focus = SubResource("StyleBoxFlat_popup_btn")
+button_pressed = true
+flat = true
 
-[node name="NoMovesLabel" type="Label" parent="NoMovesPopup/VBox"]
-layout_mode = 2
-text = "😿 Sem jogadas disponíveis!"
-horizontal_alignment = 1
-vertical_alignment = 1
+[node name="RestartBtn" type="Button" parent="UILayer/PausePopup" unique_id=984383987]
+layout_mode = 0
+offset_left = 271.0
+offset_top = 462.0
+offset_right = 377.0
+offset_bottom = 502.0
+focus_mode = 0
+flat = true
 
-[node name="BtnBar" type="HBoxContainer" parent="NoMovesPopup/VBox"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="ShuffleBtn2" type="Button" parent="NoMovesPopup/VBox/BtnBar"]
-layout_mode = 2
-size_flags_horizontal = 3
-custom_minimum_size = Vector2(0, 44)
-text = "Embaralhar"
-
-[node name="ResetBtn2" type="Button" parent="NoMovesPopup/VBox/BtnBar"]
-layout_mode = 2
-size_flags_horizontal = 3
-custom_minimum_size = Vector2(0, 44)
-text = "Reset"
+[node name="ClosePauseBtn" type="Button" parent="UILayer/PausePopup" unique_id=7410283]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -52.0
+offset_top = 6.0
+offset_right = -4.0
+offset_bottom = 49.0
+grow_horizontal = 0
+focus_mode = 0
+flat = true

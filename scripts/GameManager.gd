@@ -7,13 +7,14 @@ class_name GameManager
 extends Control
 
 ## Referências aos nós da UI.
-@onready var _board: BoardManager = $VBox/BoardContainer/BoardManager
-@onready var _status_label: Label = $VBox/StatusLabel
-@onready var _btn_reset: Button = $VBox/ButtonBar/ResetBtn
-@onready var _btn_hint: Button = $VBox/ButtonBar/HintBtn
-@onready var _btn_shuffle: Button = $VBox/ButtonBar/ShuffleBtn
-@onready var _win_popup: PanelContainer = $WinPopup
-@onready var _no_moves_popup: PanelContainer = $NoMovesPopup
+@onready var _board: BoardManager = $BoardContainer/BoardManager
+@onready var _status_label: Label = $UILayer/VBox/StatusLabel
+@onready var _btn_hint: TextureButton = $UILayer/VBox/BottomMargin/HintBtn
+@onready var _btn_menu: TextureButton = $UILayer/VBox/TopMargin/TopBar/MenuBtn
+@onready var _dim_overlay: ColorRect = $UILayer/DimOverlay
+@onready var _win_popup: TextureRect = $UILayer/WinPopup
+@onready var _no_moves_popup: TextureRect = $UILayer/NoMovesPopup
+@onready var _pause_popup: TextureRect = $UILayer/PausePopup
 
 ## Estado da seleção.
 var _selected_tile: MahjongTile = null
@@ -23,30 +24,44 @@ var _pairs_matched: int = 0
 
 func _ready() -> void:
 	# Conectar botões
-	_btn_reset.pressed.connect(_on_reset)
 	_btn_hint.pressed.connect(_on_hint)
-	_btn_shuffle.pressed.connect(_on_shuffle)
+	_btn_menu.pressed.connect(_show_pause_popup)
 	
 	# Conectar sinal do board
 	_board.tile_pressed.connect(_on_tile_pressed)
 	
 	# Conectar botões dos popups
-	$WinPopup/VBox/PlayAgainBtn.pressed.connect(func():
-		_win_popup.visible = false
+	$UILayer/WinPopup/PlayAgainBtn.pressed.connect(func():
+		_hide_popups()
+		# _start_game() # Desativado por enquanto, esperando a lógica de Nível 2
+		print("Indo para Nível 2 (WIP)")
+	)
+	$UILayer/WinPopup/HomeBtn.pressed.connect(func():
+		_hide_popups()
 		_start_game()
 	)
-	$NoMovesPopup/VBox/BtnBar/ShuffleBtn2.pressed.connect(func():
-		_no_moves_popup.visible = false
+	$UILayer/NoMovesPopup/Margin/Center/VBox/BtnBar/ShuffleBtn2.pressed.connect(func():
+		_hide_popups()
 		_on_shuffle()
 	)
-	$NoMovesPopup/VBox/BtnBar/ResetBtn2.pressed.connect(func():
-		_no_moves_popup.visible = false
+	$UILayer/NoMovesPopup/Margin/Center/VBox/BtnBar/ResetBtn2.pressed.connect(func():
+		_hide_popups()
 		_start_game()
+	)
+	$UILayer/PausePopup/SoundToggle.toggled.connect(func(button_pressed: bool):
+		# TODO: Implement sound toggle logic when audio system is ready
+		print("Sound toggled: ", button_pressed)
+	)
+	$UILayer/PausePopup/RestartBtn.pressed.connect(func():
+		_hide_popups()
+		_start_game()
+	)
+	$UILayer/PausePopup/ClosePauseBtn.pressed.connect(func():
+		_hide_popups()
 	)
 	
 	# Esconder popups
-	_win_popup.visible = false
-	_no_moves_popup.visible = false
+	_hide_popups()
 	
 	# Garantir que nós de UI não bloqueiem toques nas peças
 	_set_ui_mouse_filters(self)
@@ -195,11 +210,33 @@ func _on_shuffle() -> void:
 # ─── Popups ─────────────────────────────────────────────────────────
 
 func _show_win_popup() -> void:
+	_dim_overlay.visible = true
 	_win_popup.visible = true
+	_set_hud_disabled(true)
 
 
 func _show_no_moves_popup() -> void:
+	_dim_overlay.visible = true
 	_no_moves_popup.visible = true
+	_set_hud_disabled(true)
+
+func _show_pause_popup() -> void:
+	_dim_overlay.visible = true
+	_pause_popup.visible = true
+	_set_hud_disabled(true)
+
+func _hide_popups() -> void:
+	_dim_overlay.visible = false
+	_win_popup.visible = false
+	_no_moves_popup.visible = false
+	_pause_popup.visible = false
+	_set_hud_disabled(false)
+
+func _set_hud_disabled(disabled: bool) -> void:
+	if is_instance_valid(_btn_hint):
+		_btn_hint.disabled = disabled
+	if is_instance_valid(_btn_menu):
+		_btn_menu.disabled = disabled
 
 
 # ─── Faxina de UI (mouse_filter) ───────────────────────────────────
