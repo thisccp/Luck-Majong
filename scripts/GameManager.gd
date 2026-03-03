@@ -53,7 +53,50 @@ func _ready() -> void:
 	
 	# Iniciar primeiro jogo com delay para layout estar pronto
 	await get_tree().create_timer(0.3).timeout
+	_load_background()
 	_start_game()
+
+
+func _load_background() -> void:
+	"""Carrega bg_zen.png se disponível, senão cria gradiente verde zen."""
+	var bg_node = get_node_or_null("Background")
+	if bg_node == null:
+		print("[GameManager] ERRO: Background node não encontrado!")
+		return
+	if not (bg_node is TextureRect):
+		print("[GameManager] ERRO: Background não é TextureRect, é: ", bg_node.get_class())
+		return
+	
+	print("[GameManager] Background node encontrado: ", bg_node.get_class())
+	
+	# Tentar carregar imagem externa
+	var bg_path := "res://assets/bg/bg_zen.png"
+	if ResourceLoader.exists(bg_path):
+		var bg_tex := load(bg_path) as Texture2D
+		if bg_tex:
+			bg_node.texture = bg_tex
+			bg_node.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			print("[GameManager] Background: bg_zen.png carregado")
+			return
+	
+	# Fallback: criar gradiente como imagem baked (100% compatível)
+	var img_h := 256
+	var img_w := 4
+	var img := Image.create(img_w, img_h, false, Image.FORMAT_RGBA8)
+	
+	# Cores ultra-suaves: #D4E6D4 (topo) → #BFD5C8 (base)
+	var color_top := Color(0.831, 0.902, 0.831, 1.0)
+	var color_bot := Color(0.749, 0.835, 0.784, 1.0)
+	
+	for y in range(img_h):
+		var t: float = float(y) / float(img_h - 1)
+		var col: Color = color_top.lerp(color_bot, t)
+		for x in range(img_w):
+			img.set_pixel(x, y, col)
+	
+	var tex := ImageTexture.create_from_image(img)
+	bg_node.texture = tex
+	print("[GameManager] Background: gradiente zen baked aplicado (%dx%d)" % [img_w, img_h])
 
 
 # ─── Controle de jogo ──────────────────────────────────────────────
@@ -86,22 +129,29 @@ func _on_tile_pressed(tile: MahjongTile) -> void:
 		# Segunda seleção — tentar match
 		var prev_tile := _selected_tile
 		
-		if _board.try_match(prev_tile, tile):
-			# Match bem-sucedido!
+		if prev_tile.cat_id == tile.cat_id and _board.is_tile_free(prev_tile) and _board.is_tile_free(tile):
+			# Match bem-sucedido! Desselecionar e animar
 			prev_tile.is_selected = false
 			_selected_tile = null
 			_pairs_matched += 1
 			_update_status()
+			
+			# Animação de match (encolhe + fade)
+			prev_tile.play_match_animation()
+			await tile.play_match_animation()
+			
+			# Registrar no board
+			_board.record_match(prev_tile, tile)
 			
 			# Atualizar visuais
 			_board.update_tile_states()
 			
 			# Checar vitória
 			if _board.is_won():
-				await get_tree().create_timer(0.4).timeout
+				await get_tree().create_timer(0.3).timeout
 				_show_win_popup()
 			elif not _board.has_moves():
-				await get_tree().create_timer(0.4).timeout
+				await get_tree().create_timer(0.3).timeout
 				_show_no_moves_popup()
 		else:
 			# Não é match — trocar seleção

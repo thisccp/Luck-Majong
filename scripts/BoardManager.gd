@@ -13,13 +13,13 @@ signal tile_pressed(tile: MahjongTile)
 
 ## Tamanho de uma célula (a peça ocupa 2 células de largura × 1 de altura).
 const CELL_W := 40.0
-const CELL_H := 52.0
-## Tamanho real do tile widget.
+const CELL_H := 110.0
+## Tamanho real do tile widget (formato dominó vertical).
 const TILE_W := CELL_W * 2  # 80
-const TILE_H := CELL_H       # 52
+const TILE_H := CELL_H       # 110
 ## Offset 3D por camada Z.
-const Z_OFFSET_X := 6.0
-const Z_OFFSET_Y := 6.0
+const Z_OFFSET_X := 5.0
+const Z_OFFSET_Y := 5.0
 ## Número de tipos de estampa.
 const NUM_TYPES := 20
 
@@ -102,6 +102,11 @@ func try_match(t1: MahjongTile, t2: MahjongTile) -> bool:
 	return true
 
 
+func record_match(t1: MahjongTile, t2: MahjongTile) -> void:
+	"""Registra um match já validado e animado no histórico."""
+	_move_history.append([t1, t2])
+
+
 func is_won() -> bool:
 	"""Verdadeiro se todas as peças foram removidas."""
 	for tile in tiles.values():
@@ -165,17 +170,18 @@ func update_tile_states() -> void:
 
 
 func highlight_hint(t1: MahjongTile, t2: MahjongTile) -> void:
-	"""Destaca duas peças como hint."""
+	"""Destaca duas peças com glow intenso de hint."""
 	clear_selection()
-	t1.is_selected = true
-	t2.is_selected = true
+	t1.play_hint_glow()
+	t2.play_hint_glow()
 
 
 func clear_selection() -> void:
-	"""Remove qualquer seleção visual."""
+	"""Remove qualquer seleção visual e para hint glow."""
 	for tile in tiles.values():
 		if tile is MahjongTile and not tile.is_matched:
 			tile.is_selected = false
+			tile.stop_hint_glow()
 
 
 # ─── Layout ─────────────────────────────────────────────────────────
@@ -292,6 +298,8 @@ func _find_free_slots_for_generation(
 func _render_board() -> void:
 	"""Cria os nós de tile e posiciona no tabuleiro."""
 	_clear_children()
+	self.scale = Vector2.ONE  # Reset scale antes de recalcular
+	self.position = Vector2.ZERO
 	
 	if tiles.is_empty():
 		print("[BoardManager] _render_board: tiles vazio!")
@@ -315,17 +323,11 @@ func _render_board() -> void:
 		max_y = maxi(max_y, pos.y + 1)
 		max_z = maxi(max_z, pos.z)
 	
-	# Tamanho total do tabuleiro
-	var board_w: float = max_x * CELL_W + max_z * Z_OFFSET_X
-	var board_h: float = max_y * CELL_H + max_z * Z_OFFSET_Y
+	# Tamanho total do tabuleiro (sem escala)
+	var board_w: float = max_x * CELL_W + max_z * Z_OFFSET_X + TILE_W * 0.1
+	var board_h: float = max_y * CELL_H + max_z * Z_OFFSET_Y + TILE_H * 0.1
 	
-	# Centralizar
-	var offset_x: float = maxf((area_w - board_w) / 2.0, 10.0)
-	var offset_y: float = maxf((area_h - board_h) / 2.0, 10.0)
-	
-	print("[BoardManager] Board: %.0f×%.0f, Offset: %.0f,%.0f" % [board_w, board_h, offset_x, offset_y])
-	
-	# Ordenar por Z para camadas corretas
+	# Posicionar tiles a partir de (0,0) — sem offset
 	var sorted_positions := tiles.keys()
 	sorted_positions.sort_custom(func(a: Vector3i, b: Vector3i) -> bool:
 		if a.z != b.z: return a.z < b.z
@@ -339,24 +341,50 @@ func _render_board() -> void:
 		var data = tiles[pos]
 		var cat_id_val: int = data["cat_id"]
 		
-		# Criar tile programaticamente (sem depender de cena)
 		var tile_node := MahjongTile.new()
 		tile_node.setup(pos, cat_id_val, Vector2(TILE_W, TILE_H))
 		
-		# Posição (centro do tile)
-		var sx: float = offset_x + pos.x * CELL_W + pos.z * Z_OFFSET_X + TILE_W / 2.0
-		var sy: float = offset_y + pos.y * CELL_H + pos.z * Z_OFFSET_Y + TILE_H / 2.0
+		# Posição relativa ao tabuleiro (centro do tile)
+		var sx: float = pos.x * CELL_W + pos.z * Z_OFFSET_X + TILE_W / 2.0
+		var sy: float = pos.y * CELL_H + pos.z * Z_OFFSET_Y + TILE_H / 2.0
 		tile_node.position = Vector2(sx, sy)
 		
-		# Adicionar à cena → dispara _ready() e constrói visuais
 		add_child(tile_node)
 		tile_nodes[pos] = tile_node
 	
-	# Substituir dicionário de dados por nós
 	tiles = tile_nodes
-	print("[BoardManager] %d tiles renderizados" % tiles.size())
 	
-	# Atualizar visuais
+	# ── Auto-scale e centralização precisa ──
+	# Margens: 10% de cada lado (horizontal) = 80% útil
+	# Vertical: tabuleiro centrado na metade superior, 20% inferior reservada
+	const MARGIN_SIDE := 0.10       # 10% de margem em cada lado
+	const MARGIN_BOTTOM := 0.15     # 15% reservado na parte inferior (ads/UI)
+	const MARGIN_TOP := 0.02        # 2% margem superior
+	
+	var usable_w: float = area_w * (1.0 - MARGIN_SIDE * 2.0)
+	var usable_h: float = area_h * (1.0 - MARGIN_TOP - MARGIN_BOTTOM)
+	
+	var scale_factor: float = minf(usable_w / board_w, usable_h / board_h)
+	scale_factor = minf(scale_factor, 2.5)  # Limite máximo
+	self.scale = Vector2(scale_factor, scale_factor)
+	
+	# Centralizar horizontalmente (margens laterais iguais)
+	var scaled_w: float = board_w * scale_factor
+	var scaled_h: float = board_h * scale_factor
+	var pos_x: float = (area_w - scaled_w) / 2.0
+	
+	# Posicionar verticalmente: centrado na área útil (excluindo margem inferior)
+	var top_margin: float = area_h * MARGIN_TOP
+	var available_vert: float = area_h * (1.0 - MARGIN_TOP - MARGIN_BOTTOM)
+	var pos_y: float = top_margin + (available_vert - scaled_h) / 2.0
+	
+	self.position = Vector2(pos_x, pos_y)
+	
+	print("[BoardManager] Board: %.0f×%.0f, Scale: %.2f, Pos: (%.0f, %.0f), Margins: side=%.0f bottom=%.0f" % [
+		board_w, board_h, scale_factor, pos_x, pos_y,
+		area_w * MARGIN_SIDE, area_h * MARGIN_BOTTOM
+	])
+	
 	update_tile_states()
 
 
@@ -364,31 +392,26 @@ func _render_board() -> void:
 
 ## Frame do último clique processado — evita dupla emissão por emulação.
 var _last_pick_frame: int = -1
+## Timestamp do último pick processado — cooldown anti-double-click.
+var _last_pick_time: float = 0.0
+## Cooldown mínimo entre picks (ms).
+const PICK_COOLDOWN_MS := 100.0
 
 func _unhandled_input(event: InputEvent) -> void:
 	"""Top-Down Picker centralizado — funciona em Mouse e Touch.
 	
-	Com emulate_mouse_from_touch=true, toques no Android viram
-	InputEventMouseButton. Portanto, basta tratar APENAS mouse events.
-	A deduplicação por frame é uma segurança extra.
+	REGRA ABSOLUTA: se há uma peça sob o clique, SEMPRE consumir
+	o evento (tanto press quanto release) para impedir que ele
+	"atravesse" para peças em camadas inferiores.
 	"""
-	# Só trata clique esquerdo do mouse (inclui touch emulado no Android)
 	if not (event is InputEventMouseButton):
 		return
-	if event.button_index != MOUSE_BUTTON_LEFT or event.pressed:
+	if event.button_index != MOUSE_BUTTON_LEFT:
 		return
 	
-	# Deduplicação: no máximo 1 pick por frame
-	var frame := Engine.get_process_frames()
-	if frame == _last_pick_frame:
-		return
-	_last_pick_frame = frame
-	
-	# get_global_mouse_position() já aplica todas as transforms internas
-	# (viewport stretch, canvas transform) — funciona em qualquer resolução
 	var world_pos := get_global_mouse_position()
 	
-	# Usar o DirectSpaceState para encontrar TODAS as peças sob o clique
+	# Query: encontrar TODAS as peças sob o ponto de clique
 	var space_state := get_world_2d().direct_space_state
 	var query := PhysicsPointQueryParameters2D.new()
 	query.position = world_pos
@@ -410,12 +433,29 @@ func _unhandled_input(event: InputEvent) -> void:
 				topmost_tile = collider
 	
 	if topmost_tile == null:
-		return  # Nenhuma peça sob o cursor — não consumir o evento
+		return  # Nenhuma peça sob o cursor — não consumir
 	
-	# SEMPRE consumir o evento quando há peça — impede "atravessar"
+	# ── CONSUMIR SEMPRE (press E release) ──
+	# Isso impede que o evento alcance peças de camadas inferiores
 	get_viewport().set_input_as_handled()
 	
-	# Só emitir o sinal se a peça do topo é LIVRE (regras do Mahjong)
+	# Só processar lógica no release (finger up / mouse up)
+	if event.pressed:
+		return  # Consome o press mas não processa
+	
+	# Deduplicação por frame
+	var frame := Engine.get_process_frames()
+	if frame == _last_pick_frame:
+		return
+	_last_pick_frame = frame
+	
+	# Cooldown temporal anti-double-click
+	var now := Time.get_ticks_msec()
+	if (now - _last_pick_time) < PICK_COOLDOWN_MS:
+		return
+	_last_pick_time = now
+	
+	# Só emitir se a peça do topo é LIVRE (regras do Mahjong)
 	if is_tile_free(topmost_tile):
 		tile_pressed.emit(topmost_tile)
 
