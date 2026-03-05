@@ -131,8 +131,8 @@ func _build_visuals() -> void:
 	var center_offset := Vector2(face_center_x, face_center_y)
 	
 	# Dimensões da face útil (descontando chanfros)
-	var face_useful_w: float = tile_size.x * 0.82
-	var face_useful_h: float = tile_size.y * 0.85
+	var face_useful_w: float = tile_size.x * 0.90
+	var face_useful_h: float = tile_size.y * 0.90
 	
 	# ── Sticker do Gato ──
 	var tex_atlas := _create_cat_atlas_texture(cat_id)

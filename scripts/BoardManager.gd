@@ -11,11 +11,11 @@ signal tile_pressed(tile: MahjongTile)
 
 # ─── Constantes de layout ───────────────────────────────────────────
 
-## Tamanho de uma célula (a peça ocupa 2 células de largura × 2 de altura).
-const CELL_W := 38.0
+## Tamanho de uma célula. Com CELL_W menor que TILE_W/2, as peças se sobrepõem lateralmente.
+const TILE_W := 76.0
+const CELL_W := TILE_W * 0.38  # 28.88
 const CELL_H := 52.0
 ## Tamanho real do tile widget (formato ~3:4 visualmente alinhado como carta).
-const TILE_W := CELL_W * 2  # 76
 const TILE_H := CELL_H * 2  # 104
 ## Offset 3D por camada Z. (Efeito de pilha vertical limpa)
 const Z_OFFSET_X := 0.0
@@ -211,16 +211,16 @@ func clear_selection() -> void:
 
 func _load_turtle_layout() -> Array[Vector3i]:
 	"""
-	Layout 'The Turtle' — Pirâmide Mahjong clássica em 5 camadas.
-	Total: 60 peças (30 pares). Formato de tartaruga:
-	  • Base diamante com cabeça/cauda
+	Layout 'The Turtle' — Pirâmide Mahjong clássica em 5 camadas (HORIZONTAL COMPACTO).
+	Total: 60 peças (30 pares). Formato de tartaruga clássico:
+	  • Base diamante com cabeça/cauda no eixo X (larga)
 	  • Camadas ímpares (Z=1, Z=3) com half-tile offset
 	  • Topo Z=4 com 2 peças
 	"""
 	var slots: Array[Vector3i] = []
 
 	# ═══ Z=0 (Base — Casco da Tartaruga): 30 peças ═══
-	# Diamante com cabeça (à esquerda) e cauda (à direita)
+	# Diamante com cabeça (esquerda) e cauda (direita)
 	# Row y=0: centro estreito (4 peças)
 	for x in [6, 8, 10, 12]:
 		slots.append(Vector3i(x, 0, 0))
@@ -407,6 +407,8 @@ func _test_overlap_layout() -> Dictionary:
 
 func _render_board() -> void:
 	"""Cria os nós de tile e posiciona no tabuleiro."""
+	await get_tree().process_frame  # Garante Sincronização de Frame para resize
+	
 	_clear_children()
 	self.scale = Vector2.ONE  # Reset scale antes de recalcular
 	self.position = Vector2.ZERO
@@ -467,18 +469,34 @@ func _render_board() -> void:
 	
 	tiles = tile_nodes
 	
-	# ── Auto-scale e centralização precisa ──
-	# Usando margens proporcionais adaptativas para caber em qualquer tela
-	# As margins definem os espaços reservados para a interface (UI)
-	const MARGIN_SIDE := 0.04       # 4% de margem em cada lado (para deixar as peças grandes)
-	const MARGIN_BOTTOM := 0.15     # 15% reservado no fundo (botões inferiores)
-	const MARGIN_TOP := 0.22        # 22% reservado no topo (placar, botões superiores)
+	# ── Auto-scale e centralização precisa BASEADA EM UI REAL ──
+	var slots_bar = get_node_or_null("../../UILayer/VBox/InventoryBarContainer/SlotsBar")
+	var hint_btn = get_node_or_null("../../UILayer/VBox/BottomMargin/HintBtn")
 	
+	# Limites verticais padrão caso os nós não sejam encontrados
+	var top_boundary: float = 180.0
+	var bottom_boundary: float = area_h - 120.0
+	
+	if is_instance_valid(slots_bar):
+		# A barra real termina em global_position.y + size.y
+		top_boundary = slots_bar.global_position.y + slots_bar.size.y
+	
+	if is_instance_valid(hint_btn):
+		# O botão começa em global_position.y
+		bottom_boundary = hint_btn.global_position.y
+		
+	# Margens solicitadas
+	const MARGIN_TOP_PX := 25.0
+	const MARGIN_BOTTOM_PX := 50.0
+	const MARGIN_SIDE := 0.04  # 4%
+	
+	var usable_start_y := top_boundary + MARGIN_TOP_PX
+	var usable_end_y := bottom_boundary - MARGIN_BOTTOM_PX
+	var usable_h: float = usable_end_y - usable_start_y
 	var usable_w: float = area_w * (1.0 - MARGIN_SIDE * 2.0)
-	var usable_h: float = area_h * (1.0 - MARGIN_TOP - MARGIN_BOTTOM)
 	
+	# Maximizar escala para o espaço
 	var scale_factor: float = minf(usable_w / board_w, usable_h / board_h)
-	scale_factor = minf(scale_factor, 1.0)  # Não amplia peças — mais peças, não maiores
 	
 	self.scale = Vector2(scale_factor, scale_factor)
 	
@@ -486,9 +504,9 @@ func _render_board() -> void:
 	var scaled_w: float = board_w * scale_factor
 	var pos_x: float = (area_w - scaled_w) / 2.0
 	
-	# Centralizar verticalmente dentro do espaço útil
+	# Centralizar verticalmente dentro do espaço útil exato
 	var scaled_h: float = board_h * scale_factor
-	var pos_y: float = (area_h * MARGIN_TOP) + (usable_h - scaled_h) / 2.0
+	var pos_y: float = usable_start_y + (usable_h - scaled_h) / 2.0
 	
 	self.position = Vector2(pos_x, pos_y)
 	
