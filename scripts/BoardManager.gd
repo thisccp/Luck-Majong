@@ -38,7 +38,7 @@ func new_game() -> void:
 	_move_history.clear()
 	_clear_children()
 	
-	var slots := _classic_pyramid_layout()
+	var slots := _load_turtle_layout()
 	_generate_beatable(slots)
 	_render_board()
 	print("[BoardManager] new_game: %d tiles gerados" % tiles.size())
@@ -56,27 +56,41 @@ func active_tiles() -> Array[MahjongTile]:
 func is_tile_free(tile: MahjongTile) -> bool:
 	"""
 	Uma peça está livre se:
-	  1. Nenhuma peça em qualquer nível z acima sobrepõe qualquer de suas células.
+	  1. Regra 90/10: menos de 10% da sua área está coberta por peças acima.
 	  2. Pelo menos um dos lados (esquerdo ou direito) está livre.
 	"""
 	if tile.is_matched or tile.is_in_inventory:
 		return false
 	
-	var tile_cells: Array[Vector2i] = tile.cells_occupied()
+	# --- Bloqueio por sobreposição — Regra 90/10 (pixel-based) ---
+	# Retângulo visual da peça no espaço do tabuleiro (com pixel_offset)
+	var tile_rect := Rect2(
+		tile.grid_pos.x * CELL_W + tile.grid_pos.z * Z_OFFSET_X + tile.pixel_offset.x,
+		tile.grid_pos.y * CELL_H + tile.grid_pos.z * Z_OFFSET_Y + tile.pixel_offset.y,
+		TILE_W, TILE_H
+	)
+	var tile_area := TILE_W * TILE_H
+	var total_overlap := 0.0
 	
-	# --- Bloqueio por sobreposição (z > atual) ---
 	for other in tiles.values():
 		if not (other is MahjongTile):
 			continue
 		if other.is_matched or other.is_in_inventory or other.grid_pos.z <= tile.grid_pos.z:
 			continue
-		var other_cells: Array[Vector2i] = other.cells_occupied()
-		for cell in tile_cells:
-			if cell in other_cells:
-				return false
+		var other_rect := Rect2(
+			other.grid_pos.x * CELL_W + other.grid_pos.z * Z_OFFSET_X + other.pixel_offset.x,
+			other.grid_pos.y * CELL_H + other.grid_pos.z * Z_OFFSET_Y + other.pixel_offset.y,
+			TILE_W, TILE_H
+		)
+		var intersection := tile_rect.intersection(other_rect)
+		total_overlap += intersection.get_area()
+	
+	# Bloqueada se ≥ 10% da área coberta
+	if total_overlap / tile_area >= 0.10:
+		return false
 	
 	# --- Bloqueio lateral ---
-	# Bloqueio lateral ocorre se há vizinho exato ou 1 célula acima/abaixo em Y.
+	# A peça precisa ter pelo menos um lado (esquerdo OU direito) livre.
 	var left_blocked := false
 	var right_blocked := false
 	for dy in range(-1, 2):
@@ -195,32 +209,63 @@ func clear_selection() -> void:
 
 # ─── Layout ─────────────────────────────────────────────────────────
 
-func _classic_pyramid_layout() -> Array[Vector3i]:
+func _load_turtle_layout() -> Array[Vector3i]:
 	"""
-	Layout Mini (Nível 1 / Testes).
-	Total: 40 peças (20 pares). Bom para avaliar mecânicas, gerar soluções rápidas 
-	e introduzir o jogador.
+	Layout 'The Turtle' — Pirâmide Mahjong clássica em 5 camadas.
+	Total: 60 peças (30 pares). Formato de tartaruga:
+	  • Base diamante com cabeça/cauda
+	  • Camadas ímpares (Z=1, Z=3) com half-tile offset
+	  • Topo Z=4 com 2 peças
 	"""
 	var slots: Array[Vector3i] = []
-	
-	var _add_block = func(z: int, x_start: int, y_start: int, width: int, height: int):
-		for col in range(width):
-			for row in range(height):
-				slots.append(Vector3i(x_start + col * 2, y_start + row * 2, z))
-	
-	# Z = 0 (Base)
-	_add_block.call(0, 2, 2, 6, 4)  # Corpo central (24 peças)
-	_add_block.call(0, 0, 4, 1, 2)  # Asa esquerda (2 peças)
-	_add_block.call(0, 14, 4, 1, 2) # Asa direita (2 peças)
-	
-	# Z = 1
-	_add_block.call(1, 4, 4, 4, 2)  # (8 peças)
-	
-	# Z = 2
-	_add_block.call(2, 6, 4, 2, 1)  # (2 peças)
-	_add_block.call(2, 6, 6, 2, 1)  # (2 peças) - Dividido para entender o empilhamento
-	
-	# Total: 24 + 2 + 2 + 8 + 4 = 40 Peças!
+
+	# ═══ Z=0 (Base — Casco da Tartaruga): 30 peças ═══
+	# Diamante com cabeça (à esquerda) e cauda (à direita)
+	# Row y=0: centro estreito (4 peças)
+	for x in [6, 8, 10, 12]:
+		slots.append(Vector3i(x, 0, 0))
+	# Row y=2: expandindo (6 peças)
+	for x in [4, 6, 8, 10, 12, 14]:
+		slots.append(Vector3i(x, 2, 0))
+	# Row y=4: faixa mais larga + cabeça(x=0,2) + cauda(x=16,18) = 10 peças
+	for x in [0, 2, 4, 6, 8, 10, 12, 14, 16, 18]:
+		slots.append(Vector3i(x, 4, 0))
+	# Row y=6: contraindo (6 peças)
+	for x in [4, 6, 8, 10, 12, 14]:
+		slots.append(Vector3i(x, 6, 0))
+	# Row y=8: centro estreito (4 peças)
+	for x in [6, 8, 10, 12]:
+		slots.append(Vector3i(x, 8, 0))
+
+	# ═══ Z=1 (Half-tile offset): 16 peças ═══
+	for x in [7, 9, 11]:
+		slots.append(Vector3i(x, 1, 1))
+	for x in [5, 7, 9, 11, 13]:
+		slots.append(Vector3i(x, 3, 1))
+	for x in [5, 7, 9, 11, 13]:
+		slots.append(Vector3i(x, 5, 1))
+	for x in [7, 9, 11]:
+		slots.append(Vector3i(x, 7, 1))
+
+	# ═══ Z=2: 8 peças ═══
+	for x in [8, 10]:
+		slots.append(Vector3i(x, 2, 2))
+	for x in [6, 8, 10, 12]:
+		slots.append(Vector3i(x, 4, 2))
+	for x in [8, 10]:
+		slots.append(Vector3i(x, 6, 2))
+
+	# ═══ Z=3 (Half-tile offset): 4 peças ═══
+	for x in [7, 11]:
+		slots.append(Vector3i(x, 3, 3))
+	for x in [7, 11]:
+		slots.append(Vector3i(x, 5, 3))
+
+	# ═══ Z=4 (Topo): 2 peças ═══
+	for x in [8, 10]:
+		slots.append(Vector3i(x, 4, 4))
+
+	# Total: 30 + 16 + 8 + 4 + 2 = 60 Peças!
 	return slots
 
 
@@ -317,6 +362,47 @@ func _find_free_slots_for_generation(
 	return free
 
 
+# ─── Teste de Sobreposição 90/10 ────────────────────────────────────
+
+func new_test_game() -> void:
+	"""Gera um tabuleiro de TESTE para validar a regra 90/10.
+	Tile Z=1 esquerdo: offset (30,0) → ~6% overlap → peças abaixo LIVRES.
+	Tile Z=1 direito:  offset (0,0)  → ~25% overlap → peças abaixo BLOQUEADAS."""
+	tiles.clear()
+	_move_history.clear()
+	_clear_children()
+
+	var test_data := _test_overlap_layout()
+	tiles = test_data
+	_render_board()
+	print("[BoardManager] TEST GAME: %d tiles (validação 90/10)" % tiles.size())
+
+
+func _test_overlap_layout() -> Dictionary:
+	"""Layout de teste com sobreposição controlada para validar regra 90/10."""
+	var data := {}
+
+	# ── Z=0: Base — 8 peças (4 pares) ──
+	# Fila superior
+	data[Vector3i(0, 0, 0)] = {"cat_id": 1, "pixel_offset": Vector2.ZERO}
+	data[Vector3i(2, 0, 0)] = {"cat_id": 2, "pixel_offset": Vector2.ZERO}
+	data[Vector3i(4, 0, 0)] = {"cat_id": 3, "pixel_offset": Vector2.ZERO}
+	data[Vector3i(6, 0, 0)] = {"cat_id": 4, "pixel_offset": Vector2.ZERO}
+	# Fila inferior
+	data[Vector3i(0, 2, 0)] = {"cat_id": 1, "pixel_offset": Vector2.ZERO}
+	data[Vector3i(2, 2, 0)] = {"cat_id": 2, "pixel_offset": Vector2.ZERO}
+	data[Vector3i(4, 2, 0)] = {"cat_id": 3, "pixel_offset": Vector2.ZERO}
+	data[Vector3i(6, 2, 0)] = {"cat_id": 4, "pixel_offset": Vector2.ZERO}
+
+	# ── Z=1: Teste — 2 peças (1 par) ──
+	# ESQUERDO: offset grande → ~6% overlap na peça (0,0) → LIVRE (< 10%)
+	data[Vector3i(1, 1, 1)] = {"cat_id": 5, "pixel_offset": Vector2(30, 0)}
+	# DIREITO: sem offset → ~25% overlap em vizinhos → BLOQUEADO (> 10%)
+	data[Vector3i(5, 1, 1)] = {"cat_id": 5, "pixel_offset": Vector2.ZERO}
+
+	return data
+
+
 # ─── Renderização ───────────────────────────────────────────────────
 
 func _render_board() -> void:
@@ -348,8 +434,9 @@ func _render_board() -> void:
 		max_z = maxi(max_z, pos.z)
 	
 	# Tamanho total do tabuleiro (sem escala)
-	var board_w: float = max_x * CELL_W + max_z * Z_OFFSET_X + TILE_W * 0.1
-	var board_h: float = max_y * CELL_H + max_z * Z_OFFSET_Y + TILE_H * 0.1
+	# Usa pos.y+2 para altura real (tile ocupa 2 células) e abs() para Z offset negativo
+	var board_w: float = max_x * CELL_W + absi(max_z) * absf(Z_OFFSET_X) + TILE_W * 0.1
+	var board_h: float = (max_y + 1) * CELL_H + absi(max_z) * absf(Z_OFFSET_Y) + TILE_H * 0.5
 	
 	# Posicionar tiles a partir de (0,0) — sem offset
 	var sorted_positions := tiles.keys()
@@ -364,13 +451,15 @@ func _render_board() -> void:
 	for pos: Vector3i in sorted_positions:
 		var data = tiles[pos]
 		var cat_id_val: int = data["cat_id"]
+		var pix_offset: Vector2 = data.get("pixel_offset", Vector2.ZERO) if data is Dictionary else Vector2.ZERO
 		
 		var tile_node := MahjongTile.new()
 		tile_node.setup(pos, cat_id_val, Vector2(TILE_W, TILE_H))
+		tile_node.pixel_offset = pix_offset
 		
-		# Posição relativa ao tabuleiro (centro do tile)
-		var sx: float = pos.x * CELL_W + pos.z * Z_OFFSET_X + TILE_W / 2.0
-		var sy: float = pos.y * CELL_H + pos.z * Z_OFFSET_Y + TILE_H / 2.0
+		# Posição relativa ao tabuleiro (centro do tile) + pixel_offset
+		var sx: float = pos.x * CELL_W + pos.z * Z_OFFSET_X + TILE_W / 2.0 + pix_offset.x
+		var sy: float = pos.y * CELL_H + pos.z * Z_OFFSET_Y + TILE_H / 2.0 + pix_offset.y
 		tile_node.position = Vector2(sx, sy)
 		
 		add_child(tile_node)
@@ -389,7 +478,7 @@ func _render_board() -> void:
 	var usable_h: float = area_h * (1.0 - MARGIN_TOP - MARGIN_BOTTOM)
 	
 	var scale_factor: float = minf(usable_w / board_w, usable_h / board_h)
-	scale_factor = minf(scale_factor, 2.5)  # Limite máximo
+	scale_factor = minf(scale_factor, 1.0)  # Não amplia peças — mais peças, não maiores
 	
 	self.scale = Vector2(scale_factor, scale_factor)
 	

@@ -13,6 +13,8 @@ var grid_pos := Vector3i.ZERO
 var cat_id: int = 1
 ## Tamanho da peça em pixels (dominó vertical: 80×110).
 var tile_size := Vector2(80, 110)
+## Deslocamento em pixels para posicionamento sub-grid (half-tile offset).
+var pixel_offset := Vector2.ZERO
 
 ## Estado de jogo.
 var is_matched: bool = false
