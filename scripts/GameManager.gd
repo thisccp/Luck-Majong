@@ -24,6 +24,8 @@ var _inventory_bar: HBoxContainer
 var _pending_animations: int = 0
 ## Reserva imediata de slot: Tile → índice do slot reservado
 var _slot_assignments: Dictionary = {}
+## Tiles em voo (mid-flight): Tile → true
+var _tiles_in_flight: Dictionary = {}
 
 # ─── Reviver ─────────────────────────────────────────────────────────
 
@@ -320,6 +322,7 @@ func _start_game() -> void:
 	_pairs_matched = 0
 	_inventory.clear()
 	_slot_assignments.clear()
+	_tiles_in_flight.clear()
 	_pending_animations = 0
 	_board.new_game()
 
@@ -358,6 +361,9 @@ func _add_to_inventory(tile: MahjongTile) -> void:
 	# Atualizar tabuleiro (peças que ficaram livres)
 	_board.update_tile_states()
 
+	# Registrar tile em voo ANTES de iniciar animação
+	_tiles_in_flight[tile] = true
+
 	# Fire-and-forget: animação não bloqueia cliques
 	_pending_animations += 1
 	_animate_tile_to_slot(tile, slot_index)
@@ -368,19 +374,31 @@ func _add_to_inventory(tile: MahjongTile) -> void:
 
 
 func _animate_tile_to_slot(tile: MahjongTile, slot_index: int) -> void:
-	"""Anima a peça. Pares já foram detectados no clique (eager)."""
+	"""Anima a peça voando ao slot. Ao pousar, dispara match visual se aplicável."""
 	await _fly_tile_to_slot(tile, slot_index)
 
 	if not is_instance_valid(tile):
+		_tiles_in_flight.erase(tile)
 		_pending_animations -= 1
 		return
 
-	# Finalizar no UI (se tile ainda está no inventário — pode ter sido matched)
-	if tile.is_in_inventory:
+	# Tile pousou — remover do registro de voo
+	_tiles_in_flight.erase(tile)
+
+	# Checar se este tile faz parte de um par pendente de animação visual
+	if tile.has_meta("matched_partner"):
+		tile.set_meta("match_landed", true)
+		var partner: MahjongTile = tile.get_meta("matched_partner")
+		if is_instance_valid(partner) and partner.has_meta("match_landed") and partner.get_meta("match_landed"):
+			# Ambos pousaram → disparar animação de match por IMPACTO
+			_animate_pair_removal(tile, partner)
+	elif tile.is_in_inventory:
+		# Tile normal (não matched) — finalizar no UI
 		_reparent_tile_to_ui(tile)
+
 	_pending_animations -= 1
 
-	# Quando todas as animações terminaram, checar apenas game over
+	# Quando todas as animações de voo terminaram, checar game over
 	if _pending_animations <= 0:
 		_check_game_over()
 
@@ -473,17 +491,24 @@ func _recalculate_slot_assignments() -> void:
 
 func _try_instant_pair_resolution() -> void:
 	"""Detecta e resolve pares SINCRONAMENTE no frame do clique.
-	Libera slots imediatamente, permitindo cliques seguintes sem delay."""
+	Libera slots imediatamente, permitindo cliques seguintes sem delay.
+	A animação visual de match é ADIADA até ambos os tiles pousarem."""
 	var pair = _find_inventory_pair()
 	while pair != null:
 		var t1: MahjongTile = _inventory[pair[0]]
 		var t2: MahjongTile = _inventory[pair[1]]
 
-		# Liberar logicamente AGORA (mesmo frame)
+		# ── Liberação lógica IMEDIATA (mesmo frame) ──
 		t1.is_in_inventory = false
 		t2.is_in_inventory = false
+		t1.is_matched = true
+		t2.is_matched = true
 		_board.record_match(t1, t2)
 		_pairs_matched += 1
+
+		# Desabilitar colisão imediatamente (não bloqueiam novos tiles)
+		t1.input_pickable = false
+		t2.input_pickable = false
 
 		var indices: Array = [pair[0], pair[1]]
 		indices.sort()
@@ -494,13 +519,23 @@ func _try_instant_pair_resolution() -> void:
 		_slot_assignments.erase(t2)
 		_recalculate_slot_assignments()
 
-		# Reorganizar peças restantes (deslizar)
+		# Reorganizar peças restantes (deslizar para preencher gaps)
 		_reorganize_slots()
 
-		# Animação cosmética fire-and-forget (não bloqueia NADA)
-		_animate_pair_removal(t1, t2)
+		# ── Gatilho visual por IMPACTO (adiado até ambos pousarem) ──
+		var t1_landed := not _tiles_in_flight.has(t1)
+		var t2_landed := not _tiles_in_flight.has(t2)
 
-		# Atualizar board
+		t1.set_meta("matched_partner", t2)
+		t2.set_meta("matched_partner", t1)
+		t1.set_meta("match_landed", t1_landed)
+		t2.set_meta("match_landed", t2_landed)
+
+		if t1_landed and t2_landed:
+			# Ambos já pousaram → animação imediata
+			_animate_pair_removal(t1, t2)
+
+		# Atualizar board (peças que ficaram livres)
 		_board.update_tile_states()
 
 		# Checar se há outro par (ex: AABB clicados em sequência)
@@ -516,23 +551,35 @@ func _try_instant_pair_resolution() -> void:
 
 
 func _animate_pair_removal(tile1: MahjongTile, tile2: MahjongTile) -> void:
-	"""Animação cosmética de match — fire-and-forget, não bloqueia nada."""
+	"""Animação de match por IMPACTO — scale shrink + fade out (0.4s).
+	Disparada apenas quando ambos os tiles pousaram no slot."""
+	# Garantir que colisão está desabilitada durante a animação
+	for t in [tile1, tile2]:
+		t.input_pickable = false
+		if t.has_node("CollisionShape"):
+			t.get_node("CollisionShape").set_deferred("disabled", true)
+
 	var fade_tween := create_tween()
 	fade_tween.set_parallel(true)
-	fade_tween.tween_property(tile1, "modulate", Color(1.5, 1.3, 0.8, 0.0), 0.25)\
+
+	# Tile 1: shrink + fade
+	fade_tween.tween_property(tile1, "scale", tile1.scale * 0.3, 0.4)\
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	fade_tween.tween_property(tile1, "scale", tile1.scale * 1.3, 0.25)\
+	fade_tween.tween_property(tile1, "modulate", Color(1.5, 1.3, 0.8, 0.0), 0.4)\
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	fade_tween.tween_property(tile2, "modulate", Color(1.5, 1.3, 0.8, 0.0), 0.25)\
+
+	# Tile 2: shrink + fade
+	fade_tween.tween_property(tile2, "scale", tile2.scale * 0.3, 0.4)\
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	fade_tween.tween_property(tile2, "scale", tile2.scale * 1.3, 0.25)\
+	fade_tween.tween_property(tile2, "modulate", Color(1.5, 1.3, 0.8, 0.0), 0.4)\
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	# Callback ao terminar — limpar sem bloquear
+
+	# Callback ao terminar — cleanup visual sem bloquear
 	fade_tween.finished.connect(func():
 		if is_instance_valid(tile1):
-			tile1.mark_matched()
+			tile1.visible = false
 		if is_instance_valid(tile2):
-			tile2.mark_matched()
+			tile2.visible = false
 	)
 
 

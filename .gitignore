@@ -15,5 +15,4 @@ requirements.txt
 .godot/
 *.import
 export_presets.cfg
-luckmahjong.apk.idsig
-luckmahjong.apk
+*.apk.idsig
