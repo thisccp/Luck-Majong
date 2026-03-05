@@ -16,3 +16,5 @@ requirements.txt
 *.import
 export_presets.cfg
 *.apk.idsig
+*.idsig
+nekomahjong.apk.idsig
