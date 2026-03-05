@@ -68,10 +68,10 @@ script = ExtResource("2")
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -90.0
-offset_top = 10.0
-offset_right = -10.0
-offset_bottom = 90.0
+offset_left = -92.0
+offset_top = 35.0
+offset_right = -25.0
+offset_bottom = 102.0
 texture_normal = ExtResource("5_btn_menu")
 ignore_texture_size = true
 stretch_mode = 5
@@ -88,7 +88,7 @@ theme_override_constants/separation = 6
 
 [node name="TopMargin" type="MarginContainer" parent="UILayer/VBox" unique_id=98713426]
 layout_mode = 2
-theme_override_constants/margin_top = 40
+theme_override_constants/margin_top = 112
 
 [node name="Spacer" type="Control" parent="UILayer/VBox" unique_id=1538666483]
 layout_mode = 2
@@ -98,10 +98,10 @@ mouse_filter = 2
 [node name="BottomMargin" type="MarginContainer" parent="UILayer/VBox" unique_id=489993948]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/margin_bottom = 40
+theme_override_constants/margin_bottom = 45
 
 [node name="HintBtn" type="TextureButton" parent="UILayer/VBox/BottomMargin" unique_id=980834066]
-custom_minimum_size = Vector2(80, 80)
+custom_minimum_size = Vector2(85, 85)
 layout_mode = 2
 size_flags_horizontal = 4
 texture_normal = ExtResource("7_btn_hint")
