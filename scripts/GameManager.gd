@@ -22,7 +22,8 @@ var _inventory: Array[MahjongTile] = []
 var _inventory_slots: Array[Control] = []
 var _inventory_bar: HBoxContainer
 var _pending_animations: int = 0
-var _checking_state: bool = false
+## Reserva imediata de slot: Tile → índice do slot reservado
+var _slot_assignments: Dictionary = {}
 
 # ─── Reviver ─────────────────────────────────────────────────────────
 
@@ -318,6 +319,7 @@ func _start_game() -> void:
 			tile.queue_free()
 	_pairs_matched = 0
 	_inventory.clear()
+	_slot_assignments.clear()
 	_pending_animations = 0
 	_board.new_game()
 
@@ -328,7 +330,8 @@ func _on_tile_pressed(tile: MahjongTile) -> void:
 		return
 	if tile.is_in_inventory or tile.is_matched:
 		return
-	if _inventory.size() >= MAX_INVENTORY:
+	# Usar contagem EFETIVA: slots que realmente estão ocupados logicamente
+	if _effective_slot_count() >= MAX_INVENTORY:
 		return
 	_add_to_inventory(tile)
 
@@ -338,7 +341,8 @@ func _on_tile_pressed(tile: MahjongTile) -> void:
 # ═════════════════════════════════════════════════════════════════════
 
 func _add_to_inventory(tile: MahjongTile) -> void:
-	var slot_index := _inventory.size()
+	# Reservar slot IMEDIATAMENTE (antes de qualquer animação)
+	var slot_index := _next_free_slot()
 
 	# Guardar dados originais para revive
 	tile.original_global_pos = tile.global_position
@@ -349,6 +353,7 @@ func _add_to_inventory(tile: MahjongTile) -> void:
 	tile.is_selected = false
 
 	_inventory.append(tile)
+	_slot_assignments[tile] = slot_index
 
 	# Atualizar tabuleiro (peças que ficaram livres)
 	_board.update_tile_states()
@@ -357,43 +362,33 @@ func _add_to_inventory(tile: MahjongTile) -> void:
 	_pending_animations += 1
 	_animate_tile_to_slot(tile, slot_index)
 
+	# EAGER: detectar par IMEDIATAMENTE no mesmo frame do clique
+	# Isso libera slots logicamente antes de qualquer animação terminar
+	_try_instant_pair_resolution()
+
 
 func _animate_tile_to_slot(tile: MahjongTile, slot_index: int) -> void:
-	"""Anima e reparenta a peça. Checa pares quando tudo pousar."""
+	"""Anima a peça. Pares já foram detectados no clique (eager)."""
 	await _fly_tile_to_slot(tile, slot_index)
 
 	if not is_instance_valid(tile):
 		_pending_animations -= 1
 		return
 
-	# Usar índice ATUAL no inventário (pode ter mudado durante o voo)
-	_reparent_tile_to_ui(tile)
+	# Finalizar no UI (se tile ainda está no inventário — pode ter sido matched)
+	if tile.is_in_inventory:
+		_reparent_tile_to_ui(tile)
 	_pending_animations -= 1
 
-	# Só checar pares/game over quando TODAS as animações terminaram
+	# Quando todas as animações terminaram, checar apenas game over
 	if _pending_animations <= 0:
-		_check_inventory_state()
+		_check_game_over()
 
 
-func _check_inventory_state() -> void:
-	"""Verifica pares e game over após todas as animações."""
-	if _checking_state:
-		return
-	_checking_state = true
-
-	# Checar pares repetidamente (pode ter mais de um par)
-	var pair = _find_inventory_pair()
-	while pair != null:
-		await get_tree().create_timer(0.2).timeout
-		if pair[0] < _inventory.size() and pair[1] < _inventory.size():
-			await _remove_inventory_pair(pair[0], pair[1])
-		pair = _find_inventory_pair()
-
-	# Após resolver pares, checar game over
+func _check_game_over() -> void:
+	"""Checa game over (pares já foram resolvidos no clique)."""
 	if _inventory.size() >= MAX_INVENTORY:
 		_show_game_over_popup()
-
-	_checking_state = false
 
 
 func _fly_tile_to_slot(tile: MahjongTile, slot_index: int) -> void:
@@ -409,7 +404,7 @@ func _fly_tile_to_slot(tile: MahjongTile, slot_index: int) -> void:
 	tile.z_index = 1000
 	tile.position = start_screen_pos
 
-	# Posição-alvo: centro do bolso em coordenadas de tela
+	# Posição-alvo: centro do bolso FINAL TEÓRICO (slot reservado)
 	var target_pos: Vector2 = _get_slot_center(slot_index)
 
 	# Escala-alvo: peça deve caber visualmente no bolso
@@ -420,12 +415,13 @@ func _fly_tile_to_slot(tile: MahjongTile, slot_index: int) -> void:
 	)
 	var target_scale := Vector2(scale_to_fit, scale_to_fit)
 
-	var tween := create_tween()
+	# Tween vinculado ao TILE — independente de qualquer outro tween
+	var tween := tile.create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(tile, "position", target_pos, 0.35)\
-		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+		.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
 	tween.tween_property(tile, "scale", target_scale, 0.35)\
-		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+		.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
 
 	await tween.finished
 
@@ -454,26 +450,73 @@ func _find_inventory_pair() -> Variant:
 	return null
 
 
-func _remove_inventory_pair(idx1: int, idx2: int) -> void:
-	"""Remove um par do inventário e marca como matched."""
-	var tile1: MahjongTile = _inventory[idx1]
-	var tile2: MahjongTile = _inventory[idx2]
+func _next_free_slot() -> int:
+	"""Retorna o menor índice de slot ainda não reservado."""
+	var used: Array = _slot_assignments.values()
+	for i in range(MAX_INVENTORY):
+		if i not in used:
+			return i
+	return _inventory.size()
 
-	# 1) PRIMEIRO: remover do array e reorganizar slots imediatamente
-	tile1.is_in_inventory = false
-	tile2.is_in_inventory = false
-	_board.record_match(tile1, tile2)
-	_pairs_matched += 1
 
-	var indices: Array = [idx1, idx2]
-	indices.sort()
-	_inventory.remove_at(indices[1])
-	_inventory.remove_at(indices[0])
+func _effective_slot_count() -> int:
+	"""Conta slots REALMENTE ocupados (não conta pares já resolvidos)."""
+	return _slot_assignments.size()
 
-	# Reorganizar peças restantes nos slots (deslizar)
-	_reorganize_slots()
 
-	# 2) DEPOIS: animação cosmética de saída (não bloqueia a lógica)
+func _recalculate_slot_assignments() -> void:
+	"""Remapeia slots sequencialmente após remoção de par."""
+	_slot_assignments.clear()
+	for i in range(_inventory.size()):
+		_slot_assignments[_inventory[i]] = i
+
+
+func _try_instant_pair_resolution() -> void:
+	"""Detecta e resolve pares SINCRONAMENTE no frame do clique.
+	Libera slots imediatamente, permitindo cliques seguintes sem delay."""
+	var pair = _find_inventory_pair()
+	while pair != null:
+		var t1: MahjongTile = _inventory[pair[0]]
+		var t2: MahjongTile = _inventory[pair[1]]
+
+		# Liberar logicamente AGORA (mesmo frame)
+		t1.is_in_inventory = false
+		t2.is_in_inventory = false
+		_board.record_match(t1, t2)
+		_pairs_matched += 1
+
+		var indices: Array = [pair[0], pair[1]]
+		indices.sort()
+		_inventory.remove_at(indices[1])
+		_inventory.remove_at(indices[0])
+
+		_slot_assignments.erase(t1)
+		_slot_assignments.erase(t2)
+		_recalculate_slot_assignments()
+
+		# Reorganizar peças restantes (deslizar)
+		_reorganize_slots()
+
+		# Animação cosmética fire-and-forget (não bloqueia NADA)
+		_animate_pair_removal(t1, t2)
+
+		# Atualizar board
+		_board.update_tile_states()
+
+		# Checar se há outro par (ex: AABB clicados em sequência)
+		pair = _find_inventory_pair()
+
+	# Checar vitória após resolver todos os pares
+	if _board.is_won():
+		await get_tree().create_timer(0.3).timeout
+		_show_win_popup()
+	elif _board.active_tiles().is_empty() and _inventory.is_empty():
+		await get_tree().create_timer(0.3).timeout
+		_show_win_popup()
+
+
+func _animate_pair_removal(tile1: MahjongTile, tile2: MahjongTile) -> void:
+	"""Animação cosmética de match — fire-and-forget, não bloqueia nada."""
 	var fade_tween := create_tween()
 	fade_tween.set_parallel(true)
 	fade_tween.tween_property(tile1, "modulate", Color(1.5, 1.3, 0.8, 0.0), 0.25)\
@@ -484,21 +527,16 @@ func _remove_inventory_pair(idx1: int, idx2: int) -> void:
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	fade_tween.tween_property(tile2, "scale", tile2.scale * 1.3, 0.25)\
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	# Callback ao terminar — limpar sem bloquear
+	fade_tween.finished.connect(func():
+		if is_instance_valid(tile1):
+			tile1.mark_matched()
+		if is_instance_valid(tile2):
+			tile2.mark_matched()
+	)
 
-	await fade_tween.finished
-	tile1.mark_matched()
-	tile2.mark_matched()
 
-	# Atualizar board
-	_board.update_tile_states()
-
-	# Checar vitória
-	if _board.is_won():
-		await get_tree().create_timer(0.3).timeout
-		_show_win_popup()
-	elif _board.active_tiles().is_empty() and _inventory.is_empty():
-		await get_tree().create_timer(0.3).timeout
-		_show_win_popup()
+# _remove_inventory_pair substituído por _try_instant_pair_resolution()
 
 
 func _reorganize_slots() -> void:
@@ -506,7 +544,7 @@ func _reorganize_slots() -> void:
 	for i in range(_inventory.size()):
 		var tile: MahjongTile = _inventory[i]
 
-		# Só reposicionar peças já no UILayer (não as que ainda estão voando no board)
+		# Só reposicionar peças já no UILayer (não as que ainda estão voando)
 		if tile.get_parent() == _board:
 			continue
 
@@ -514,9 +552,10 @@ func _reorganize_slots() -> void:
 
 		# Só animar se a peça não está já na posição correta
 		if tile.position.distance_to(pocket_center) > 2.0:
-			var slide := create_tween()
+			# Tween vinculado ao TILE — independente dos outros tiles
+			var slide := tile.create_tween()
 			slide.tween_property(tile, "position", pocket_center, 0.2)\
-				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+				.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
 		else:
 			tile.position = pocket_center
 
@@ -581,6 +620,7 @@ func _on_revive() -> void:
 	# Devolver todas as peças voando de volta ao tabuleiro
 	var tiles_to_revive: Array[MahjongTile] = _inventory.duplicate()
 	_inventory.clear()
+	_slot_assignments.clear()
 
 	for tile in tiles_to_revive:
 		# Posição atual na tela (UILayer coords)
