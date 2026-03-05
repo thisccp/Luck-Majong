@@ -48,7 +48,7 @@ func active_tiles() -> Array[MahjongTile]:
 	"""Retorna tiles ainda não removidos."""
 	var result: Array[MahjongTile] = []
 	for tile in tiles.values():
-		if tile is MahjongTile and not tile.is_matched:
+		if tile is MahjongTile and not tile.is_matched and not tile.is_in_inventory:
 			result.append(tile)
 	return result
 
@@ -59,7 +59,7 @@ func is_tile_free(tile: MahjongTile) -> bool:
 	  1. Nenhuma peça em qualquer nível z acima sobrepõe qualquer de suas células.
 	  2. Pelo menos um dos lados (esquerdo ou direito) está livre.
 	"""
-	if tile.is_matched:
+	if tile.is_matched or tile.is_in_inventory:
 		return false
 	
 	var tile_cells: Array[Vector2i] = tile.cells_occupied()
@@ -68,7 +68,7 @@ func is_tile_free(tile: MahjongTile) -> bool:
 	for other in tiles.values():
 		if not (other is MahjongTile):
 			continue
-		if other.is_matched or other.grid_pos.z <= tile.grid_pos.z:
+		if other.is_matched or other.is_in_inventory or other.grid_pos.z <= tile.grid_pos.z:
 			continue
 		var other_cells: Array[Vector2i] = other.cells_occupied()
 		for cell in tile_cells:
@@ -171,7 +171,7 @@ func shuffle_remaining() -> void:
 func update_tile_states() -> void:
 	"""Atualiza visual de blocked/free em todas as peças."""
 	for tile in tiles.values():
-		if tile is MahjongTile and not tile.is_matched:
+		if tile is MahjongTile and not tile.is_matched and not tile.is_in_inventory:
 			tile.set_blocked(not is_tile_free(tile))
 
 
@@ -417,7 +417,7 @@ var _last_pick_frame: int = -1
 ## Timestamp do último pick processado — cooldown anti-double-click.
 var _last_pick_time: float = 0.0
 ## Cooldown mínimo entre picks (ms).
-const PICK_COOLDOWN_MS := 100.0
+const PICK_COOLDOWN_MS := 30.0
 
 func _unhandled_input(event: InputEvent) -> void:
 	"""Top-Down Picker centralizado — funciona em Mouse e Touch.
@@ -488,7 +488,7 @@ func _has_neighbor(x: int, y: int, z: int) -> bool:
 		return false
 	var tile = tiles[pos]
 	if tile is MahjongTile:
-		return not tile.is_matched
+		return not tile.is_matched and not tile.is_in_inventory
 	return true
 
 

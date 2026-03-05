@@ -21,6 +21,11 @@ var is_selected: bool = false:
 		is_selected = value
 		_update_visuals()
 
+## Inventário — armazena estado original para revive.
+var is_in_inventory: bool = false
+var original_global_pos: Vector2 = Vector2.ZERO
+var original_z_index: int = 0
+
 ## Referências internas.
 var _collision_shape: CollisionShape2D
 var _sprite: Sprite2D

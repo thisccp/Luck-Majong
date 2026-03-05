@@ -64,6 +64,18 @@ script = ExtResource("2")
 
 [node name="UILayer" type="CanvasLayer" parent="." unique_id=1285879559]
 
+[node name="MenuBtn" type="TextureButton" parent="UILayer" unique_id=538129571]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -90.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = 90.0
+texture_normal = ExtResource("5_btn_menu")
+ignore_texture_size = true
+stretch_mode = 5
+
 [node name="VBox" type="VBoxContainer" parent="UILayer" unique_id=1405971771]
 anchors_preset = 15
 anchor_right = 1.0
@@ -76,36 +88,7 @@ theme_override_constants/separation = 6
 
 [node name="TopMargin" type="MarginContainer" parent="UILayer/VBox" unique_id=98713426]
 layout_mode = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 20
-
-[node name="TopBar" type="HBoxContainer" parent="UILayer/VBox/TopMargin" unique_id=198713426]
-layout_mode = 2
-theme_override_constants/separation = 16
-alignment = 2
-
-[node name="TitleLabel" type="Label" parent="UILayer/VBox/TopMargin/TopBar" unique_id=95873965]
-custom_minimum_size = Vector2(0, 50)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "🐱 Neko Mahjong"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="MenuBtn" type="TextureButton" parent="UILayer/VBox/TopMargin/TopBar" unique_id=538129571]
-custom_minimum_size = Vector2(80, 80)
-layout_mode = 2
-texture_normal = ExtResource("5_btn_menu")
-ignore_texture_size = true
-stretch_mode = 5
-
-[node name="StatusLabel" type="Label" parent="UILayer/VBox" unique_id=981175672]
-custom_minimum_size = Vector2(0, 30)
-layout_mode = 2
-text = "Pares: 0"
-horizontal_alignment = 1
-vertical_alignment = 1
+theme_override_constants/margin_top = 40
 
 [node name="Spacer" type="Control" parent="UILayer/VBox" unique_id=1538666483]
 layout_mode = 2
@@ -173,78 +156,6 @@ focus_mode = 0
 theme_override_font_sizes/font_size = 28
 text = "Sair"
 flat = true
-
-[node name="NoMovesPopup" type="TextureRect" parent="UILayer" unique_id=617032032]
-visible = false
-custom_minimum_size = Vector2(400, 520)
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -200.0
-offset_top = -260.0
-offset_right = 200.0
-offset_bottom = 260.0
-grow_horizontal = 2
-grow_vertical = 2
-theme = ExtResource("3_theme")
-texture = ExtResource("4_popup_bg")
-expand_mode = 1
-
-[node name="Margin" type="MarginContainer" parent="UILayer/NoMovesPopup" unique_id=8329412]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/margin_left = 40
-theme_override_constants/margin_top = 80
-theme_override_constants/margin_right = 40
-theme_override_constants/margin_bottom = 80
-
-[node name="Center" type="CenterContainer" parent="UILayer/NoMovesPopup/Margin" unique_id=983174]
-layout_mode = 2
-
-[node name="VBox" type="VBoxContainer" parent="UILayer/NoMovesPopup/Margin/Center" unique_id=1716082386]
-layout_mode = 2
-theme_override_constants/separation = 40
-
-[node name="NoMovesLabel" type="Label" parent="UILayer/NoMovesPopup/Margin/Center/VBox" unique_id=1108983094]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.2, 0.1, 0.05, 1)
-theme_override_font_sizes/font_size = 24
-text = "😿 Sem jogadas 
-disponíveis!"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="BtnBar" type="VBoxContainer" parent="UILayer/NoMovesPopup/Margin/Center/VBox" unique_id=1100335460]
-layout_mode = 2
-theme_override_constants/separation = 16
-
-[node name="ShuffleBtn2" type="Button" parent="UILayer/NoMovesPopup/Margin/Center/VBox/BtnBar" unique_id=213934255]
-custom_minimum_size = Vector2(240, 60)
-layout_mode = 2
-theme_override_font_sizes/font_size = 22
-theme_override_styles/normal = SubResource("StyleBoxFlat_popup_btn")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_popup_btn_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_popup_btn_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_popup_btn")
-theme_override_styles/focus = SubResource("StyleBoxFlat_popup_btn")
-text = "Embaralhar"
-
-[node name="ResetBtn2" type="Button" parent="UILayer/NoMovesPopup/Margin/Center/VBox/BtnBar" unique_id=984383986]
-custom_minimum_size = Vector2(240, 60)
-layout_mode = 2
-theme_override_font_sizes/font_size = 22
-theme_override_styles/normal = SubResource("StyleBoxFlat_popup_btn")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_popup_btn_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_popup_btn_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_popup_btn")
-theme_override_styles/focus = SubResource("StyleBoxFlat_popup_btn")
-text = "Reset"
 
 [node name="PausePopup" type="TextureRect" parent="UILayer" unique_id=89123741]
 visible = false
