@@ -46,8 +46,8 @@ const ATLAS_ROWS: int = 4
 const SIDE_DEPTH := 5.0
 ## Padding da face
 const FACE_PADDING := 6.0
-## Hitbox reduzida para precisão (20% menor que o visual)
-const HITBOX_SHRINK := 0.20
+## Hitbox super reduzida nas laterais para ignorar as bordas grossas transparentes (35% menor)
+const HITBOX_SHRINK := 0.35
 
 ## Textura compartilhada
 static var _cat_atlas: Texture2D = null
@@ -121,6 +121,17 @@ func _build_visuals() -> void:
 	var scale_x := tile_size.x / base_w
 	var scale_y := tile_size.y / base_h
 	base_sprite.scale = Vector2(scale_x, scale_y)
+	
+	# ── Sombra de Profundidade estrutural (Para Z > 0) ──
+	if grid_pos.z > 0:
+		var drop_shadow := Sprite2D.new()
+		drop_shadow.texture = base_sprite.texture
+		drop_shadow.scale = Vector2(scale_x, scale_y)
+		drop_shadow.position = Vector2(4.0, 6.0) # Sombra sutil de relevo
+		drop_shadow.modulate = Color(0, 0, 0, 0.15)
+		drop_shadow.name = "DropShadow"
+		add_child(drop_shadow)
+	
 	add_child(base_sprite)
 	
 	# ── Definição da Face Útil ──
@@ -174,7 +185,7 @@ func _build_visuals() -> void:
 func _update_visuals() -> void:
 	if not is_inside_tree():
 		return
-	if is_matched:
+	if is_matched or is_in_inventory:
 		return
 	
 	if _select_tween and _select_tween.is_valid():
@@ -197,10 +208,15 @@ func _update_visuals() -> void:
 func set_blocked(blocked: bool) -> void:
 	if is_selected:
 		return
+		
+	# 2. Sincronia de Grayscale: A peça inteira e a estampa devem mudar
+	# Modulate próprio escurece a textura base, mas os filhos precisam de herança pura ou alteração direta.
 	if blocked:
-		modulate = Color(0.6, 0.6, 0.6)
+		modulate = Color(0.55, 0.55, 0.55)
+		if _sprite: _sprite.modulate = Color(0.7, 0.7, 0.7) # Escurece um pouco menos o gato para ser visível
 	else:
 		modulate = Color(1.0, 1.0, 1.0)
+		if _sprite: _sprite.modulate = Color(1.0, 1.0, 1.0)
 
 
 # ─── Animações ──────────────────────────────────────────────────────
@@ -225,6 +241,8 @@ func play_match_animation() -> void:
 
 func play_hint_glow() -> void:
 	"""Pulso de luz zen."""
+	if is_in_inventory: return
+	
 	if _select_tween and _select_tween.is_valid():
 		_select_tween.kill()
 	
@@ -241,6 +259,8 @@ func play_hint_glow() -> void:
 
 
 func stop_hint_glow() -> void:
+	if is_in_inventory: return
+	
 	if _select_tween and _select_tween.is_valid():
 		_select_tween.kill()
 		_select_tween = null

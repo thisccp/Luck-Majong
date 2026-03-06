@@ -22,6 +22,7 @@ var _inventory: Array[MahjongTile] = []
 var _inventory_slots: Array[Control] = []
 var _inventory_bar: HBoxContainer
 var _pending_animations: int = 0
+var _fading_animations: int = 0
 ## Reserva imediata de slot: Tile → índice do slot reservado
 var _slot_assignments: Dictionary = {}
 ## Tiles em voo (mid-flight): Tile → true
@@ -135,7 +136,7 @@ func _build_inventory_bar() -> void:
 	bar_img.texture = slots_tex
 	bar_img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	bar_img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	bar_img.custom_minimum_size = Vector2(360, 180)  # Forçar tamanho garantindo que a proporção caiba
+	bar_img.custom_minimum_size = Vector2(460, 180)  # Forçado maior (460x180) para acomodar melhor a proporção parruda
 	bar_img.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar_container.add_child(bar_img)
 
@@ -324,6 +325,7 @@ func _start_game() -> void:
 	_slot_assignments.clear()
 	_tiles_in_flight.clear()
 	_pending_animations = 0
+	_fading_animations = 0
 	_board.new_game()
 
 
@@ -411,27 +413,28 @@ func _check_game_over() -> void:
 
 func _fly_tile_to_slot(tile: MahjongTile, slot_index: int) -> void:
 	"""Anima a peça voando do tabuleiro ao bolso, POR CIMA da moldura."""
-	# Converter posição atual do board para coordenadas de tela
+	# Converter posição atual do board para coordenadas de tela, LENDO a escala antes do reparent
 	var start_screen_pos: Vector2 = tile.global_position
+	var start_scale: Vector2 = tile.global_scale
 
 	# Reparentar ao UILayer ANTES do voo (para ficar acima do slots.png)
 	if tile.get_parent() == _board:
 		_board.remove_child(tile)
 		$UILayer.add_child(tile)
 
+	# Remover a sombra estrutural assim que a peça "levantar voo" para a UI limpa
+	if tile.has_node("DropShadow"):
+		tile.get_node("DropShadow").visible = false
+
 	tile.z_index = 1000
 	tile.position = start_screen_pos
+	tile.scale = start_scale # Preservar proporção do tabuleiro imediatamente após reparentar!
 
 	# Posição-alvo: centro do bolso FINAL TEÓRICO (slot reservado)
 	var target_pos: Vector2 = _get_slot_center(slot_index)
 
-	# Escala-alvo: peça deve caber visualmente no bolso
-	var pocket: Vector2 = _get_slot_pocket_size(slot_index)
-	var scale_to_fit: float = minf(
-		pocket.x / tile.tile_size.x,
-		pocket.y / tile.tile_size.y
-	)
-	var target_scale := Vector2(scale_to_fit, scale_to_fit)
+	# Escala-alvo: Reduzido a 80% da escala perfeita do tabuleiro para manter consistência sem deformar lateralmente.
+	var target_scale := _board.scale * 0.80
 
 	# Tween vinculado ao TILE — independente de qualquer outro tween
 	var tween := tile.create_tween()
@@ -456,7 +459,8 @@ func _reparent_tile_to_ui(tile: MahjongTile) -> void:
 	tile.modulate = Color.WHITE
 
 	# Reorganizar TODAS as peças para garantir consistência
-	_reorganize_slots()
+	if _fading_animations == 0:
+		_reorganize_slots()
 
 
 func _find_inventory_pair() -> Variant:
@@ -519,8 +523,8 @@ func _try_instant_pair_resolution() -> void:
 		_slot_assignments.erase(t2)
 		_recalculate_slot_assignments()
 
-		# Reorganizar peças restantes (deslizar para preencher gaps)
-		_reorganize_slots()
+		# A reorganização visual (_reorganize_slots) foi removida daqui para não deslizar
+		# os tiles enquanto a animação do match atual não desaparecer!
 
 		# ── Gatilho visual por IMPACTO (adiado até ambos pousarem) ──
 		var t1_landed := not _tiles_in_flight.has(t1)
@@ -559,6 +563,8 @@ func _animate_pair_removal(tile1: MahjongTile, tile2: MahjongTile) -> void:
 		if t.has_node("CollisionShape"):
 			t.get_node("CollisionShape").set_deferred("disabled", true)
 
+	_fading_animations += 1
+
 	var fade_tween := create_tween()
 	fade_tween.set_parallel(true)
 
@@ -580,6 +586,14 @@ func _animate_pair_removal(tile1: MahjongTile, tile2: MahjongTile) -> void:
 			tile1.visible = false
 		if is_instance_valid(tile2):
 			tile2.visible = false
+		
+		_fading_animations -= 1
+		
+		# Executa o deslize para tapar o buraco apenas quando NENHUM match estiver tocando
+		if _fading_animations == 0:
+			await get_tree().create_timer(0.15).timeout
+			if _fading_animations == 0:
+				_reorganize_slots()
 	)
 
 
@@ -633,11 +647,10 @@ func _show_game_over_popup() -> void:
 		container.custom_minimum_size = Vector2(50, 68)
 		container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-		# Fundo: base da peça
 		var base_rect := TextureRect.new()
 		base_rect.texture = tile_base_tex
 		base_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		base_rect.stretch_mode = TextureRect.STRETCH_SCALE
+		base_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED  # Em vez de SCALE para não amassar as peças!
 		base_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 		base_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		container.add_child(base_rect)

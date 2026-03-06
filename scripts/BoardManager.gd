@@ -11,15 +11,15 @@ signal tile_pressed(tile: MahjongTile)
 
 # ─── Constantes de layout ───────────────────────────────────────────
 
-## Tamanho de uma célula. Com CELL_W menor que TILE_W/2, as peças se sobrepõem lateralmente.
-const TILE_W := 76.0
-const CELL_W := TILE_W * 0.38  # 28.88
-const CELL_H := 52.0
-## Tamanho real do tile widget (formato ~3:4 visualmente alinhado como carta).
-const TILE_H := CELL_H * 2  # 104
-## Offset 3D por camada Z. (Efeito de pilha vertical limpa)
-const Z_OFFSET_X := 0.0
-const Z_OFFSET_Y := -8.0
+## Tamanho de uma célula. Dimensionado para densidade sólida e sem vãos (B)
+const TILE_W := 88.0
+const CELL_W := 44.0  # TILE_W / 2 para peças da mesma camada ficarem coladas sem sobrepor
+const CELL_H := 48.0  # TILE_H / 2 para encostar perfeitamente verticalmente
+## Tamanho real do tile, forma "parruda", robusta e mais quadrada (A)
+const TILE_H := 96.0
+## Offset 3D por camada Z. (Efeito de pirâmide/escada sobrepondo intensamente as peças de baixo)
+const Z_OFFSET_X := -18.0  # Mantido recuo X (esquerda)
+const Z_OFFSET_Y := -35.0  # Verticalização (B): ~36% de recuo Y (cima) cobrindo ~1/3 da altura da peça abaixo
 ## Número de tipos de estampa.
 const NUM_TYPES := 20
 
@@ -38,7 +38,7 @@ func new_game() -> void:
 	_move_history.clear()
 	_clear_children()
 	
-	var slots := _load_turtle_layout()
+	var slots := _load_block_layout()
 	_generate_beatable(slots)
 	_render_board()
 	print("[BoardManager] new_game: %d tiles gerados" % tiles.size())
@@ -63,7 +63,7 @@ func is_tile_free(tile: MahjongTile) -> bool:
 		return false
 	
 	# --- Bloqueio por sobreposição — Regra 90/10 (pixel-based) ---
-	# Retângulo visual da peça no espaço do tabuleiro (com pixel_offset)
+	# Retângulo visual da própria peça
 	var tile_rect := Rect2(
 		tile.grid_pos.x * CELL_W + tile.grid_pos.z * Z_OFFSET_X + tile.pixel_offset.x,
 		tile.grid_pos.y * CELL_H + tile.grid_pos.z * Z_OFFSET_Y + tile.pixel_offset.y,
@@ -73,10 +73,10 @@ func is_tile_free(tile: MahjongTile) -> bool:
 	var total_overlap := 0.0
 	
 	for other in tiles.values():
-		if not (other is MahjongTile):
-			continue
-		if other.is_matched or other.is_in_inventory or other.grid_pos.z <= tile.grid_pos.z:
-			continue
+		if not (other is MahjongTile): continue
+		if other.is_matched or other.is_in_inventory: continue
+		if other.grid_pos.z <= tile.grid_pos.z: continue
+		
 		var other_rect := Rect2(
 			other.grid_pos.x * CELL_W + other.grid_pos.z * Z_OFFSET_X + other.pixel_offset.x,
 			other.grid_pos.y * CELL_H + other.grid_pos.z * Z_OFFSET_Y + other.pixel_offset.y,
@@ -85,11 +85,11 @@ func is_tile_free(tile: MahjongTile) -> bool:
 		var intersection := tile_rect.intersection(other_rect)
 		total_overlap += intersection.get_area()
 	
-	# Bloqueada se ≥ 10% da área coberta
+	# a) Bloqueada se ≥ 10% da área total estiver coberta por PEÇAS ACIMA
 	if total_overlap / tile_area >= 0.10:
 		return false
 	
-	# --- Bloqueio lateral ---
+	# --- b) Bloqueio lateral no MESMO NÍVEL (Z) ---
 	# A peça precisa ter pelo menos um lado (esquerdo OU direito) livre.
 	var left_blocked := false
 	var right_blocked := false
@@ -199,7 +199,7 @@ func highlight_hint(t1: MahjongTile, t2: MahjongTile) -> void:
 func clear_selection() -> void:
 	"""Remove qualquer seleção visual e para hint glow."""
 	for tile in tiles.values():
-		if tile is MahjongTile and not tile.is_matched:
+		if tile is MahjongTile and not tile.is_matched and not tile.is_in_inventory:
 			tile.is_selected = false
 			tile.stop_hint_glow()
 	
@@ -209,63 +209,42 @@ func clear_selection() -> void:
 
 # ─── Layout ─────────────────────────────────────────────────────────
 
-func _load_turtle_layout() -> Array[Vector3i]:
+func _load_block_layout() -> Array[Vector3i]:
 	"""
-	Layout 'The Turtle' — Pirâmide Mahjong clássica em 5 camadas (HORIZONTAL COMPACTO).
-	Total: 60 peças (30 pares). Formato de tartaruga clássico:
-	  • Base diamante com cabeça/cauda no eixo X (larga)
-	  • Camadas ímpares (Z=1, Z=3) com half-tile offset
-	  • Topo Z=4 com 2 peças
+	Layout 'Neko Pillar' (Ref. Estrutural) — Pilar Vertical focado no Galaxy S25 (6 colunas).
+	Total: 66 peças (33 pares).
 	"""
 	var slots: Array[Vector3i] = []
 
-	# ═══ Z=0 (Base — Casco da Tartaruga): 30 peças ═══
-	# Diamante com cabeça (esquerda) e cauda (direita)
-	# Row y=0: centro estreito (4 peças)
-	for x in [6, 8, 10, 12]:
-		slots.append(Vector3i(x, 0, 0))
-	# Row y=2: expandindo (6 peças)
-	for x in [4, 6, 8, 10, 12, 14]:
-		slots.append(Vector3i(x, 2, 0))
-	# Row y=4: faixa mais larga + cabeça(x=0,2) + cauda(x=16,18) = 10 peças
-	for x in [0, 2, 4, 6, 8, 10, 12, 14, 16, 18]:
-		slots.append(Vector3i(x, 4, 0))
-	# Row y=6: contraindo (6 peças)
-	for x in [4, 6, 8, 10, 12, 14]:
-		slots.append(Vector3i(x, 6, 0))
-	# Row y=8: centro estreito (4 peças)
-	for x in [6, 8, 10, 12]:
-		slots.append(Vector3i(x, 8, 0))
+	# ═══ Z=0 (Base 6 colunas, alta densidade e altura 12): 30 peças ═══
+	# Eixo X é limitado a 0, 2, 4, 6, 8, 10
+	for y in [2, 4, 6, 8, 10]: slots.append(Vector3i(0, y, 0)) # Col 1
+	for y in [1, 3, 5, 7, 9, 11]: slots.append(Vector3i(2, y, 0)) # Col 2
+	for y in [0, 2, 4, 6, 8, 10, 12]: slots.append(Vector3i(4, y, 0)) # Col 3 (Centro)
+	for y in [1, 3, 5, 7, 9, 11]: slots.append(Vector3i(6, y, 0)) # Col 4
+	for y in [2, 4, 6, 8, 10]: slots.append(Vector3i(8, y, 0)) # Col 5
+	for y in [5, 7]: slots.append(Vector3i(10, y, 0)) # Col 6 (Extra support)
 
-	# ═══ Z=1 (Half-tile offset): 16 peças ═══
-	for x in [7, 9, 11]:
-		slots.append(Vector3i(x, 1, 1))
-	for x in [5, 7, 9, 11, 13]:
-		slots.append(Vector3i(x, 3, 1))
-	for x in [5, 7, 9, 11, 13]:
-		slots.append(Vector3i(x, 5, 1))
-	for x in [7, 9, 11]:
-		slots.append(Vector3i(x, 7, 1))
+	# ═══ Z=1 (Camada 1): 20 peças ═══
+	for y in [3, 5, 7, 9]: slots.append(Vector3i(2, y, 1))
+	for y in [2, 4, 6, 8, 10]: slots.append(Vector3i(4, y, 1))
+	for y in [2, 4, 6, 8, 10]: slots.append(Vector3i(6, y, 1))
+	for y in [3, 5, 7, 9]: slots.append(Vector3i(8, y, 1))
+	slots.append(Vector3i(4, 0, 1))
+	slots.append(Vector3i(6, 12, 1))
 
-	# ═══ Z=2: 8 peças ═══
-	for x in [8, 10]:
-		slots.append(Vector3i(x, 2, 2))
-	for x in [6, 8, 10, 12]:
-		slots.append(Vector3i(x, 4, 2))
-	for x in [8, 10]:
-		slots.append(Vector3i(x, 6, 2))
+	# ═══ Z=2 (Camada 2): 10 peças ═══
+	for y in [4, 6, 8]: slots.append(Vector3i(4, y, 2))
+	for y in [5, 7]: slots.append(Vector3i(6, y, 2))
+	for y in [4, 6, 8]: slots.append(Vector3i(8, y, 2))
+	slots.append(Vector3i(4, 2, 2))
+	slots.append(Vector3i(6, 9, 2))
 
-	# ═══ Z=3 (Half-tile offset): 4 peças ═══
-	for x in [7, 11]:
-		slots.append(Vector3i(x, 3, 3))
-	for x in [7, 11]:
-		slots.append(Vector3i(x, 5, 3))
+	# ═══ Z=3 (Topo): 6 peças ═══
+	for y in [5, 7]: slots.append(Vector3i(4, y, 3))
+	for y in [4, 6, 8]: slots.append(Vector3i(6, y, 3))
+	slots.append(Vector3i(8, 7, 3))
 
-	# ═══ Z=4 (Topo): 2 peças ═══
-	for x in [8, 10]:
-		slots.append(Vector3i(x, 4, 4))
-
-	# Total: 30 + 16 + 8 + 4 + 2 = 60 Peças!
 	return slots
 
 
@@ -315,50 +294,55 @@ func _generate_beatable(slots: Array[Vector3i]) -> void:
 	# Armazenar como dados temporários (nós criados em _render_board)
 	for pos: Vector3i in placed:
 		tiles[pos] = {"grid_pos": pos, "cat_id": placed[pos]}
+		
+	print("[BoardManager] Caminho Dourado gerado com sucesso para 6 colunas (Neko Pillar).")
 
 
 func _find_free_slots_for_generation(
 	remaining: Dictionary, _placed: Dictionary
 ) -> Array[Vector3i]:
 	var free: Array[Vector3i] = []
+	
 	for slot: Vector3i in remaining:
-		var sx := slot.x
-		var sy := slot.y
-		var sz := slot.z
+		# --- Bloqueio por sobreposição — Regra 90/10 (pixel-based) ---
+		var tile_rect := Rect2(
+			slot.x * CELL_W + slot.z * Z_OFFSET_X,
+			slot.y * CELL_H + slot.z * Z_OFFSET_Y,
+			TILE_W, TILE_H
+		)
+		var tile_area := TILE_W * TILE_H
+		var total_overlap := 0.0
 		
-		var blocked_above := false
-		var cells := [
-			Vector2i(sx, sy), Vector2i(sx + 1, sy),
-			Vector2i(sx, sy + 1), Vector2i(sx + 1, sy + 1)
-		]
 		for rem_pos: Vector3i in remaining:
-			if rem_pos.z > sz:
-				var p_sx := rem_pos.x
-				var p_sy := rem_pos.y
-				var pcells := [
-					Vector2i(p_sx, p_sy), Vector2i(p_sx + 1, p_sy),
-					Vector2i(p_sx, p_sy + 1), Vector2i(p_sx + 1, p_sy + 1)
-				]
-				for cell in cells:
-					if cell in pcells:
-						blocked_above = true
-						break
-			if blocked_above:
-				break
+			if rem_pos == slot: continue
+			if rem_pos.z <= slot.z: continue
+			
+			var other_rect := Rect2(
+				rem_pos.x * CELL_W + rem_pos.z * Z_OFFSET_X,
+				rem_pos.y * CELL_H + rem_pos.z * Z_OFFSET_Y,
+				TILE_W, TILE_H
+			)
+			var intersection := tile_rect.intersection(other_rect)
+			total_overlap += intersection.get_area()
+		
+		var blocked_above := (total_overlap / tile_area) >= 0.10
 		if blocked_above:
 			continue
 		
+		# --- Bloqueio lateral no MESMO NÍVEL (Z) ---
 		var left_blocked := false
 		var right_blocked := false
 		for dy in range(-1, 2):
-			if remaining.has(Vector3i(sx - 2, sy + dy, sz)):
+			if remaining.has(Vector3i(slot.x - 2, slot.y + dy, slot.z)):
 				left_blocked = true
-			if remaining.has(Vector3i(sx + 2, sy + dy, sz)):
+			if remaining.has(Vector3i(slot.x + 2, slot.y + dy, slot.z)):
 				right_blocked = true
 				
 		if left_blocked and right_blocked:
 			continue
+			
 		free.append(slot)
+	
 	return free
 
 
@@ -426,21 +410,7 @@ func _render_board() -> void:
 		area_h = container.size.y
 	print("[BoardManager] Container size: %s × %s" % [area_w, area_h])
 	
-	# Calcular bounds do layout
-	var max_x := 0
-	var max_y := 0
-	var max_z := 0
-	for pos: Vector3i in tiles:
-		max_x = maxi(max_x, pos.x + 2)
-		max_y = maxi(max_y, pos.y + 1)
-		max_z = maxi(max_z, pos.z)
-	
-	# Tamanho total do tabuleiro (sem escala)
-	# Usa pos.y+2 para altura real (tile ocupa 2 células) e abs() para Z offset negativo
-	var board_w: float = max_x * CELL_W + absi(max_z) * absf(Z_OFFSET_X) + TILE_W * 0.1
-	var board_h: float = (max_y + 1) * CELL_H + absi(max_z) * absf(Z_OFFSET_Y) + TILE_H * 0.5
-	
-	# Posicionar tiles a partir de (0,0) — sem offset
+	# Posicionar tiles a partir da grade
 	var sorted_positions := tiles.keys()
 	sorted_positions.sort_custom(func(a: Vector3i, b: Vector3i) -> bool:
 		if a.z != b.z: return a.z < b.z
@@ -448,7 +418,11 @@ func _render_board() -> void:
 		return a.x < b.x
 	)
 	
+	# Criar nós, posicioná-los (sem offset centralizador a princípio) e registrar bounding box
 	var tile_nodes: Dictionary = {}
+	
+	var min_px := Vector2(INF, INF)
+	var max_px := Vector2(-INF, -INF)
 	
 	for pos: Vector3i in sorted_positions:
 		var data = tiles[pos]
@@ -459,15 +433,25 @@ func _render_board() -> void:
 		tile_node.setup(pos, cat_id_val, Vector2(TILE_W, TILE_H))
 		tile_node.pixel_offset = pix_offset
 		
-		# Posição relativa ao tabuleiro (centro do tile) + pixel_offset
+		# Posição nua baseada na grade
 		var sx: float = pos.x * CELL_W + pos.z * Z_OFFSET_X + TILE_W / 2.0 + pix_offset.x
 		var sy: float = pos.y * CELL_H + pos.z * Z_OFFSET_Y + TILE_H / 2.0 + pix_offset.y
 		tile_node.position = Vector2(sx, sy)
+		
+		# Calcular caixa delimitadora
+		min_px.x = minf(min_px.x, sx - TILE_W / 2.0)
+		min_px.y = minf(min_px.y, sy - TILE_H / 2.0)
+		max_px.x = maxf(max_px.x, sx + TILE_W / 2.0)
+		max_px.y = maxf(max_px.y, sy + TILE_H / 2.0)
 		
 		add_child(tile_node)
 		tile_nodes[pos] = tile_node
 	
 	tiles = tile_nodes
+	
+	# O tamanho "físico" real empírico do layout em pixels antes da escala
+	var board_w: float = max_px.x - min_px.x
+	var board_h: float = max_px.y - min_px.y
 	
 	# ── Auto-scale e centralização precisa BASEADA EM UI REAL ──
 	var slots_bar = get_node_or_null("../../UILayer/VBox/InventoryBarContainer/SlotsBar")
@@ -485,28 +469,29 @@ func _render_board() -> void:
 		# O botão começa em global_position.y
 		bottom_boundary = hint_btn.global_position.y
 		
-	# Margens solicitadas
+	# Margens solicitadas (removida a MARGIN_SIDE extra, pois aplicaremos 95% exato)
 	const MARGIN_TOP_PX := 25.0
 	const MARGIN_BOTTOM_PX := 50.0
-	const MARGIN_SIDE := 0.04  # 4%
 	
 	var usable_start_y := top_boundary + MARGIN_TOP_PX
 	var usable_end_y := bottom_boundary - MARGIN_BOTTOM_PX
 	var usable_h: float = usable_end_y - usable_start_y
-	var usable_w: float = area_w * (1.0 - MARGIN_SIDE * 2.0)
+	var usable_w: float = area_w
 	
-	# Maximizar escala para o espaço
-	var scale_factor: float = minf(usable_w / board_w, usable_h / board_h)
+	# 1. Escala de Glória (Escala a 96% do dispositivo):
+	var scale_factor: float = minf((usable_w * 0.96) / board_w, (usable_h * 0.96) / board_h)
 	
 	self.scale = Vector2(scale_factor, scale_factor)
 	
-	# Centralizar horizontalmente
+	# 2. Correção de Pivot e Centralização Horizontal Absoluta
 	var scaled_w: float = board_w * scale_factor
-	var pos_x: float = (area_w - scaled_w) / 2.0
+	# Centraliza na área e anula o offset não-zero (min_px) do grid original
+	var pos_x: float = (area_w - scaled_w) / 2.0 - (min_px.x * scale_factor)
 	
-	# Centralizar verticalmente dentro do espaço útil exato
+	# 3. Otimização do Espaço Vertical (Trazendo para MAIS PERTO do botão de dica)
 	var scaled_h: float = board_h * scale_factor
-	var pos_y: float = usable_start_y + (usable_h - scaled_h) / 2.0
+	# Em vez de / 2.0 (centro exato), mudamos para peso 0.65 para descer levemente a pirâmide
+	var pos_y: float = usable_start_y + (usable_h - scaled_h) * 0.65 - (min_px.y * scale_factor)
 	
 	self.position = Vector2(pos_x, pos_y)
 	
@@ -571,6 +556,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	# Só processar lógica no release (finger up / mouse up)
 	if event.pressed:
 		return  # Consome o press mas não processa
+	
+	# 3. Precisão do Clique: Se estiver bloqueada pela regra 90/10, ignorar completamente o release
+	# O evento press já foi consumido para não vazar, mas o jogo não deve processar a jogada.
+	if not is_tile_free(topmost_tile):
+		return
 	
 	# Deduplicação por frame
 	var frame := Engine.get_process_frames()
