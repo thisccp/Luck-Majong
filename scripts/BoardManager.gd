@@ -27,15 +27,15 @@ const NUM_TYPES := 20
 
 ## Dicionário de tiles: Vector3i → MahjongTile (ou dados durante geração)
 var tiles: Dictionary = {}
-## Histórico de jogadas para undo (futuro).
-var _move_history: Array = []
+## Histórico de jogadas para undo (futuro). Dicionários {tile, pos_z, pos_x, pos_y}
+var move_history: Array = []
 
 # ─── API pública ────────────────────────────────────────────────────
 
 func new_game() -> void:
 	"""Gera um novo tabuleiro 100% solvável e renderiza."""
 	tiles.clear()
-	_move_history.clear()
+	move_history.clear()
 	_clear_children()
 	
 	var slots := _load_block_layout()
@@ -118,13 +118,13 @@ func try_match(t1: MahjongTile, t2: MahjongTile) -> bool:
 	
 	t1.mark_matched()
 	t2.mark_matched()
-	_move_history.append([t1, t2])
+	# This _try_match logic seems mostly unused inside GameManager's pair resolution, it's a fallback.
 	return true
 
 
 func record_match(t1: MahjongTile, t2: MahjongTile) -> void:
-	"""Registra um match já validado e animado no histórico."""
-	_move_history.append([t1, t2])
+	"""Registra um match já validado e animado."""
+	pass # Move history is now dynamically pushed in GameManager per tile.
 
 
 func is_won() -> bool:
@@ -137,27 +137,35 @@ func is_won() -> bool:
 
 func has_moves() -> bool:
 	"""Verdadeiro se existe pelo menos um par disponível."""
-	return find_hint() != null
+	return find_hint().size() > 0
 
 
-func find_hint() -> Variant:
-	"""Retorna um Array [tile1, tile2] com par livre, ou null."""
+func find_hint(inv_ids: Array[int] = []) -> Array[MahjongTile]:
+	"""Retorna um Array de peças para dica. Priority 1: Match com inventário. Priority 2: Par no topo."""
 	var free_tiles: Array[MahjongTile] = []
 	for tile in tiles.values():
 		if tile is MahjongTile and not tile.is_matched and is_tile_free(tile):
 			free_tiles.append(tile)
 	
-	var by_type: Dictionary = {}
+	# Order by Z-index descending (highest pieces first)
+	free_tiles.sort_custom(func(a: MahjongTile, b: MahjongTile) -> bool:
+		return a.grid_pos.z > b.grid_pos.z
+	)
+	
+	# Priority 1: Salva-vidas de Slot
 	for tile in free_tiles:
-		if not by_type.has(tile.cat_id):
-			by_type[tile.cat_id] = []
-		by_type[tile.cat_id].append(tile)
+		if tile.cat_id in inv_ids:
+			return [tile]
+			
+	# Priority 2: Fallback para Tabuleiro
+	var seen: Dictionary = {}
+	for tile in free_tiles:
+		if seen.has(tile.cat_id):
+			return [seen[tile.cat_id], tile]
+		else:
+			seen[tile.cat_id] = tile
 	
-	for type_tiles: Array in by_type.values():
-		if type_tiles.size() >= 2:
-			return [type_tiles[0], type_tiles[1]]
-	
-	return null
+	return []
 
 
 func shuffle_remaining() -> void:
@@ -189,11 +197,11 @@ func update_tile_states() -> void:
 			tile.set_blocked(not is_tile_free(tile))
 
 
-func highlight_hint(t1: MahjongTile, t2: MahjongTile) -> void:
-	"""Destaca duas peças com glow intenso de hint."""
+func highlight_hint(hint_tiles: Array[MahjongTile]) -> void:
+	"""Destaca peças com glow continuo de hint."""
 	clear_selection()
-	t1.play_hint_glow()
-	t2.play_hint_glow()
+	for tile in hint_tiles:
+		tile.play_hint_glow()
 
 
 func clear_selection() -> void:
@@ -205,6 +213,13 @@ func clear_selection() -> void:
 	
 	# Recalcula e reaplica o filtro cinza nas peças bloqueadas
 	update_tile_states()
+
+
+func clear_hint_for_type(id: int) -> void:
+	"""Varrre o tabuleiro e remove hint glow persistente para peças deste cat_id após um match alternativo."""
+	for tile in tiles.values():
+		if tile is MahjongTile and tile.cat_id == id:
+			tile.stop_hint_glow()
 
 
 # ─── Layout ─────────────────────────────────────────────────────────
@@ -353,7 +368,7 @@ func new_test_game() -> void:
 	Tile Z=1 esquerdo: offset (30,0) → ~6% overlap → peças abaixo LIVRES.
 	Tile Z=1 direito:  offset (0,0)  → ~25% overlap → peças abaixo BLOQUEADAS."""
 	tiles.clear()
-	_move_history.clear()
+	move_history.clear()
 	_clear_children()
 
 	var test_data := _test_overlap_layout()
@@ -455,7 +470,7 @@ func _render_board() -> void:
 	
 	# ── Auto-scale e centralização precisa BASEADA EM UI REAL ──
 	var slots_bar = get_node_or_null("../../UILayer/VBox/InventoryBarContainer/SlotsBar")
-	var hint_btn = get_node_or_null("../../UILayer/VBox/BottomMargin/HintBtn")
+	var action_buttons = get_node_or_null("../../UILayer/VBox/BottomMargin/ActionButtonsHBox")
 	
 	# Limites verticais padrão caso os nós não sejam encontrados
 	var top_boundary: float = 180.0
@@ -465,9 +480,9 @@ func _render_board() -> void:
 		# A barra real termina em global_position.y + size.y
 		top_boundary = slots_bar.global_position.y + slots_bar.size.y
 	
-	if is_instance_valid(hint_btn):
-		# O botão começa em global_position.y
-		bottom_boundary = hint_btn.global_position.y
+	if is_instance_valid(action_buttons):
+		# Os botões começam em global_position.y
+		bottom_boundary = action_buttons.global_position.y
 		
 	# Margens solicitadas (removida a MARGIN_SIDE extra, pois aplicaremos 95% exato)
 	const MARGIN_TOP_PX := 25.0

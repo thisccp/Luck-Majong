@@ -9,7 +9,8 @@ extends Control
 # ─── UI existente ────────────────────────────────────────────────────
 
 @onready var _board: BoardManager = $BoardContainer/BoardManager
-@onready var _btn_hint: TextureButton = $UILayer/VBox/BottomMargin/HintBtn
+@onready var _btn_hint: TextureButton = $UILayer/VBox/BottomMargin/ActionButtonsHBox/HintBtn
+@onready var _btn_undo: TextureButton = $UILayer/VBox/BottomMargin/ActionButtonsHBox/UndoBtn
 @onready var _btn_menu: TextureButton = $UILayer/MenuBtn
 @onready var _dim_overlay: ColorRect = $UILayer/DimOverlay
 @onready var _win_popup: TextureRect = $UILayer/WinPopup
@@ -39,6 +40,10 @@ var _revive_btn: Button
 var _restart_go_btn: Button
 var _go_tiles_hbox: HBoxContainer
 
+# ─── Undo ────────────────────────────────────────────────────────────
+
+var undo_charges: int = 3
+
 # ─── Estado ──────────────────────────────────────────────────────────
 
 var _pairs_matched: int = 0
@@ -51,8 +56,11 @@ var _game_paused: bool = false
 
 func _ready() -> void:
 	_btn_hint.pressed.connect(_on_hint)
+	_btn_undo.pressed.connect(_on_undo_pressed)
 	_btn_menu.pressed.connect(_show_pause_popup)
 	_board.tile_pressed.connect(_on_tile_pressed)
+	
+	_update_undo_button()
 
 	_build_inventory_bar()
 	_build_game_over_popup()
@@ -326,6 +334,8 @@ func _start_game() -> void:
 	_tiles_in_flight.clear()
 	_pending_animations = 0
 	_fading_animations = 0
+	undo_charges = 3
+	_update_undo_button()
 	_board.new_game()
 
 
@@ -359,6 +369,14 @@ func _add_to_inventory(tile: MahjongTile) -> void:
 
 	_inventory.append(tile)
 	_slot_assignments[tile] = slot_index
+	
+	# Gravar histórico local de posição na grade EXATAMENTE quando foi adicionado ao slot
+	_board.move_history.append({
+		"tile": tile,
+		"pos_x": tile.grid_pos.x,
+		"pos_y": tile.grid_pos.y,
+		"pos_z": tile.grid_pos.z
+	})
 
 	# Atualizar tabuleiro (peças que ficaram livres)
 	_board.update_tile_states()
@@ -522,6 +540,10 @@ func _try_instant_pair_resolution() -> void:
 		_slot_assignments.erase(t1)
 		_slot_assignments.erase(t2)
 		_recalculate_slot_assignments()
+		
+		# Limpeza visual de Hint Órfão:
+		# Se o jogador usou uma peça não-sugerida mas do mesmo tipo da hint, varre e limpa
+		_board.clear_hint_for_type(t1.cat_id)
 
 		# A reorganização visual (_reorganize_slots) foi removida daqui para não deslizar
 		# os tiles enquanto a animação do match atual não desaparecer!
@@ -557,9 +579,10 @@ func _try_instant_pair_resolution() -> void:
 func _animate_pair_removal(tile1: MahjongTile, tile2: MahjongTile) -> void:
 	"""Animação de match por IMPACTO — scale shrink + fade out (0.4s).
 	Disparada apenas quando ambos os tiles pousaram no slot."""
-	# Garantir que colisão está desabilitada durante a animação
+	# Garantir que colisão está desabilitada e parar hint glow durante a animação
 	for t in [tile1, tile2]:
 		t.input_pickable = false
+		t.stop_hint_glow()
 		if t.has_node("CollisionShape"):
 			t.get_node("CollisionShape").set_deferred("disabled", true)
 
@@ -681,6 +704,12 @@ func _on_revive() -> void:
 	var tiles_to_revive: Array[MahjongTile] = _inventory.duplicate()
 	_inventory.clear()
 	_slot_assignments.clear()
+	
+	# Quando ressuscitamos, limpar o histórico já que voltaram pro board.
+	# Retira os N últimos items equivalentes ao tamanho do inventário do move_history.
+	for i in range(tiles_to_revive.size()):
+		if _board.move_history.size() > 0:
+			_board.move_history.pop_back()
 
 	for tile in tiles_to_revive:
 		# Posição atual na tela (UILayer coords)
@@ -735,16 +764,116 @@ func _update_revive_button() -> void:
 # BOTÕES EXISTENTES
 # ═══════════════════════════════════════════════════════════════════════
 
+func _on_undo_pressed() -> void:
+	if _game_paused or _tiles_in_flight.size() > 0 or _fading_animations > 0 or _pending_animations > 0:
+		return
+	if _board.move_history.size() == 0:
+		return
+	if undo_charges <= 0:
+		return
+		
+	var last_move = _board.move_history.pop_back()
+	var tile: MahjongTile = last_move["tile"]
+	if tile == null or not is_instance_valid(tile):
+		return
+		
+	# Só permitir Undo se a peça ainda não sofreu match e está no inventário
+	if not tile.is_in_inventory or tile.is_matched:
+		return
+
+	# Reduzir card e UI
+	undo_charges -= 1
+	_update_undo_button()
+	
+	# Limpar a peça do inventário logicamente
+	_inventory.erase(tile)
+	_slot_assignments.erase(tile)
+	_recalculate_slot_assignments()
+	_reorganize_slots()
+	
+	# Usar posição global para não relocar abruptamente na mudança de parent
+	var g_pos = tile.global_position
+	var g_scale = tile.global_scale
+	
+	# Manter o tile no UILayer DURANTE O VOO para garantir que ele sobreponha a barra de slots
+	# que está em CanvasLayer separado.
+	if tile.get_parent() != get_node("UILayer"):
+		if tile.get_parent():
+			tile.get_parent().remove_child(tile)
+		get_node("UILayer").add_child(tile)
+	
+	tile.global_position = g_pos
+	tile.global_scale = g_scale
+		
+	tile.is_in_inventory = false
+	tile.is_matched = false
+	tile.visible = true
+	tile.modulate = Color.WHITE
+	
+	# Z Index local absurdamente alto no CanvasLayer
+	tile.z_index = 1000
+	if tile.has_node("CollisionShape"):
+		tile.get_node("CollisionShape").set_deferred("disabled", true)
+	
+	var target_local_board: Vector2 = tile.get_meta("original_position") if tile.has_meta("original_position") else Vector2.ZERO
+	# Precisar converter a posição local do tabuleiro para a tela (UILayer) para saber a reta do voo
+	var target_global = _board.to_global(target_local_board)
+	var target_z: int = tile.original_z_index
+	
+	_pending_animations += 1
+	var tween := create_tween()
+	tween.set_parallel(true)
+	# Animar a posição GLOBAL dele até o destino (como ele tá na default CanvasLayer/Viewport,
+	# global_position == canvas screen position)
+	tween.tween_property(tile, "global_position", target_global, 0.3)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	# Escalar de volta baseando-se na escala do próprio Board (já que ele tá no UILayer)
+	var target_global_scale = _board.global_scale
+	tween.tween_property(tile, "scale", target_global_scale, 0.3)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		
+	tween.chain().tween_callback(func():
+		_pending_animations -= 1
+		if is_instance_valid(tile):
+			# Agora sim reparentá-lo no verdadeiro Node (BoardManager)
+			if tile.get_parent() != _board:
+				tile.get_parent().remove_child(tile)
+				_board.add_child(tile)
+				
+			# Como mudou de parent, sua escala final e position_local têm que ser validadas
+			tile.position = target_local_board
+			tile.scale = Vector2.ONE
+			tile.z_index = target_z
+			
+			if tile.has_node("CollisionShape"):
+				tile.get_node("CollisionShape").set_deferred("disabled", false)
+			if tile.has_node("DropShadow"):
+				tile.get_node("DropShadow").visible = true
+	)
+	
+	# Uma vez de volta ao tabuleiro, notificar a atualização de estado (peças que poderão ser bloqueadas novamente)
+	await get_tree().create_timer(0.35).timeout
+	_board.update_tile_states()
+
+
 func _on_hint() -> void:
 	if _game_paused:
 		return
-	var hint = _board.find_hint()
-	if hint != null:
-		var t1: MahjongTile = hint[0]
-		var t2: MahjongTile = hint[1]
-		_board.highlight_hint(t1, t2)
-		await get_tree().create_timer(2.0).timeout
-		_board.clear_selection()
+		
+	var inv_ids: Array[int] = []
+	for tile in _inventory:
+		if is_instance_valid(tile):
+			inv_ids.append(tile.cat_id)
+			
+	var hint_tiles = _board.find_hint(inv_ids)
+	if hint_tiles.size() > 0:
+		_board.highlight_hint(hint_tiles)
+		
+		# Sincronizar brilho com a peça correspondente no inventário
+		for hint_tile in hint_tiles:
+			for inv_tile in _inventory:
+				if is_instance_valid(inv_tile) and inv_tile.cat_id == hint_tile.cat_id:
+					inv_tile.play_hint_glow()
 	elif _board.active_tiles().is_empty() and _inventory.is_empty():
 		# Sem peças livres no board e sem inventário — win?
 		_show_win_popup()
@@ -787,6 +916,20 @@ func _hide_popups() -> void:
 func _set_hud_disabled(disabled: bool) -> void:
 	if is_instance_valid(_btn_hint):
 		_btn_hint.disabled = disabled
+	if is_instance_valid(_btn_undo):
+		if not disabled and undo_charges > 0:
+			_btn_undo.disabled = false
+		else:
+			_btn_undo.disabled = true
+
+func _update_undo_button() -> void:
+	if not is_instance_valid(_btn_undo): return
+	if undo_charges <= 0:
+		_btn_undo.disabled = true
+		_btn_undo.modulate.a = 0.5
+	else:
+		_btn_undo.disabled = false
+		_btn_undo.modulate.a = 1.0
 
 
 # ═══════════════════════════════════════════════════════════════════════

@@ -7,6 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://cooj844jom3t4" path="res://assets/btn/btn__style_menu.png" id="5_btn_menu"]
 [ext_resource type="Texture2D" uid="uid://b7spc0q0i7gb" path="res://assets/bg/next_bg.png" id="6_next_bg"]
 [ext_resource type="Texture2D" uid="uid://dms52o1v31sbu" path="res://assets/btn/btn_style_hint.png" id="7_btn_hint"]
+[ext_resource type="Texture2D" uid="uid://d2k52o1v31sbu" path="res://assets/btn/btn_style_undo.png" id="8_btn_undo"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_popup_btn"]
 bg_color = Color(0.44, 0.35, 0.26, 1)
@@ -100,10 +101,21 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_constants/margin_bottom = 45
 
-[node name="HintBtn" type="TextureButton" parent="UILayer/VBox/BottomMargin" unique_id=980834066]
+[node name="ActionButtonsHBox" type="HBoxContainer" parent="UILayer/VBox/BottomMargin" unique_id=980834065]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 20
+
+[node name="UndoBtn" type="TextureButton" parent="UILayer/VBox/BottomMargin/ActionButtonsHBox" unique_id=980834067]
 custom_minimum_size = Vector2(85, 85)
 layout_mode = 2
-size_flags_horizontal = 4
+texture_normal = ExtResource("8_btn_undo")
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="HintBtn" type="TextureButton" parent="UILayer/VBox/BottomMargin/ActionButtonsHBox" unique_id=980834066]
+custom_minimum_size = Vector2(85, 85)
+layout_mode = 2
 texture_normal = ExtResource("7_btn_hint")
 ignore_texture_size = true
 stretch_mode = 5

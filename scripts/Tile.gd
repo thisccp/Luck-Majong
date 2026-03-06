@@ -240,9 +240,7 @@ func play_match_animation() -> void:
 
 
 func play_hint_glow() -> void:
-	"""Pulso de luz zen."""
-	if is_in_inventory: return
-	
+	"""Pulso de luz zen constante e sem alterar escala."""
 	if _select_tween and _select_tween.is_valid():
 		_select_tween.kill()
 	
@@ -250,17 +248,11 @@ func play_hint_glow() -> void:
 	_select_tween.set_loops()
 	_select_tween.tween_property(self, "modulate", Color(1.35, 1.25, 0.9, 1.0), 0.5)\
 		.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
-	_select_tween.parallel().tween_property(self, "scale", Vector2(1.06, 1.06), 0.5)\
-		.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
 	_select_tween.tween_property(self, "modulate", Color(1.1, 1.05, 0.95, 1.0), 0.5)\
-		.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
-	_select_tween.parallel().tween_property(self, "scale", Vector2(1.0, 1.0), 0.5)\
 		.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
 
 
 func stop_hint_glow() -> void:
-	if is_in_inventory: return
-	
 	if _select_tween and _select_tween.is_valid():
 		_select_tween.kill()
 		_select_tween = null
