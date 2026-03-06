@@ -18,10 +18,16 @@ var pixel_offset := Vector2.ZERO
 
 ## Estado de jogo.
 var is_matched: bool = false
+var is_hinted: bool = false
 var is_selected: bool = false:
 	set(value):
 		is_selected = value
 		_update_visuals()
+		
+## Drag & Peek
+var is_dragging := false
+var start_pos := Vector2.ZERO
+const DRAG_THRESHOLD := 15.0
 
 ## Inventário — armazena estado original para revive.
 var is_in_inventory: bool = false
@@ -241,6 +247,7 @@ func play_match_animation() -> void:
 
 func play_hint_glow() -> void:
 	"""Pulso de luz zen constante e sem alterar escala."""
+	is_hinted = true
 	if _select_tween and _select_tween.is_valid():
 		_select_tween.kill()
 	
@@ -253,6 +260,7 @@ func play_hint_glow() -> void:
 
 
 func stop_hint_glow() -> void:
+	is_hinted = false
 	if _select_tween and _select_tween.is_valid():
 		_select_tween.kill()
 		_select_tween = null
@@ -265,3 +273,42 @@ func mark_matched() -> void:
 	visible = false
 	if _collision_shape:
 		_collision_shape.set_deferred("disabled", true)
+
+
+func animate_lift() -> void:
+	"""Levanta a peça para arrasto."""
+	if is_in_inventory or is_matched: return
+	
+	if not is_hinted:
+		if _select_tween and _select_tween.is_valid():
+			_select_tween.kill()
+		modulate = Color(1.1, 1.1, 1.1, 1.0)
+		
+	z_index = 1000
+	
+	if has_node("DropShadow"):
+		var shadow = get_node("DropShadow")
+		shadow.position = Vector2(8.0, 12.0)
+		shadow.modulate = Color(0, 0, 0, 0.08)
+
+
+func animate_drop() -> void:
+	"""Devolve a peça espiada ao tabuleiro."""
+	if is_in_inventory or is_matched: return
+	
+	is_dragging = false
+	
+	var drop_tween := create_tween()
+	drop_tween.tween_property(self, "global_position", start_pos, 0.2)\
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		
+	drop_tween.tween_callback(func():
+		z_index = grid_pos.z * 10
+		if not is_hinted:
+			modulate = Color.WHITE
+		
+		if has_node("DropShadow"):
+			var shadow = get_node("DropShadow")
+			shadow.position = Vector2(4.0, 6.0)
+			shadow.modulate = Color(0, 0, 0, 0.15)
+	)

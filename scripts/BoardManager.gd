@@ -48,7 +48,7 @@ func active_tiles() -> Array[MahjongTile]:
 	"""Retorna tiles ainda não removidos."""
 	var result: Array[MahjongTile] = []
 	for tile in tiles.values():
-		if tile is MahjongTile and not tile.is_matched and not tile.is_in_inventory:
+		if is_instance_valid(tile) and tile is MahjongTile and not tile.is_matched and not tile.is_in_inventory:
 			result.append(tile)
 	return result
 
@@ -73,7 +73,7 @@ func is_tile_free(tile: MahjongTile) -> bool:
 	var total_overlap := 0.0
 	
 	for other in tiles.values():
-		if not (other is MahjongTile): continue
+		if not is_instance_valid(other) or not (other is MahjongTile): continue
 		if other.is_matched or other.is_in_inventory: continue
 		if other.grid_pos.z <= tile.grid_pos.z: continue
 		
@@ -130,7 +130,7 @@ func record_match(t1: MahjongTile, t2: MahjongTile) -> void:
 func is_won() -> bool:
 	"""Verdadeiro se todas as peças foram removidas."""
 	for tile in tiles.values():
-		if tile is MahjongTile and not tile.is_matched:
+		if is_instance_valid(tile) and tile is MahjongTile and not tile.is_matched:
 			return false
 	return true
 
@@ -144,7 +144,7 @@ func find_hint(inv_ids: Array[int] = []) -> Array[MahjongTile]:
 	"""Retorna um Array de peças para dica. Priority 1: Match com inventário. Priority 2: Par no topo."""
 	var free_tiles: Array[MahjongTile] = []
 	for tile in tiles.values():
-		if tile is MahjongTile and not tile.is_matched and is_tile_free(tile):
+		if is_instance_valid(tile) and tile is MahjongTile and not tile.is_matched and is_tile_free(tile):
 			free_tiles.append(tile)
 	
 	# Order by Z-index descending (highest pieces first)
@@ -172,7 +172,7 @@ func shuffle_remaining() -> void:
 	"""Embaralha as peças restantes — garante solvabilidade pós-shuffle."""
 	var remaining: Array[MahjongTile] = []
 	for tile in tiles.values():
-		if tile is MahjongTile and not tile.is_matched:
+		if is_instance_valid(tile) and tile is MahjongTile and not tile.is_matched:
 			remaining.append(tile)
 	
 	if remaining.is_empty():
@@ -193,7 +193,7 @@ func shuffle_remaining() -> void:
 func update_tile_states() -> void:
 	"""Atualiza visual de blocked/free em todas as peças."""
 	for tile in tiles.values():
-		if tile is MahjongTile and not tile.is_matched and not tile.is_in_inventory:
+		if is_instance_valid(tile) and tile is MahjongTile and not tile.is_matched and not tile.is_in_inventory:
 			tile.set_blocked(not is_tile_free(tile))
 
 
@@ -207,7 +207,7 @@ func highlight_hint(hint_tiles: Array[MahjongTile]) -> void:
 func clear_selection() -> void:
 	"""Remove qualquer seleção visual e para hint glow."""
 	for tile in tiles.values():
-		if tile is MahjongTile and not tile.is_matched and not tile.is_in_inventory:
+		if is_instance_valid(tile) and tile is MahjongTile and not tile.is_matched and not tile.is_in_inventory:
 			tile.is_selected = false
 			tile.stop_hint_glow()
 	
@@ -218,7 +218,7 @@ func clear_selection() -> void:
 func clear_hint_for_type(id: int) -> void:
 	"""Varrre o tabuleiro e remove hint glow persistente para peças deste cat_id após um match alternativo."""
 	for tile in tiles.values():
-		if tile is MahjongTile and tile.cat_id == id:
+		if is_instance_valid(tile) and tile is MahjongTile and tile.cat_id == id:
 			tile.stop_hint_glow()
 
 
@@ -526,72 +526,100 @@ var _last_pick_time: float = 0.0
 ## Cooldown mínimo entre picks (ms).
 const PICK_COOLDOWN_MS := 30.0
 
+## Variáveis do Drag & Peek
+var _dragged_tile: MahjongTile = null
+var _drag_start_screen_pos: Vector2 = Vector2.ZERO
+
 func _unhandled_input(event: InputEvent) -> void:
-	"""Top-Down Picker centralizado — funciona em Mouse e Touch.
+	"""Top-Down Picker centralizado — com Mouse, Touch e ARRASTO.
 	
 	REGRA ABSOLUTA: se há uma peça sob o clique, SEMPRE consumir
-	o evento (tanto press quanto release) para impedir que ele
-	"atravesse" para peças em camadas inferiores.
+	o evento para impedir que ele "atravesse".
 	"""
-	if not (event is InputEventMouseButton):
-		return
-	if event.button_index != MOUSE_BUTTON_LEFT:
+	
+	# ─── Arrasto Contínuo (Drag/Motion) ───
+	if (event is InputEventMouseMotion or event is InputEventScreenDrag) and _dragged_tile != null:
+		# Consume o evento e arrasta a peça
+		get_viewport().set_input_as_handled()
+		var motion_pos = event.global_position if "global_position" in event else event.position
+		
+		# Move livremente baseando-se no pointer de toque
+		_dragged_tile.global_position = motion_pos
+		
+		# Marca arrastar só se moveu mais que o limite
+		if not _dragged_tile.is_dragging:
+			if motion_pos.distance_to(_drag_start_screen_pos) > MahjongTile.DRAG_THRESHOLD:
+				_dragged_tile.is_dragging = true
 		return
 	
+	# ─── Cliques Iniciais e Finais ───
+	if not (event is InputEventMouseButton) and not (event is InputEventScreenTouch):
+		return
+		
+	if event is InputEventMouseButton and event.button_index != MOUSE_BUTTON_LEFT:
+		return
+		
 	var world_pos := get_global_mouse_position()
 	
-	# Query: encontrar TODAS as peças sob o ponto de clique
-	var space_state := get_world_2d().direct_space_state
-	var query := PhysicsPointQueryParameters2D.new()
-	query.position = world_pos
-	query.collide_with_areas = true
-	query.collide_with_bodies = false
-	query.collision_mask = 0xFFFFFFFF
-	
-	var results := space_state.intersect_point(query, 32)
-	
-	# Encontrar a peça com o Z mais alto (topo da pilha)
-	var topmost_tile: MahjongTile = null
-	var best_z := -1
-	
-	for result in results:
-		var collider = result["collider"]
-		if collider is MahjongTile and not collider.is_matched:
-			if collider.grid_pos.z > best_z:
-				best_z = collider.grid_pos.z
-				topmost_tile = collider
-	
-	if topmost_tile == null:
-		return  # Nenhuma peça sob o cursor — não consumir
-	
-	# ── CONSUMIR SEMPRE (press E release) ──
-	# Isso impede que o evento alcance peças de camadas inferiores
-	get_viewport().set_input_as_handled()
-	
-	# Só processar lógica no release (finger up / mouse up)
 	if event.pressed:
-		return  # Consome o press mas não processa
-	
-	# 3. Precisão do Clique: Se estiver bloqueada pela regra 90/10, ignorar completamente o release
-	# O evento press já foi consumido para não vazar, mas o jogo não deve processar a jogada.
-	if not is_tile_free(topmost_tile):
-		return
-	
-	# Deduplicação por frame
-	var frame := Engine.get_process_frames()
-	if frame == _last_pick_frame:
-		return
-	_last_pick_frame = frame
-	
-	# Cooldown temporal anti-double-click
-	var now := Time.get_ticks_msec()
-	if (now - _last_pick_time) < PICK_COOLDOWN_MS:
-		return
-	_last_pick_time = now
-	
-	# Só emitir se a peça do topo é LIVRE (regras do Mahjong)
-	if is_tile_free(topmost_tile):
-		tile_pressed.emit(topmost_tile)
+		# PRESS: Iniciar o Drag & Peek se possível
+		
+		# Query: encontrar TODAS as peças sob o ponto de clique
+		var space_state := get_world_2d().direct_space_state
+		var query := PhysicsPointQueryParameters2D.new()
+		query.position = world_pos
+		query.collide_with_areas = true
+		query.collide_with_bodies = false
+		query.collision_mask = 0xFFFFFFFF
+		
+		var results := space_state.intersect_point(query, 32)
+		
+		var topmost_tile: MahjongTile = null
+		var best_z := -1
+		
+		for result in results:
+			var collider = result["collider"]
+			if is_instance_valid(collider) and collider is MahjongTile and not collider.is_matched:
+				if collider.grid_pos.z > best_z:
+					best_z = collider.grid_pos.z
+					topmost_tile = collider
+					
+		if topmost_tile == null:
+			return  # Nenhuma peça sob o cursor
+			
+		get_viewport().set_input_as_handled()
+		
+		if is_tile_free(topmost_tile):
+			_dragged_tile = topmost_tile
+			_drag_start_screen_pos = world_pos
+			_dragged_tile.start_pos = _dragged_tile.global_position
+			_dragged_tile.animate_lift()
+			
+	else:
+		# RELEASE: Soltar a peça ou finalizar clique
+		if _dragged_tile != null:
+			get_viewport().set_input_as_handled()
+			
+			var final_pos = get_global_mouse_position()
+			var is_click = final_pos.distance_to(_drag_start_screen_pos) <= MahjongTile.DRAG_THRESHOLD
+			
+			if is_click:
+				# Deduplicação e Cooldown (Aplica só a "cliques")
+				var frame := Engine.get_process_frames()
+				if frame != _last_pick_frame:
+					var now := Time.get_ticks_msec()
+					if (now - _last_pick_time) >= PICK_COOLDOWN_MS:
+						_last_pick_frame = frame
+						_last_pick_time = now
+						
+						# Emitir a match - Restaurar a tile fisicamente aqui pq não foi animada dropada
+						_dragged_tile.animate_drop() # Limpa as modif de lift pq o GameManager vai reparentar/limpar na seq.
+						tile_pressed.emit(_dragged_tile)
+			else:
+				# Foi um arrasto de espiada solto em qualquer lugar. Voltar peca.
+				_dragged_tile.animate_drop()
+				
+			_dragged_tile = null
 
 
 func _has_neighbor(x: int, y: int, z: int) -> bool:
@@ -599,9 +627,9 @@ func _has_neighbor(x: int, y: int, z: int) -> bool:
 	if not tiles.has(pos):
 		return false
 	var tile = tiles[pos]
-	if tile is MahjongTile:
+	if is_instance_valid(tile) and tile is MahjongTile:
 		return not tile.is_matched and not tile.is_in_inventory
-	return true
+	return false
 
 
 func _clear_children() -> void:

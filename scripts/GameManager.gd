@@ -44,6 +44,12 @@ var _go_tiles_hbox: HBoxContainer
 
 var undo_charges: int = 3
 
+# ─── Hint ────────────────────────────────────────────────────────────
+
+var hint_charges: int = 4
+var is_hint_active: bool = false
+var active_hint_cat_id: int = -1
+
 # ─── Estado ──────────────────────────────────────────────────────────
 
 var _pairs_matched: int = 0
@@ -55,12 +61,13 @@ var _game_paused: bool = false
 # ═══════════════════════════════════════════════════════════════════════
 
 func _ready() -> void:
-	_btn_hint.pressed.connect(_on_hint)
+	_btn_hint.pressed.connect(_on_hint_pressed)
 	_btn_undo.pressed.connect(_on_undo_pressed)
 	_btn_menu.pressed.connect(_show_pause_popup)
 	_board.tile_pressed.connect(_on_tile_pressed)
 	
 	_update_undo_button()
+	_update_hint_button()
 
 	_build_inventory_bar()
 	_build_game_over_popup()
@@ -335,7 +342,11 @@ func _start_game() -> void:
 	_pending_animations = 0
 	_fading_animations = 0
 	undo_charges = 3
+	hint_charges = 4
+	is_hint_active = false
+	active_hint_cat_id = -1
 	_update_undo_button()
+	_update_hint_button()
 	_board.new_game()
 
 
@@ -411,7 +422,7 @@ func _animate_tile_to_slot(tile: MahjongTile, slot_index: int) -> void:
 		var partner: MahjongTile = tile.get_meta("matched_partner")
 		if is_instance_valid(partner) and partner.has_meta("match_landed") and partner.get_meta("match_landed"):
 			# Ambos pousaram → disparar animação de match por IMPACTO
-			_animate_pair_removal(tile, partner)
+			_executar_animacao_fantasma(tile, partner)
 	elif tile.is_in_inventory:
 		# Tile normal (não matched) — finalizar no UI
 		_reparent_tile_to_ui(tile)
@@ -471,10 +482,11 @@ func _reparent_tile_to_ui(tile: MahjongTile) -> void:
 	if current_idx < 0 or current_idx >= MAX_INVENTORY:
 		return
 
-	# Tile já está no UILayer (reparentado em _fly_tile_to_slot)
-	# Apenas finalizar z_index e garantir cor
-	tile.z_index = 50
-	tile.modulate = Color.WHITE
+	# Apenas finalizar color (z_index é gerenciado dinamicamente em _reorganize_slots)
+	if tile.is_hinted:
+		tile.play_hint_glow()
+	else:
+		tile.modulate = Color.WHITE
 
 	# Reorganizar TODAS as peças para garantir consistência
 	if _fading_animations == 0:
@@ -544,6 +556,17 @@ func _try_instant_pair_resolution() -> void:
 		# Limpeza visual de Hint Órfão:
 		# Se o jogador usou uma peça não-sugerida mas do mesmo tipo da hint, varre e limpa
 		_board.clear_hint_for_type(t1.cat_id)
+		
+		# Limpa o estado global do Hint para permitir novos cliques
+		if is_hint_active and active_hint_cat_id == t1.cat_id:
+			is_hint_active = false
+			active_hint_cat_id = -1
+		
+		# ── Limpeza do Histórico (Bug de múltiplos cliques no Undo) ──
+		for i in range(_board.move_history.size() - 1, -1, -1):
+			var record = _board.move_history[i]
+			if record["tile"] == t1 or record["tile"] == t2:
+				_board.move_history.remove_at(i)
 
 		# A reorganização visual (_reorganize_slots) foi removida daqui para não deslizar
 		# os tiles enquanto a animação do match atual não desaparecer!
@@ -559,7 +582,7 @@ func _try_instant_pair_resolution() -> void:
 
 		if t1_landed and t2_landed:
 			# Ambos já pousaram → animação imediata
-			_animate_pair_removal(t1, t2)
+			_executar_animacao_fantasma(t1, t2)
 
 		# Atualizar board (peças que ficaram livres)
 		_board.update_tile_states()
@@ -576,45 +599,58 @@ func _try_instant_pair_resolution() -> void:
 		_show_win_popup()
 
 
-func _animate_pair_removal(tile1: MahjongTile, tile2: MahjongTile) -> void:
-	"""Animação de match por IMPACTO — scale shrink + fade out (0.4s).
-	Disparada apenas quando ambos os tiles pousaram no slot."""
+func _executar_animacao_fantasma(peca_a: MahjongTile, peca_b: MahjongTile) -> void:
+	"""Coreografia Visual Independente (A Peça Fantasma)
+	Animação de match: desliza suavemente para cima (Y-=50) e fading,
+	renderizando por cima de tudo para que a reorganização do slot ocorra limpa por baixo."""
+	
 	# Garantir que colisão está desabilitada e parar hint glow durante a animação
-	for t in [tile1, tile2]:
+	for t in [peca_a, peca_b]:
 		t.input_pickable = false
 		t.stop_hint_glow()
 		if t.has_node("CollisionShape"):
 			t.get_node("CollisionShape").set_deferred("disabled", true)
+			
+	# Passo A: Elevar z_index para o céu
+	peca_a.z_index = 999
+	peca_b.z_index = 999
 
 	_fading_animations += 1
+	
+	# Chamar a reorganização dos slots IMEDIATAMENTE (antes da animação de saída)
+	# Assim as peças já começam a deslizar debaixo do match ativo
+	if _fading_animations == 1:
+		_reorganize_slots()
 
+	# Passo C: Iniciar um Tween que faz ambas as peças subirem e desaparecerem
 	var fade_tween := create_tween()
 	fade_tween.set_parallel(true)
 
-	# Tile 1: shrink + fade
-	fade_tween.tween_property(tile1, "scale", tile1.scale * 0.3, 0.4)\
-		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	fade_tween.tween_property(tile1, "modulate", Color(1.5, 1.3, 0.8, 0.0), 0.4)\
-		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	# Peca A
+	fade_tween.tween_property(peca_a, "position:y", peca_a.position.y - 50.0, 0.3)\
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	fade_tween.tween_property(peca_a, "modulate:a", 0.0, 0.3)\
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
-	# Tile 2: shrink + fade
-	fade_tween.tween_property(tile2, "scale", tile2.scale * 0.3, 0.4)\
-		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	fade_tween.tween_property(tile2, "modulate", Color(1.5, 1.3, 0.8, 0.0), 0.4)\
-		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	# Peca B
+	fade_tween.tween_property(peca_b, "position:y", peca_b.position.y - 50.0, 0.3)\
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	fade_tween.tween_property(peca_b, "modulate:a", 0.0, 0.3)\
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
-	# Callback ao terminar — cleanup visual sem bloquear
+	# Passo D: Chame queue_free() apenas ao final desta animação
 	fade_tween.finished.connect(func():
-		if is_instance_valid(tile1):
-			tile1.visible = false
-		if is_instance_valid(tile2):
-			tile2.visible = false
+		if is_instance_valid(peca_a):
+			peca_a.queue_free()
+		if is_instance_valid(peca_b):
+			peca_b.queue_free()
 		
 		_fading_animations -= 1
 		
-		# Executa o deslize para tapar o buraco apenas quando NENHUM match estiver tocando
+		# A reorganização baseada em _fading_animations == 0 final foi movida pro início,
+		# mas caso haja múltiplas intercaladas, garantimos aqui também.
 		if _fading_animations == 0:
-			await get_tree().create_timer(0.15).timeout
+			await get_tree().create_timer(0.05).timeout
 			if _fading_animations == 0:
 				_reorganize_slots()
 	)
@@ -633,6 +669,15 @@ func _reorganize_slots() -> void:
 			continue
 
 		var pocket_center: Vector2 = _get_slot_center(i)
+		
+		# Define o z_index dinâmico baseado na posição do slot (efeito cascata)
+		# Peças mais à esquerda (índice menor) recebem z_index menor (ex: 50, 51, 52...)
+		# Garantindo que a peça que chega da direita e desliza para a esquerda passe POR BAIXO da peça que já estava na direita.
+		# Espera, a regra visual desejada: quem está no slot 1 (esq) fica por baixo de quem tá no slot 2 (dir)? 
+		# "que a peça que esta chegando em um slot que estava ocupada [ao deslizar da direita pra esq.], vá por baixo da peça que ja estava lá"
+		# Se as peças deslizam em bando para a esquerda, elas devem ir sucessivamente descendo de camada.
+		# Quem está mais BEM POSICIONADO à esquerda ganha MENOR z_index.
+		tile.z_index = 50 + i
 
 		# Só animar se a peça não está já na posição correta
 		if tile.position.distance_to(pocket_center) > 2.0:
@@ -724,7 +769,12 @@ func _on_revive() -> void:
 		tile.is_in_inventory = false
 		tile.is_matched = false
 		tile.visible = true
-		tile.modulate = Color.WHITE
+		
+		if tile.is_hinted:
+			tile.play_hint_glow()
+		else:
+			tile.modulate = Color.WHITE
+			
 		tile.z_index = 1000  # Acima de tudo durante o voo
 
 		# Converter posição da tela para coordenadas locais do board
@@ -772,14 +822,19 @@ func _on_undo_pressed() -> void:
 	if undo_charges <= 0:
 		return
 		
-	var last_move = _board.move_history.pop_back()
-	var tile: MahjongTile = last_move["tile"]
-	if tile == null or not is_instance_valid(tile):
+	var valid_move = null
+	while _board.move_history.size() > 0:
+		var move = _board.move_history.pop_back()
+		if move["tile"] != null and is_instance_valid(move["tile"]) and not move["tile"].is_queued_for_deletion():
+			var t: MahjongTile = move["tile"]
+			if t.is_in_inventory and not t.is_matched:
+				valid_move = move
+				break
+				
+	if valid_move == null:
 		return
 		
-	# Só permitir Undo se a peça ainda não sofreu match e está no inventário
-	if not tile.is_in_inventory or tile.is_matched:
-		return
+	var tile: MahjongTile = valid_move["tile"]
 
 	# Reduzir card e UI
 	undo_charges -= 1
@@ -808,7 +863,11 @@ func _on_undo_pressed() -> void:
 	tile.is_in_inventory = false
 	tile.is_matched = false
 	tile.visible = true
-	tile.modulate = Color.WHITE
+	
+	if tile.is_hinted:
+		tile.play_hint_glow()
+	else:
+		tile.modulate = Color.WHITE
 	
 	# Z Index local absurdamente alto no CanvasLayer
 	tile.z_index = 1000
@@ -849,6 +908,16 @@ func _on_undo_pressed() -> void:
 				tile.get_node("CollisionShape").set_deferred("disabled", false)
 			if tile.has_node("DropShadow"):
 				tile.get_node("DropShadow").visible = true
+				
+			# Resync de animação de Hint: reinicia o Tween das duas metades do par ao mesmo tempo
+			if tile.is_hinted:
+				# Procura todos os tiles ativos no board procurando o parceiro também piscando
+				for other_tile in _board.active_tiles():
+					if is_instance_valid(other_tile) and other_tile != tile and other_tile.is_hinted:
+						# Dá restart síncrono nas duas!
+						other_tile.play_hint_glow()
+						tile.play_hint_glow()
+						break
 	)
 	
 	# Uma vez de volta ao tabuleiro, notificar a atualização de estado (peças que poderão ser bloqueadas novamente)
@@ -856,9 +925,23 @@ func _on_undo_pressed() -> void:
 	_board.update_tile_states()
 
 
-func _on_hint() -> void:
-	if _game_paused:
+func _update_hint_button() -> void:
+	if hint_charges <= 0:
+		_btn_hint.disabled = true
+		_btn_hint.modulate = Color(1, 1, 1, 0.4)
+	else:
+		_btn_hint.disabled = false
+		_btn_hint.modulate = Color.WHITE
+
+
+func _on_hint_pressed() -> void:
+	if _game_paused or hint_charges <= 0:
 		return
+	if is_hint_active:
+		return
+		
+	hint_charges -= 1
+	_update_hint_button()
 		
 	var inv_ids: Array[int] = []
 	for tile in _inventory:
@@ -868,6 +951,9 @@ func _on_hint() -> void:
 	var hint_tiles = _board.find_hint(inv_ids)
 	if hint_tiles.size() > 0:
 		_board.highlight_hint(hint_tiles)
+		
+		is_hint_active = true
+		active_hint_cat_id = hint_tiles[0].cat_id
 		
 		# Sincronizar brilho com a peça correspondente no inventário
 		for hint_tile in hint_tiles:
