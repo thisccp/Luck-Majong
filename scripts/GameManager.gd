@@ -55,6 +55,12 @@ var active_hint_cat_id: int = -1
 var _pairs_matched: int = 0
 var _game_paused: bool = false
 
+# ─── Ads System ──────────────────────────────────────────────────────
+var ad_requester: String = ""
+var _ad_popup: Control
+var _hint_label: Label
+var _undo_label: Label
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # LIFECYCLE
@@ -66,11 +72,14 @@ func _ready() -> void:
 	_btn_menu.pressed.connect(_show_pause_popup)
 	_board.tile_pressed.connect(_on_tile_pressed)
 	
+	_build_power_labels()
+	
 	_update_undo_button()
 	_update_hint_button()
 
 	_build_inventory_bar()
 	_build_game_over_popup()
+	_build_ad_popup()
 
 	# ── Popups existentes ──
 	$UILayer/WinPopup/PlayAgainBtn.pressed.connect(func():
@@ -817,9 +826,13 @@ func _update_revive_button() -> void:
 func _on_undo_pressed() -> void:
 	if _game_paused or _tiles_in_flight.size() > 0 or _fading_animations > 0 or _pending_animations > 0:
 		return
-	if _board.move_history.size() == 0:
-		return
+		
 	if undo_charges <= 0:
+		ad_requester = "undo"
+		_show_ad_popup()
+		return
+		
+	if _board.move_history.size() == 0:
 		return
 		
 	var valid_move = null
@@ -924,19 +937,20 @@ func _on_undo_pressed() -> void:
 	await get_tree().create_timer(0.35).timeout
 	_board.update_tile_states()
 
-
 func _update_hint_button() -> void:
-	if hint_charges <= 0:
-		_btn_hint.disabled = true
-		_btn_hint.modulate = Color(1, 1, 1, 0.4)
-	else:
-		_btn_hint.disabled = false
-		_btn_hint.modulate = Color.WHITE
+	if _hint_label:
+		_hint_label.text = str(hint_charges) if hint_charges > 0 else "+"
 
 
 func _on_hint_pressed() -> void:
-	if _game_paused or hint_charges <= 0:
+	if _game_paused:
 		return
+		
+	if hint_charges <= 0:
+		ad_requester = "hint"
+		_show_ad_popup()
+		return
+		
 	if is_hint_active:
 		return
 		
@@ -977,7 +991,8 @@ func _show_win_popup() -> void:
 	_game_paused = true
 	_dim_overlay.visible = true
 	_dim_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	_win_popup.visible = true
+	if _win_popup:
+		_win_popup.show()
 	_set_hud_disabled(true)
 
 
@@ -1010,12 +1025,137 @@ func _set_hud_disabled(disabled: bool) -> void:
 
 func _update_undo_button() -> void:
 	if not is_instance_valid(_btn_undo): return
-	if undo_charges <= 0:
-		_btn_undo.disabled = true
-		_btn_undo.modulate.a = 0.5
-	else:
-		_btn_undo.disabled = false
-		_btn_undo.modulate.a = 1.0
+	
+	if _undo_label:
+		_undo_label.text = str(undo_charges) if undo_charges > 0 else "+"
+
+
+func _build_power_labels() -> void:
+	var label_settings = LabelSettings.new()
+	label_settings.font_size = 28
+	label_settings.outline_size = 8
+	label_settings.outline_color = Color.BLACK
+	label_settings.font_color = Color.WHITE
+	
+	_hint_label = Label.new()
+	_hint_label.label_settings = label_settings
+	_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_hint_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	_hint_label.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_hint_label.position = Vector2(-8, -8)  # Margin tuning
+	_btn_hint.add_child(_hint_label)
+	
+	_undo_label = Label.new()
+	_undo_label.label_settings = label_settings
+	_undo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_undo_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	_undo_label.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_undo_label.position = Vector2(-8, -8)
+	_btn_undo.add_child(_undo_label)
+
+
+func _build_ad_popup() -> void:
+	_ad_popup = ColorRect.new()
+	_ad_popup.color = Color(0, 0, 0, 0.7)
+	_ad_popup.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_ad_popup.hide()
+	
+	var center = CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_ad_popup.add_child(center)
+
+	var panel = PanelContainer.new()
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.1, 0.1, 1.0)
+	style.corner_radius_top_left = 20
+	style.corner_radius_top_right = 20
+	style.corner_radius_bottom_left = 20
+	style.corner_radius_bottom_right = 20
+	style.border_width_left = 4
+	style.border_width_right = 4
+	style.border_width_top = 4
+	style.border_width_bottom = 4
+	style.border_color = Color(0.8, 0.6, 0.2, 1.0)
+	panel.add_theme_stylebox_override("panel", style)
+	
+	panel.custom_minimum_size = Vector2(300, 200)
+	
+	var vbox = VBoxContainer.new()
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_theme_constant_override("separation", 20)
+	
+	var title = Label.new()
+	title.text = "Ver Anúncio"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var t_settings = LabelSettings.new()
+	t_settings.font_size = 24
+	t_settings.font_color = Color.WHITE
+	title.label_settings = t_settings
+	vbox.add_child(title)
+	
+	var refill_btn = Button.new()
+	refill_btn.text = "Carregar +2"
+	refill_btn.custom_minimum_size = Vector2(200, 60)
+	var btn_style = StyleBoxFlat.new()
+	btn_style.bg_color = Color(0.2, 0.6, 0.2)
+	btn_style.corner_radius_top_left = 10
+	btn_style.corner_radius_top_right = 10
+	btn_style.corner_radius_bottom_left = 10
+	btn_style.corner_radius_bottom_right = 10
+	refill_btn.add_theme_stylebox_override("normal", btn_style)
+	
+	var btn_hover = btn_style.duplicate()
+	btn_hover.bg_color = Color(0.3, 0.7, 0.3)
+	refill_btn.add_theme_stylebox_override("hover", btn_hover)
+	
+	var btn_pressed = btn_style.duplicate()
+	btn_pressed.bg_color = Color(0.1, 0.5, 0.1)
+	refill_btn.add_theme_stylebox_override("pressed", btn_pressed)
+	
+	refill_btn.pressed.connect(_on_ad_reward_claimed)
+	vbox.add_child(refill_btn)
+	
+	# Botão fechar
+	var close_btn = Button.new()
+	close_btn.text = "Cancelar"
+	var close_style = StyleBoxFlat.new()
+	close_style.bg_color = Color.TRANSPARENT
+	close_btn.add_theme_stylebox_override("normal", close_style)
+	close_btn.pressed.connect(func():
+		_ad_popup.hide()
+		_game_paused = false
+	)
+	vbox.add_child(close_btn)
+	
+	var m = MarginContainer.new()
+	m.add_theme_constant_override("margin_left", 20)
+	m.add_theme_constant_override("margin_right", 20)
+	m.add_theme_constant_override("margin_top", 20)
+	m.add_theme_constant_override("margin_bottom", 20)
+	m.add_child(vbox)
+	panel.add_child(m)
+	
+	center.add_child(panel)
+	$UILayer.add_child(_ad_popup)
+
+
+func _show_ad_popup() -> void:
+	_game_paused = true
+	if _ad_popup:
+		_ad_popup.show()
+
+
+func _on_ad_reward_claimed() -> void:
+	if ad_requester == "hint":
+		hint_charges += 2
+		_update_hint_button()
+	elif ad_requester == "undo":
+		undo_charges += 2
+		_update_undo_button()
+		
+	ad_requester = ""
+	_ad_popup.hide()
+	_game_paused = false
 
 
 # ═══════════════════════════════════════════════════════════════════════
