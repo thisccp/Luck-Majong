@@ -61,6 +61,9 @@ var ad_requester: String = ""
 var _hint_label: Label
 var _undo_label: Label
 
+# ─── Progressão ──────────────────────────────────────────────────────
+var current_level: int = 1
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # LIFECYCLE
@@ -89,18 +92,18 @@ func _ready() -> void:
 	# ── Popups existentes ──
 	$UILayer/WinPopup/PlayAgainBtn.pressed.connect(func():
 		_hide_popups()
-		print("Indo para Nível 2 (WIP)")
+		_start_game()
 	)
 	$UILayer/WinPopup/HomeBtn.pressed.connect(func():
 		_hide_popups()
-		get_tree().reload_current_scene()
+		get_tree().quit()
 	)
 	$UILayer/PausePopup/SoundToggle.toggled.connect(func(bp: bool):
 		print("Sound toggled: ", bp)
 	)
 	$UILayer/PausePopup/RestartBtn.pressed.connect(func():
 		_hide_popups()
-		get_tree().reload_current_scene()
+		_restart_level()
 	)
 	$UILayer/PausePopup/ClosePauseBtn.pressed.connect(func():
 		_hide_popups()
@@ -333,7 +336,8 @@ func _build_game_over_popup() -> void:
 	_restart_go_btn.add_theme_stylebox_override("pressed", btn_pressed)
 	_restart_go_btn.add_theme_stylebox_override("hover", btn_hover)
 	_restart_go_btn.pressed.connect(func():
-		get_tree().reload_current_scene()
+		_hide_popups()
+		_restart_level()
 	)
 	vbox.add_child(_restart_go_btn)
 
@@ -355,13 +359,27 @@ func _start_game() -> void:
 	_tiles_in_flight.clear()
 	_pending_animations = 0
 	_fading_animations = 0
-	undo_charges = 3
-	hint_charges = 4
 	is_hint_active = false
 	active_hint_cat_id = -1
 	_update_undo_button()
 	_update_hint_button()
-	_board.new_game()
+	_board.new_game(current_level, false)
+
+
+func _restart_level() -> void:
+	"""Reinicia exatamente o meso level sem resetar power-ups."""
+	for tile in _inventory:
+		if is_instance_valid(tile):
+			tile.queue_free()
+	_pairs_matched = 0
+	_inventory.clear()
+	_slot_assignments.clear()
+	_tiles_in_flight.clear()
+	_pending_animations = 0
+	_fading_animations = 0
+	is_hint_active = false
+	active_hint_cat_id = -1
+	_board.new_game(current_level, true)
 
 
 func _on_tile_pressed(tile: MahjongTile) -> void:
@@ -714,6 +732,14 @@ func _show_game_over_popup() -> void:
 	_game_over_popup.visible = true
 	_set_hud_disabled(true)
 
+	# Desligar dicas pendentes para que não brilhem no Game Over
+	is_hint_active = false
+	active_hint_cat_id = -1
+	_board.clear_selection()
+	for tile in _inventory:
+		if is_instance_valid(tile):
+			tile.stop_hint_glow()
+
 	# Deixar peças do inventário cinzas
 	for tile in _inventory:
 		if is_instance_valid(tile):
@@ -959,9 +985,6 @@ func _on_hint_pressed() -> void:
 	if is_hint_active:
 		return
 		
-	hint_charges -= 1
-	_update_hint_button()
-		
 	var inv_ids: Array[int] = []
 	for tile in _inventory:
 		if is_instance_valid(tile):
@@ -969,6 +992,9 @@ func _on_hint_pressed() -> void:
 			
 	var hint_tiles = _board.find_hint(inv_ids)
 	if hint_tiles.size() > 0:
+		hint_charges -= 1
+		_update_hint_button()
+		
 		_board.highlight_hint(hint_tiles)
 		
 		is_hint_active = true
@@ -993,6 +1019,11 @@ func _on_shuffle() -> void:
 # ═══════════════════════════════════════════════════════════════════════
 
 func _show_win_popup() -> void:
+	current_level += 1
+	var btn = $UILayer/WinPopup/PlayAgainBtn
+	if btn:
+		btn.text = "Nível " + str(current_level)
+		
 	_game_paused = true
 	_dim_overlay.visible = true
 	_dim_overlay.mouse_filter = Control.MOUSE_FILTER_STOP

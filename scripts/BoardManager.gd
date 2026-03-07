@@ -27,19 +27,21 @@ const NUM_TYPES := 20
 
 ## Dicionário de tiles: Vector3i → MahjongTile (ou dados durante geração)
 var tiles: Dictionary = {}
-## Histórico de jogadas para undo (futuro). Dicionários {tile, pos_z, pos_x, pos_y}
 var move_history: Array = []
+var current_shape: Array[Vector3i] = []
 
 # ─── API pública ────────────────────────────────────────────────────
 
-func new_game() -> void:
+func new_game(level: int = 1, keep_shape: bool = false) -> void:
 	"""Gera um novo tabuleiro 100% solvável e renderiza."""
 	tiles.clear()
 	move_history.clear()
 	_clear_children()
 	
-	var slots := _load_block_layout()
-	_generate_beatable(slots)
+	if not keep_shape or current_shape.is_empty():
+		current_shape = get_next_level_shape(level)
+		
+	_generate_beatable(current_shape)
 	_render_board()
 	print("[BoardManager] new_game: %d tiles gerados" % tiles.size())
 
@@ -224,42 +226,176 @@ func clear_hint_for_type(id: int) -> void:
 
 # ─── Layout ─────────────────────────────────────────────────────────
 
-func _load_block_layout() -> Array[Vector3i]:
-	"""
-	Layout 'Neko Pillar' (Ref. Estrutural) — Pilar Vertical focado no Galaxy S25 (6 colunas).
-	Total: 66 peças (33 pares).
-	"""
+func get_next_level_shape(level: int) -> Array[Vector3i]:
+	var rng = RandomNumberGenerator.new()
+	rng.seed = level
+	
+	var shapes = {}
+	
+	if level >= 1 and level <= 5:
+		shapes = {
+			"snake": _load_shape_snake,
+			"flat_field": _load_shape_flat_field
+		}
+	elif level >= 6 and level <= 10:
+		shapes = {
+			"classic_turtle": _load_shape_classic_turtle,
+			"neko_pillar": _load_shape_neko_pillar
+		}
+	else:
+		if level % 5 == 0:
+			shapes = {
+				"pyramid": _load_shape_pyramid,
+				"twin_peaks": _load_shape_twin_peaks
+			}
+		elif level % 5 == 1:
+			shapes = {
+				"snake": _load_shape_snake,
+				"flat_field": _load_shape_flat_field
+			}
+		else:
+			shapes = {
+				"classic_turtle": _load_shape_classic_turtle,
+				"neko_pillar": _load_shape_neko_pillar
+			}
+		
+	var keys = shapes.keys()
+	var chosen = keys[rng.randi() % keys.size()]
+	
+	print("[BoardManager] Nível %d | Semente %d | Gerando layout: %s" % [level, rng.seed, chosen])
+	return shapes[chosen].call()
+
+
+func _load_shape_neko_pillar() -> Array[Vector3i]:
+	"""Layout 'Neko Pillar' (Ref. Estrutural) — Pilar Vertical (6 colunas). Total: 66 peças (33 pares)."""
 	var slots: Array[Vector3i] = []
-
-	# ═══ Z=0 (Base 6 colunas, alta densidade e altura 12): 30 peças ═══
-	# Eixo X é limitado a 0, 2, 4, 6, 8, 10
-	for y in [2, 4, 6, 8, 10]: slots.append(Vector3i(0, y, 0)) # Col 1
-	for y in [1, 3, 5, 7, 9, 11]: slots.append(Vector3i(2, y, 0)) # Col 2
-	for y in [0, 2, 4, 6, 8, 10, 12]: slots.append(Vector3i(4, y, 0)) # Col 3 (Centro)
-	for y in [1, 3, 5, 7, 9, 11]: slots.append(Vector3i(6, y, 0)) # Col 4
-	for y in [2, 4, 6, 8, 10]: slots.append(Vector3i(8, y, 0)) # Col 5
-	for y in [5, 7]: slots.append(Vector3i(10, y, 0)) # Col 6 (Extra support)
-
-	# ═══ Z=1 (Camada 1): 20 peças ═══
-	for y in [3, 5, 7, 9]: slots.append(Vector3i(2, y, 1))
-	for y in [2, 4, 6, 8, 10]: slots.append(Vector3i(4, y, 1))
-	for y in [2, 4, 6, 8, 10]: slots.append(Vector3i(6, y, 1))
-	for y in [3, 5, 7, 9]: slots.append(Vector3i(8, y, 1))
+	# Z=0 (Base 6 colunas, alta densidade e altura 12): 30 peças
+	for y in range(2, 11, 2): slots.append(Vector3i(0, y, 0)) # Col 1
+	for y in range(1, 12, 2): slots.append(Vector3i(2, y, 0)) # Col 2
+	for y in range(0, 13, 2): slots.append(Vector3i(4, y, 0)) # Col 3 (Centro)
+	for y in range(1, 12, 2): slots.append(Vector3i(6, y, 0)) # Col 4
+	for y in range(2, 11, 2): slots.append(Vector3i(8, y, 0)) # Col 5
+	for y in range(5, 8, 2): slots.append(Vector3i(10, y, 0)) # Col 6 (Extra support)
+	# Z=1 (Camada 1): 20 peças
+	for y in range(3, 10, 2): slots.append(Vector3i(2, y, 1))
+	for y in range(2, 11, 2): slots.append(Vector3i(4, y, 1))
+	for y in range(2, 11, 2): slots.append(Vector3i(6, y, 1))
+	for y in range(3, 10, 2): slots.append(Vector3i(8, y, 1))
 	slots.append(Vector3i(4, 0, 1))
 	slots.append(Vector3i(6, 12, 1))
-
-	# ═══ Z=2 (Camada 2): 10 peças ═══
-	for y in [4, 6, 8]: slots.append(Vector3i(4, y, 2))
-	for y in [5, 7]: slots.append(Vector3i(6, y, 2))
-	for y in [4, 6, 8]: slots.append(Vector3i(8, y, 2))
+	# Z=2 (Camada 2): 10 peças
+	for y in range(4, 9, 2): slots.append(Vector3i(4, y, 2))
+	for y in range(5, 8, 2): slots.append(Vector3i(6, y, 2))
+	for y in range(4, 9, 2): slots.append(Vector3i(8, y, 2))
 	slots.append(Vector3i(4, 2, 2))
 	slots.append(Vector3i(6, 9, 2))
-
-	# ═══ Z=3 (Topo): 6 peças ═══
-	for y in [5, 7]: slots.append(Vector3i(4, y, 3))
-	for y in [4, 6, 8]: slots.append(Vector3i(6, y, 3))
+	# Z=3 (Topo): 6 peças
+	for y in range(5, 8, 2): slots.append(Vector3i(4, y, 3))
+	for y in range(4, 9, 2): slots.append(Vector3i(6, y, 3))
 	slots.append(Vector3i(8, 7, 3))
+	return slots
 
+
+func _load_shape_classic_turtle() -> Array[Vector3i]:
+	"""Tartaruga centralizada. Foco no meio."""
+	var slots: Array[Vector3i] = []
+	# Z=0
+	for y in range(2, 11, 2): slots.append(Vector3i(0, y, 0)); slots.append(Vector3i(10, y, 0))
+	for y in range(1, 12, 2): slots.append(Vector3i(2, y, 0)); slots.append(Vector3i(8, y, 0))
+	for y in range(0, 13, 2): slots.append(Vector3i(4, y, 0)); slots.append(Vector3i(6, y, 0))
+	# Z=1
+	for y in range(3, 10, 2): slots.append(Vector3i(2, y, 1)); slots.append(Vector3i(8, y, 1))
+	for y in range(2, 11, 2): slots.append(Vector3i(4, y, 1)); slots.append(Vector3i(6, y, 1))
+	# Z=2
+	for y in range(4, 9, 2): slots.append(Vector3i(4, y, 2)); slots.append(Vector3i(6, y, 2))
+	# Z=3
+	slots.append(Vector3i(4, 6, 3)); slots.append(Vector3i(6, 6, 3))
+	return slots
+
+
+func _load_shape_pyramid() -> Array[Vector3i]:
+	"""Base subindo gradativamente até Z=4."""
+	var slots: Array[Vector3i] = []
+	# Z=0 (6 colunas)
+	for x in [0,2,4,6,8,10]:
+		for y in range(0, 13, 2): slots.append(Vector3i(x, y, 0))
+	# Z=1 (4 colunas centrais)
+	for x in [2,4,6,8]:
+		for y in range(2, 11, 2): slots.append(Vector3i(x, y, 1))
+	# Z=2 (2 colunas centrais)
+	for x in [4,6]:
+		for y in range(4, 9, 2): slots.append(Vector3i(x, y, 2))
+	# Z=3 (2 colunas centrais)
+	for x in [4,6]:
+		for y in range(5, 8, 2): slots.append(Vector3i(x, y, 3))
+	# Z=4 
+	slots.append(Vector3i(4, 6, 4))
+	slots.append(Vector3i(6, 6, 4))
+	return slots
+
+
+func _load_shape_twin_peaks() -> Array[Vector3i]:
+	"""Duas torres gigantes com Z=4, separadas e com meio vazio."""
+	var slots: Array[Vector3i] = []
+	# Z=0 conectando elas + pontes nas bordas
+	for x in [0,2,8,10]:
+		for y in range(0, 13, 2): slots.append(Vector3i(x, y, 0))
+	for x in [4,6]:
+		for y in [0, 12]: slots.append(Vector3i(x, y, 0)) 
+		
+	# Z=1 (Torres)
+	for x in [0,2,8,10]:
+		for y in range(2, 11, 2): slots.append(Vector3i(x, y, 1))
+	# Z=2
+	for x in [0,2,8,10]:
+		for y in range(4, 9, 2): slots.append(Vector3i(x, y, 2))
+	# Z=3
+	for x in [0,2,8,10]:
+		for y in range(5, 8, 2): slots.append(Vector3i(x, y, 3))
+	# Z=4
+	slots.append(Vector3i(0, 6, 4)); slots.append(Vector3i(2, 6, 4))
+	slots.append(Vector3i(8, 6, 4)); slots.append(Vector3i(10, 6, 4))
+	return slots
+
+
+func _load_shape_snake() -> Array[Vector3i]:
+	"""Formato de Sinuoso/S em Z baixos. Limitado ~44 peças."""
+	var slots: Array[Vector3i] = []
+	# Z=0
+	for y in range(0, 4, 2):
+		slots.append(Vector3i(0, y, 0)); slots.append(Vector3i(2, y, 0)); slots.append(Vector3i(4, y, 0))
+	for y in range(4, 8, 2):
+		slots.append(Vector3i(4, y, 0)); slots.append(Vector3i(6, y, 0)); slots.append(Vector3i(8, y, 0))
+	for y in range(8, 12, 2):
+		slots.append(Vector3i(0, y, 0)); slots.append(Vector3i(2, y, 0)); slots.append(Vector3i(4, y, 0))
+		
+	for y in range(0, 13, 2):
+		slots.append(Vector3i(10, y, 0))
+	
+	# Z=1 (Sobre a cobra)
+	for y in range(1, 4, 2):
+		slots.append(Vector3i(2, y, 1)); slots.append(Vector3i(4, y, 1))
+	for y in range(5, 8, 2):
+		slots.append(Vector3i(4, y, 1)); slots.append(Vector3i(6, y, 1))
+	for y in range(9, 12, 2):
+		slots.append(Vector3i(2, y, 1)); slots.append(Vector3i(4, y, 1))
+		
+	# Z=2 (Picos)
+	slots.append(Vector3i(2, 2, 2)); slots.append(Vector3i(6, 6, 2)); slots.append(Vector3i(2, 10, 2))
+	return slots
+
+
+func _load_shape_flat_field() -> Array[Vector3i]:
+	"""Tabuleiro espalhado e raso. Limitado a ~58 peças."""
+	var slots: Array[Vector3i] = []
+	# Z=0
+	for x in [0,2,4,6,8,10]:
+		for y in range(0, 14, 2): slots.append(Vector3i(x, y, 0))
+	
+	# Z=1 espalhadas 
+	for x in [2,4,6,8]:
+		for y in [2, 6, 10]:
+			slots.append(Vector3i(x, y, 1))
 	return slots
 
 
