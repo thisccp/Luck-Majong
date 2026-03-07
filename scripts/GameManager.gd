@@ -57,7 +57,7 @@ var _game_paused: bool = false
 
 # ─── Ads System ──────────────────────────────────────────────────────
 var ad_requester: String = ""
-var _ad_popup: Control
+@onready var _ad_popup: ColorRect = $UILayer/AdPopup
 var _hint_label: Label
 var _undo_label: Label
 
@@ -79,7 +79,12 @@ func _ready() -> void:
 
 	_build_inventory_bar()
 	_build_game_over_popup()
-	_build_ad_popup()
+
+	_ad_popup.refill_requested.connect(_on_ad_reward_claimed)
+	_ad_popup.popup_closed.connect(func():
+		_ad_popup.hide()
+		_game_paused = false
+	)
 
 	# ── Popups existentes ──
 	$UILayer/WinPopup/PlayAgainBtn.pressed.connect(func():
@@ -1053,90 +1058,6 @@ func _build_power_labels() -> void:
 	_undo_label.position = Vector2(-8, -8)
 	_btn_undo.add_child(_undo_label)
 
-
-func _build_ad_popup() -> void:
-	_ad_popup = ColorRect.new()
-	_ad_popup.color = Color(0, 0, 0, 0.7)
-	_ad_popup.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_ad_popup.hide()
-	
-	var center = CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_ad_popup.add_child(center)
-
-	var panel = PanelContainer.new()
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.1, 0.1, 1.0)
-	style.corner_radius_top_left = 20
-	style.corner_radius_top_right = 20
-	style.corner_radius_bottom_left = 20
-	style.corner_radius_bottom_right = 20
-	style.border_width_left = 4
-	style.border_width_right = 4
-	style.border_width_top = 4
-	style.border_width_bottom = 4
-	style.border_color = Color(0.8, 0.6, 0.2, 1.0)
-	panel.add_theme_stylebox_override("panel", style)
-	
-	panel.custom_minimum_size = Vector2(300, 200)
-	
-	var vbox = VBoxContainer.new()
-	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	vbox.add_theme_constant_override("separation", 20)
-	
-	var title = Label.new()
-	title.text = "Ver Anúncio"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	var t_settings = LabelSettings.new()
-	t_settings.font_size = 24
-	t_settings.font_color = Color.WHITE
-	title.label_settings = t_settings
-	vbox.add_child(title)
-	
-	var refill_btn = Button.new()
-	refill_btn.text = "Carregar +2"
-	refill_btn.custom_minimum_size = Vector2(200, 60)
-	var btn_style = StyleBoxFlat.new()
-	btn_style.bg_color = Color(0.2, 0.6, 0.2)
-	btn_style.corner_radius_top_left = 10
-	btn_style.corner_radius_top_right = 10
-	btn_style.corner_radius_bottom_left = 10
-	btn_style.corner_radius_bottom_right = 10
-	refill_btn.add_theme_stylebox_override("normal", btn_style)
-	
-	var btn_hover = btn_style.duplicate()
-	btn_hover.bg_color = Color(0.3, 0.7, 0.3)
-	refill_btn.add_theme_stylebox_override("hover", btn_hover)
-	
-	var btn_pressed = btn_style.duplicate()
-	btn_pressed.bg_color = Color(0.1, 0.5, 0.1)
-	refill_btn.add_theme_stylebox_override("pressed", btn_pressed)
-	
-	refill_btn.pressed.connect(_on_ad_reward_claimed)
-	vbox.add_child(refill_btn)
-	
-	# Botão fechar
-	var close_btn = Button.new()
-	close_btn.text = "Cancelar"
-	var close_style = StyleBoxFlat.new()
-	close_style.bg_color = Color.TRANSPARENT
-	close_btn.add_theme_stylebox_override("normal", close_style)
-	close_btn.pressed.connect(func():
-		_ad_popup.hide()
-		_game_paused = false
-	)
-	vbox.add_child(close_btn)
-	
-	var m = MarginContainer.new()
-	m.add_theme_constant_override("margin_left", 20)
-	m.add_theme_constant_override("margin_right", 20)
-	m.add_theme_constant_override("margin_top", 20)
-	m.add_theme_constant_override("margin_bottom", 20)
-	m.add_child(vbox)
-	panel.add_child(m)
-	
-	center.add_child(panel)
-	$UILayer.add_child(_ad_popup)
 
 
 func _show_ad_popup() -> void:

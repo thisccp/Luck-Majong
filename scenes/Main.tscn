@@ -8,6 +8,7 @@
 [ext_resource type="Texture2D" uid="uid://b7spc0q0i7gb" path="res://assets/bg/next_bg.png" id="6_next_bg"]
 [ext_resource type="Texture2D" uid="uid://dms52o1v31sbu" path="res://assets/btn/btn_style_hint.png" id="7_btn_hint"]
 [ext_resource type="Texture2D" uid="uid://d2k52o1v31sbu" path="res://assets/btn/btn_style_undo.png" id="8_btn_undo"]
+[ext_resource type="PackedScene" uid="uid://c6r8q0y1m4k2" path="res://scenes/AdPopup.tscn" id="9_adpopup"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_popup_btn"]
 bg_color = Color(0.44, 0.35, 0.26, 1)
@@ -226,3 +227,5 @@ offset_bottom = 49.0
 grow_horizontal = 0
 focus_mode = 0
 flat = true
+
+[node name="AdPopup" parent="UILayer" instance=ExtResource("9_adpopup")]
