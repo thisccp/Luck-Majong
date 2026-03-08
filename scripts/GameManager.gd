@@ -9,6 +9,7 @@ extends Control
 # ─── UI existente ────────────────────────────────────────────────────
 
 @onready var _board: BoardManager = $BoardContainer/BoardManager
+@onready var _btn_shuffle: TextureButton = $UILayer/VBox/BottomMargin/ActionButtonsHBox/ShuffleBtn
 @onready var _btn_hint: TextureButton = $UILayer/VBox/BottomMargin/ActionButtonsHBox/HintBtn
 @onready var _btn_undo: TextureButton = $UILayer/VBox/BottomMargin/ActionButtonsHBox/UndoBtn
 @onready var _btn_menu: TextureButton = $UILayer/MenuBtn
@@ -44,11 +45,13 @@ var _go_tiles_hbox: HBoxContainer
 
 var undo_charges: int = 3
 
-# ─── Hint ────────────────────────────────────────────────────────────
+# ─── Hint & Shuffle ───────────────────────────────────────────────────
 
 var hint_charges: int = 4
 var is_hint_active: bool = false
 var active_hint_cat_id: int = -1
+
+var shuffle_charges: int = 2
 
 # ─── Estado ──────────────────────────────────────────────────────────
 
@@ -60,6 +63,7 @@ var ad_requester: String = ""
 @onready var _ad_popup: ColorRect = $UILayer/AdPopup
 var _hint_label: Label
 var _undo_label: Label
+var _shuffle_label: Label
 
 # ─── Progressão ──────────────────────────────────────────────────────
 var current_level: int = 1
@@ -70,6 +74,7 @@ var current_level: int = 1
 # ═══════════════════════════════════════════════════════════════════════
 
 func _ready() -> void:
+	_btn_shuffle.pressed.connect(_on_shuffle_pressed)
 	_btn_hint.pressed.connect(_on_hint_pressed)
 	_btn_undo.pressed.connect(_on_undo_pressed)
 	_btn_menu.pressed.connect(_show_pause_popup)
@@ -79,6 +84,7 @@ func _ready() -> void:
 	
 	_update_undo_button()
 	_update_hint_button()
+	_update_shuffle_button()
 
 	_build_inventory_bar()
 	_build_game_over_popup()
@@ -1082,8 +1088,24 @@ func _show_floating_message(msg_text: String) -> void:
 	fade_out.chain().tween_callback(func(): container.queue_free())
 
 
-func _on_shuffle() -> void:
-	_board.shuffle_remaining()
+func _update_shuffle_button() -> void:
+	if _shuffle_label:
+		_shuffle_label.text = str(shuffle_charges) if shuffle_charges > 0 else "+"
+
+
+func _on_shuffle_pressed() -> void:
+	if _game_paused or _tiles_in_flight.size() > 0 or _fading_animations > 0 or _pending_animations > 0 or _board.is_shuffling:
+		return
+		
+	if shuffle_charges <= 0:
+		ad_requester = "shuffle"
+		_show_ad_popup()
+		return
+		
+	shuffle_charges -= 1
+	_update_shuffle_button()
+	
+	_board.execute_shuffle()
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1123,6 +1145,8 @@ func _hide_popups() -> void:
 
 
 func _set_hud_disabled(disabled: bool) -> void:
+	if is_instance_valid(_btn_shuffle):
+		_btn_shuffle.disabled = disabled
 	if is_instance_valid(_btn_hint):
 		_btn_hint.disabled = disabled
 	if is_instance_valid(_btn_undo):
@@ -1158,6 +1182,14 @@ func _build_power_labels() -> void:
 	_undo_label.position = Vector2(-8, -8)
 	_btn_undo.add_child(_undo_label)
 
+	_shuffle_label = Label.new()
+	_shuffle_label.label_settings = label_settings
+	_shuffle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_shuffle_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	_shuffle_label.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_shuffle_label.position = Vector2(-8, -8)
+	_btn_shuffle.add_child(_shuffle_label)
+
 
 
 func _show_ad_popup() -> void:
@@ -1173,6 +1205,9 @@ func _on_ad_reward_claimed() -> void:
 	elif ad_requester == "undo":
 		undo_charges += 2
 		_update_undo_button()
+	elif ad_requester == "shuffle":
+		shuffle_charges += 2
+		_update_shuffle_button()
 		
 	ad_requester = ""
 	_ad_popup.hide()

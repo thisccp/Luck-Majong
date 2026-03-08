@@ -8,6 +8,7 @@
 [ext_resource type="Texture2D" uid="uid://b7spc0q0i7gb" path="res://assets/bg/next_bg.png" id="6_next_bg"]
 [ext_resource type="Texture2D" uid="uid://dms52o1v31sbu" path="res://assets/btn/btn_style_hint.png" id="7_btn_hint"]
 [ext_resource type="Texture2D" uid="uid://d2k52o1v31sbu" path="res://assets/btn/btn_style_undo.png" id="8_btn_undo"]
+[ext_resource type="Texture2D" uid="uid://du4ow8021lgvp" path="res://assets/btn/btn_style_shuffle.png" id="10_btn_shuffle"]
 [ext_resource type="PackedScene" uid="uid://c6r8q0y1m4k2" path="res://scenes/AdPopup.tscn" id="9_adpopup"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_popup_btn"]
@@ -108,10 +109,10 @@ mouse_filter = 2
 alignment = 1
 theme_override_constants/separation = 20
 
-[node name="UndoBtn" type="TextureButton" parent="UILayer/VBox/BottomMargin/ActionButtonsHBox" unique_id=980834067]
+[node name="ShuffleBtn" type="TextureButton" parent="UILayer/VBox/BottomMargin/ActionButtonsHBox"]
 custom_minimum_size = Vector2(85, 85)
 layout_mode = 2
-texture_normal = ExtResource("8_btn_undo")
+texture_normal = ExtResource("10_btn_shuffle")
 ignore_texture_size = true
 stretch_mode = 5
 
@@ -119,6 +120,13 @@ stretch_mode = 5
 custom_minimum_size = Vector2(85, 85)
 layout_mode = 2
 texture_normal = ExtResource("7_btn_hint")
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="UndoBtn" type="TextureButton" parent="UILayer/VBox/BottomMargin/ActionButtonsHBox" unique_id=980834067]
+custom_minimum_size = Vector2(85, 85)
+layout_mode = 2
+texture_normal = ExtResource("8_btn_undo")
 ignore_texture_size = true
 stretch_mode = 5
 

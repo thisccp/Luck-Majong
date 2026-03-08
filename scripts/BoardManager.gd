@@ -29,6 +29,7 @@ const NUM_TYPES := 20
 var tiles: Dictionary = {}
 var move_history: Array = []
 var current_shape: Array[Vector3i] = []
+var is_shuffling: bool = false
 
 # ─── API pública ────────────────────────────────────────────────────
 
@@ -170,26 +171,67 @@ func find_hint(inv_ids: Array[int] = []) -> Array[MahjongTile]:
 	return []
 
 
-func shuffle_remaining() -> void:
-	"""Embaralha as peças restantes — garante solvabilidade pós-shuffle."""
-	var remaining: Array[MahjongTile] = []
-	for tile in tiles.values():
-		if is_instance_valid(tile) and tile is MahjongTile and not tile.is_matched:
-			remaining.append(tile)
-	
-	if remaining.is_empty():
+func execute_shuffle() -> void:
+	"""Embaralha as texturas ativas no tabuleiro usando uma onda diagonal."""
+	if is_shuffling:
 		return
+		
+	var active: Array[MahjongTile] = active_tiles()
+	if active.is_empty():
+		return
+		
+	is_shuffling = true
 	
-	var positions: Array[Vector3i] = []
-	for tile in remaining:
-		positions.append(tile.grid_pos)
+	# Extrair apenas os IDs para embaralhar
+	var types: Array[int] = []
+	for tile in active:
+		types.append(tile.cat_id)
+		
+	types.shuffle()
 	
-	for tile in remaining:
-		tiles.erase(tile.grid_pos)
-		tile.queue_free()
+	# Ordenar peças para a onda diagonal (x + y)
+	active.sort_custom(func(a: MahjongTile, b: MahjongTile) -> bool:
+		var sum_a = a.position.x + a.position.y
+		var sum_b = b.position.x + b.position.y
+		return sum_a < sum_b
+	)
 	
-	_generate_beatable(positions)
-	_render_board()
+	var total_anim_time := 0.5
+	var num_tiles := active.size()
+	var time_per_tile := total_anim_time / num_tiles
+	var tweens_completed := 0
+	
+	for i in range(num_tiles):
+		var tile = active[i]
+		var new_type = types[i]
+		var delay = i * time_per_tile
+		
+		var tween := tile.create_tween()
+		# Aguarda o atraso específico do tile
+		if delay > 0:
+			tween.tween_interval(delay)
+			
+		# Encerra scale.x para 0 (flip) rápido (0.06s)
+		tween.tween_property(tile, "scale:x", 0.0, 0.06).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_SINE)
+		
+		# Muda o tipo no meio do flip
+		tween.tween_callback(func():
+			if is_instance_valid(tile):
+				tile.cat_id = new_type
+				tile.update_sticker() # Call to update visual
+		)
+		
+		# Volta o scale pra proporção original que o zoom da cena dá (0.06s)
+		# Note: O scale do tile deve voltar para 1.0 ou o original que tem gravado. Mas por default é 1.0 já q ele é filho direto.
+		var orig_scale_x = tile.scale.x if tile.scale.x > 0 else 1.0
+		tween.tween_property(tile, "scale:x", orig_scale_x, 0.06).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
+		
+		# Para o último, limpar is_shuffling
+		if i == num_tiles - 1:
+			tween.finished.connect(func():
+				is_shuffling = false
+				clear_selection()
+			)
 
 
 func update_tile_states() -> void:
@@ -674,6 +716,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	"""
 	
 	# ─── Arrasto Contínuo (Drag/Motion) ───
+	if is_shuffling:
+		# Ignorar tudo e consumir se for touch, ou retornar
+		get_viewport().set_input_as_handled()
+		return
+		
 	if (event is InputEventMouseMotion or event is InputEventScreenDrag) and _dragged_tile != null:
 		# Consume o evento e arrasta a peça
 		get_viewport().set_input_as_handled()

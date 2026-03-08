@@ -191,6 +191,13 @@ func _build_visuals() -> void:
 
 # ─── Update Visuals ─────────────────────────────────────────────────
 
+func update_sticker() -> void:
+	var new_tex = _create_cat_atlas_texture(cat_id)
+	if _sprite:
+		_sprite.texture = new_tex
+	if has_node("StickerShadow"):
+		get_node("StickerShadow").texture = new_tex
+
 func _update_visuals() -> void:
 	if not is_inside_tree():
 		return
