@@ -1016,6 +1016,70 @@ func _on_hint_pressed() -> void:
 	elif _board.active_tiles().is_empty() and _inventory.is_empty():
 		# Sem peças livres no board e sem inventário — win?
 		_show_win_popup()
+	else:
+		_show_floating_message("Tente utilizar outro tipo de ajuda para superar o desafio")
+
+
+func _show_floating_message(msg_text: String) -> void:
+	var container := MarginContainer.new()
+	container.set_anchors_preset(Control.PRESET_CENTER)
+	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	container.modulate.a = 0.0
+	container.z_index = 5000 # Supera popups normais
+	
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0, 0, 0, 0.8)
+	style.corner_radius_top_left = 20
+	style.corner_radius_top_right = 20
+	style.corner_radius_bottom_left = 20
+	style.corner_radius_bottom_right = 20
+	style.content_margin_left = 30
+	style.content_margin_right = 30
+	style.content_margin_top = 18
+	style.content_margin_bottom = 18
+	panel.add_theme_stylebox_override("panel", style)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	
+	var label := Label.new()
+	label.text = msg_text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 22)
+	label.add_theme_color_override("font_color", Color.WHITE)
+	panel.add_child(label)
+	
+	container.add_child(panel)
+	$UILayer.add_child(container)
+	
+	# Aguardar o próximo frame para o Godot aplicar as âncoras e calcular o tamanho com base no texto
+	await get_tree().process_frame
+	if not is_instance_valid(container):
+		return
+		
+	# Garantir centralização absoluta da própria Box na tela
+	container.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	container.grow_vertical = Control.GROW_DIRECTION_BOTH
+	container.pivot_offset = container.size / 2.0
+	
+	# Animação premium: Fade In -> Aguarda -> Sobe e Desvanece
+	var tween := create_tween()
+	var base_y = container.position.y
+	
+	tween.tween_property(container, "modulate:a", 1.0, 0.25)\
+		.set_ease(Tween.EASE_OUT)
+		
+	tween.tween_interval(1.8)
+	
+	var fade_out = create_tween()
+	fade_out.set_parallel(true)
+	# Espera o tween principal liberar o fading (no delay)
+	fade_out.tween_property(container, "position:y", base_y - 80.0, 0.6)\
+		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD).set_delay(2.05)
+	fade_out.tween_property(container, "modulate:a", 0.0, 0.6)\
+		.set_ease(Tween.EASE_IN).set_delay(2.05)
+		
+	fade_out.chain().tween_callback(func(): container.queue_free())
 
 
 func _on_shuffle() -> void:
@@ -1062,10 +1126,7 @@ func _set_hud_disabled(disabled: bool) -> void:
 	if is_instance_valid(_btn_hint):
 		_btn_hint.disabled = disabled
 	if is_instance_valid(_btn_undo):
-		if not disabled and undo_charges > 0:
-			_btn_undo.disabled = false
-		else:
-			_btn_undo.disabled = true
+		_btn_undo.disabled = disabled
 
 func _update_undo_button() -> void:
 	if not is_instance_valid(_btn_undo): return
