@@ -487,7 +487,7 @@ func _fly_tile_to_slot(tile: MahjongTile, slot_index: int) -> void:
 	if tile.has_node("DropShadow"):
 		tile.get_node("DropShadow").visible = false
 
-	tile.z_index = 1000
+	tile.z_index = 4000
 	tile.position = start_screen_pos
 	tile.scale = start_scale # Preservar proporção do tabuleiro imediatamente após reparentar!
 
@@ -644,8 +644,8 @@ func _executar_animacao_fantasma(peca_a: MahjongTile, peca_b: MahjongTile) -> vo
 			t.get_node("CollisionShape").set_deferred("disabled", true)
 			
 	# Passo A: Elevar z_index para o céu
-	peca_a.z_index = 999
-	peca_b.z_index = 999
+	peca_a.z_index = 4000
+	peca_b.z_index = 4000
 
 	_fading_animations += 1
 	
@@ -815,7 +815,7 @@ func _on_revive() -> void:
 		else:
 			tile.modulate = Color.WHITE
 			
-		tile.z_index = 1000  # Acima de tudo durante o voo
+		tile.z_index = 4000  # Acima de tudo durante o voo
 
 		# Converter posição da tela para coordenadas locais do board
 		var start_local: Vector2 = (current_screen_pos - _board.global_position) / _board.scale
@@ -824,7 +824,11 @@ func _on_revive() -> void:
 
 		# Destino: posição original no board
 		var target_pos: Vector2 = tile.get_meta("original_position") if tile.has_meta("original_position") else start_local
-		var target_z: int = tile.original_z_index
+		var target_z: int = tile.get_calculated_z_index()
+
+		# Garantir que a peça não seja tocada durante o voo
+		if tile.has_node("CollisionShape"):
+			tile.get_node("CollisionShape").set_deferred("disabled", true)
 
 		# Animar voo de volta
 		var tween := create_tween()
@@ -833,11 +837,16 @@ func _on_revive() -> void:
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
 		tween.tween_property(tile, "scale", Vector2.ONE, 0.35)\
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
-		tween.tween_callback(func(): tile.z_index = target_z).set_delay(0.35)
-
-	# Atualizar tabuleiro após um breve delay para as animações
-	await get_tree().create_timer(0.4).timeout
-	_board.update_tile_states()
+		
+		# Chain para o que acontece quando aterra
+		tween.chain().tween_callback(func():
+			if is_instance_valid(tile):
+				tile.z_index = target_z
+				if tile.has_node("CollisionShape"):
+					tile.get_node("CollisionShape").set_deferred("disabled", false)
+				# Recalcular bloqueios para garantir que ela fica livre ou bloqueada corretamente
+				_board.update_tile_states()
+		)
 
 
 func _update_revive_button() -> void:
@@ -914,14 +923,14 @@ func _on_undo_pressed() -> void:
 		tile.modulate = Color.WHITE
 	
 	# Z Index local absurdamente alto no CanvasLayer
-	tile.z_index = 1000
+	tile.z_index = 4000
 	if tile.has_node("CollisionShape"):
 		tile.get_node("CollisionShape").set_deferred("disabled", true)
 	
 	var target_local_board: Vector2 = tile.get_meta("original_position") if tile.has_meta("original_position") else Vector2.ZERO
 	# Precisar converter a posição local do tabuleiro para a tela (UILayer) para saber a reta do voo
 	var target_global = _board.to_global(target_local_board)
-	var target_z: int = tile.original_z_index
+	var target_z: int = tile.get_calculated_z_index()
 	
 	_pending_animations += 1
 	var tween := create_tween()
@@ -962,11 +971,10 @@ func _on_undo_pressed() -> void:
 						other_tile.play_hint_glow()
 						tile.play_hint_glow()
 						break
+			
+			# Recalcular as regras de bloqueio APÓS a peça aterrar
+			_board.update_tile_states()
 	)
-	
-	# Uma vez de volta ao tabuleiro, notificar a atualização de estado (peças que poderão ser bloqueadas novamente)
-	await get_tree().create_timer(0.35).timeout
-	_board.update_tile_states()
 
 func _update_hint_button() -> void:
 	if _hint_label:

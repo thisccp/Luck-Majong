@@ -71,11 +71,14 @@ func _ready() -> void:
 	_build_visuals()
 
 
+func get_calculated_z_index() -> int:
+	return grid_pos.z * 500 + grid_pos.y * 20 + grid_pos.x
+
 func setup(pos: Vector3i, type_id: int, size: Vector2) -> void:
 	grid_pos = pos
 	cat_id = type_id
 	tile_size = size
-	z_index = grid_pos.z * 10
+	z_index = get_calculated_z_index()
 
 
 func cells_occupied() -> Array[Vector2i]:
@@ -284,7 +287,7 @@ func animate_lift() -> void:
 			_select_tween.kill()
 		modulate = Color(1.1, 1.1, 1.1, 1.0)
 		
-	z_index = 1000
+	z_index = 4000
 	
 	if has_node("DropShadow"):
 		var shadow = get_node("DropShadow")
@@ -303,7 +306,7 @@ func animate_drop() -> void:
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		
 	drop_tween.tween_callback(func():
-		z_index = grid_pos.z * 10
+		z_index = get_calculated_z_index()
 		if not is_hinted:
 			modulate = Color.WHITE
 		

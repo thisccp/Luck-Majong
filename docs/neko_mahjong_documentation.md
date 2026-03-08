@@ -57,7 +57,6 @@
 ---
 
 ## 🚨 2. Problemas Conhecidos (Lista de Bugs Ativos)
-* **[BUG CRÍTICO] Falha de Estado no Undo/Revive**: Quando as peças são devolvidas do inventário para o tabuleiro através das ações de Undo ou Revive, o sistema não está a recalcular a Regra 90/10 e o Bloqueio Lateral. Isso resulta em peças que retornam falsamente bloqueadas, impedindo jogadas válidas.
 * **[BUG CRÍTICO] Botão Undo inativo ao trocar de nível**: Se o jogador finalizar um nível com 0 cargas de Undo (botão exibindo o ícone de "+"), ao carregar o nível seguinte o botão perde a sua interatividade, impedindo o jogador de abrir o popup de recarga (Ads).
 
 ---
