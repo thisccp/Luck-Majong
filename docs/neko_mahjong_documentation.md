@@ -1,7 +1,7 @@
 # 🐾 Neko Mahjong - Documentação Técnica Oficial
 
-**Versão:** 60.1  
-**Última Atualização:** 06/03/2026
+**Versão:** 61.0  
+**Última Atualização:** 07/03/2026
 
 ---
 
@@ -34,10 +34,12 @@
 * [x] **Separação de Responsabilidades**: Refatoração da interface de Ads/Popups para cenas independentes (`.tscn`), blindando a lógica principal de UI gerada por código.
 
 ### 🚀 Fase 5: Progressão Procedural e Flow (EM EXECUÇÃO)
-* [x] **5.1 Gerador Determinístico de Formatos**: Algoritmo baseado em Arquétipos (Shapes), utilizando a "Seed" do nível para garantir layouts fixos por fase (O Nível X é sempre igual para todos).
-* [x] **5.2 Curva de Dificuldade Controlada**: Progressão roteirizada (1-5 Fáceis, 6-10 Medianos, 11+ com oscilação de picos de dificuldade e descansos).
-* [ ] **5.3 Intro Cinematográfica (Tela de Nível)**: Apresentação do tabuleiro com material de Desfoque (Blur), mensagem temática e efeitos sonoros ditando a dificuldade.
-* [ ] **5.4 Fluxo de Vitória/Derrota**: Telas de conclusão, cálculo de pontuação e transição progressiva de nível.
+* [x] **5.1 Gerador Determinístico de Formatos**: Algoritmo utilizando a "Seed" do nível para garantir layouts fixos por fase.
+* [x] **5.2 Curva de Dificuldade Controlada**: Progressão roteirizada (1-5 Fáceis, 6-10 Medianos, 11+ com oscilação).
+* [ ] **5.3 Intro Cinematográfica (Tela de Nível)**: Apresentação com Desfoque (Blur), mensagem temática e efeitos sonoros.
+* [ ] **5.4 Fluxo de Vitória/Derrota**: Telas de conclusão, cálculo de pontuação e transição de nível.
+* [ ] **5.5 Feedback Visual de Hint (UX)**: **[ATIVO]** Adição de mensagem flutuante ("Tente utilizar outro tipo de ajuda para superar o desafio") quando o Hint não encontra pares, garantindo a preservação da carga.
+* [ ] **5.6 Novo Power-up: Shuffle (Embaralhar)**: **[ATIVO]** Implementação do 3º botão de poder com economia separada e animação em onda diagonal (Top-Left para Bottom-Right, duração de ~2s) girando os versos das peças.
 
 ### ⏳ Fase 6: Backlog, Retenção (Meta-Jogo) e UX (Futuro)
 * [ ] **6.1 Meta-Jogo (Sistema de Coleção)**: Área de galeria onde o jogador desbloqueia novos tipos de gatos.
@@ -46,17 +48,21 @@
 * [ ] **6.4 Recursos Visuais**: Assets finais (gatos e cenários), Splash Screens e Logos.
 * [ ] **6.5 UI e Menus**: Menu de Título, Sistema de Loading, UI de Ads e retrabalho de popups (Vitória/Pausa).
 * [ ] **6.6 Onboarding (Tutorial)**: Mini-tabuleiro interativo para ensinar as regras.
-* [ ] **6.7 Funcionalidades Online (Low Priority)**: Placares globais/amigos (Leaderboards) baseados na conclusão de níveis de caminho fixo.
-* [ ] **6.8 Sistema de Recompensas por Marcos**: **[NOVO]** A cada X níveis (ex: 10), o jogador ganha um "Baú" contendo +1 Hint e +1 Undo. Inclui opção via Ads para dobrar a recompensa (2x).
+* [ ] **6.7 Funcionalidades Online (Low Priority)**: Placares globais/amigos (Leaderboards).
+* [ ] **6.8 Sistema de Recompensas por Marcos**: A cada X níveis (ex: 10), o jogador ganha um "Baú" (+1 Hint, +1 Undo, +1 Revive). Opção de Ads para 2x.
+* [ ] **6.9 Sistema de Revive F2P com Ads**: Novo comportamento do botão Reviver no Game Over (inicia com 2 usos fixos; esgotados, passa a exigir visualização de anúncio em vídeo para retomar o tabuleiro).
+* [ ] **6.10 Auto-Framing (Zoom Dinâmico)**: Ajuste dinâmico do tamanho das peças baseado na largura/altura do layout atual, com limite mínimo rígido para evitar erros de toque ("fat finger").
+* [ ] **6.11 Persistência de Sessão (Save/Load)**: Serialização do estado exato do tabuleiro, inventário e economia, permitindo que o jogador feche o aplicativo e retome a partida de onde parou.
 
 ---
 
-## 🛠️ 2. Especificações Técnicas Atuais
+## 🚨 2. Problemas Conhecidos (Lista de Bugs Ativos)
+* **[BUG CRÍTICO] Falha de Estado no Undo/Revive**: Quando as peças são devolvidas do inventário para o tabuleiro através das ações de Undo ou Revive, o sistema não está a recalcular a Regra 90/10 e o Bloqueio Lateral. Isso resulta em peças que retornam falsamente bloqueadas, impedindo jogadas válidas.
+* **[BUG CRÍTICO] Botão Undo inativo ao trocar de nível**: Se o jogador finalizar um nível com 0 cargas de Undo (botão exibindo o ícone de "+"), ao carregar o nível seguinte o botão perde a sua interatividade, impedindo o jogador de abrir o popup de recarga (Ads).
+
+---
+
+## 🛠️ 3. Especificações Técnicas Atuais
 * **Portrait-First**: Estratégia de design para smartphones de tela longa.
 * **Flow de Dificuldade**: Ciclo de engajamento que intercala relaxamento e tensão, garantido por seeds determinísticas.
 * **Economia F2P Híbrida**: Monetização sustentada por Ads para recarga de poderes e multiplicadores em baús de recompensa.
-
----
-
-### 👨‍💼 Notas do Diretor
-> "Fechamos o núcleo do jogo. Com a geração procedural ancorada em sementes fixas e uma curva de dificuldade em montanha-russa, o Neko Mahjong tem agora uma campanha infinita e estruturada. O sistema de Ads está organicamente enraizado nas mecânicas de sobrevivência e recompensa, pronto para escalar de forma rentável."
