@@ -1,6 +1,6 @@
 # 🐾 Neko Mahjong - Documentação Técnica Oficial
 
-**Versão:** 61.0  
+**Versão:** 62.0  
 **Última Atualização:** 07/03/2026
 
 ---
@@ -36,10 +36,10 @@
 ### 🚀 Fase 5: Progressão Procedural e Flow (EM EXECUÇÃO)
 * [x] **5.1 Gerador Determinístico de Formatos**: Algoritmo utilizando a "Seed" do nível para garantir layouts fixos por fase.
 * [x] **5.2 Curva de Dificuldade Controlada**: Progressão roteirizada (1-5 Fáceis, 6-10 Medianos, 11+ com oscilação).
+* [x] **5.5 Feedback Visual de Hint (UX)**: Implementação de Toast Message ("Tente utilizar outro tipo de ajuda...") devidamente centralizada na viewport, preservando a carga quando não há pares.
+* [ ] **5.6 Novo Power-up: Shuffle (Embaralhar)**: **[ATIVO - PRÓXIMA SESSÃO]** Limpeza de código legado e implementação do 3º botão de poder com economia separada e animação em onda diagonal (Top-Left para Bottom-Right, duração de ~2s) girando os versos das peças.
 * [ ] **5.3 Intro Cinematográfica (Tela de Nível)**: Apresentação com Desfoque (Blur), mensagem temática e efeitos sonoros.
 * [ ] **5.4 Fluxo de Vitória/Derrota**: Telas de conclusão, cálculo de pontuação e transição de nível.
-* [ ] **5.5 Feedback Visual de Hint (UX)**: **[ATIVO]** Adição de mensagem flutuante ("Tente utilizar outro tipo de ajuda para superar o desafio") quando o Hint não encontra pares, garantindo a preservação da carga.
-* [ ] **5.6 Novo Power-up: Shuffle (Embaralhar)**: **[ATIVO]** Implementação do 3º botão de poder com economia separada e animação em onda diagonal (Top-Left para Bottom-Right, duração de ~2s) girando os versos das peças.
 
 ### ⏳ Fase 6: Backlog, Retenção (Meta-Jogo) e UX (Futuro)
 * [ ] **6.1 Meta-Jogo (Sistema de Coleção)**: Área de galeria onde o jogador desbloqueia novos tipos de gatos.
@@ -57,7 +57,7 @@
 ---
 
 ## 🚨 2. Problemas Conhecidos (Lista de Bugs Ativos)
-* **[BUG CRÍTICO] Botão Undo inativo ao trocar de nível**: Se o jogador finalizar um nível com 0 cargas de Undo (botão exibindo o ícone de "+"), ao carregar o nível seguinte o botão perde a sua interatividade, impedindo o jogador de abrir o popup de recarga (Ads).
+* **Nenhum bug crítico ativo no momento.** *(Bugs de Estado, Z-Index de Undo/Revive e falha de UI no carregamento de nível foram resolvidos com sucesso na última sessão).*
 
 ---
 
