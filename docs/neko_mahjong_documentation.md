@@ -1,7 +1,7 @@
 # 🐾 Neko Mahjong - Documentação Técnica Oficial
 
-**Versão:** 62.0  
-**Última Atualização:** 07/03/2026
+**Versão:** 65.0  
+**Última Atualização:** 08/03/2026
 
 ---
 
@@ -35,33 +35,44 @@
 
 ### 🚀 Fase 5: Progressão Procedural e Flow (EM EXECUÇÃO)
 * [x] **5.1 Gerador Determinístico de Formatos**: Algoritmo utilizando a "Seed" do nível para garantir layouts fixos por fase.
-* [x] **5.2 Curva de Dificuldade Controlada**: Progressão roteirizada (1-5 Fáceis, 6-10 Medianos, 11+ com oscilação).
-* [x] **5.5 Feedback Visual de Hint (UX)**: Implementação de Toast Message ("Tente utilizar outro tipo de ajuda...") devidamente centralizada na viewport, preservando a carga quando não há pares.
-* [ ] **5.6 Novo Power-up: Shuffle (Embaralhar)**: **[ATIVO - PRÓXIMA SESSÃO]** Limpeza de código legado e implementação do 3º botão de poder com economia separada e animação em onda diagonal (Top-Left para Bottom-Right, duração de ~2s) girando os versos das peças.
-* [ ] **5.3 Intro Cinematográfica (Tela de Nível)**: Apresentação com Desfoque (Blur), mensagem temática e efeitos sonoros.
+* [x] **5.5 Feedback Visual de Hint (UX)**: Implementação de Toast Message devidamente centralizada.
+* [ ] **5.6 Novo Power-up (Shuffle) & Refatoração da HUD**: **[ATIVO - PRÓXIMA SESSÃO]** Implementação do 3º botão de poder (Shuffle) com animação em onda diagonal. **[Ajustes de UI inclusos: 1. Reorganizar ordem para Shuffle, Hint, Undo; 2. Corrigir cor/opacidade do botão Hint para igualar ao Undo]**.
+* [ ] **5.2 Curva de Dificuldade Controlada (Refatoração do Gerador)**: Ajuste das alavancas matemáticas para escalar o desafio real. 1. **Abertura do Pool** (usar todos os 20 gatos em níveis difíceis para lotar o inventário); 2. **Verticalidade** (focar em layouts de "torres" com maior Z-index); 3. **Distância de Geração** (forçar o gerador a espalhar os pares de uma trinca entre o topo e a base oculta do tabuleiro).
+* [ ] **5.3 Intro Cinematográfica (Tela de Nível)**: Apresentação com Desfoque (Blur), mensagem temática e transição visual.
 * [ ] **5.4 Fluxo de Vitória/Derrota**: Telas de conclusão, cálculo de pontuação e transição de nível.
 
-### ⏳ Fase 6: Backlog, Retenção (Meta-Jogo) e UX (Futuro)
-* [ ] **6.1 Meta-Jogo (Sistema de Coleção)**: Área de galeria onde o jogador desbloqueia novos tipos de gatos.
-* [ ] **6.2 Expansão do Pool de Peças**: Injeção progressiva de novos gatos (+1 de cada vez) no tabuleiro.
-* [ ] **6.3 Expansão do Catálogo de Formatos (Shapes)**: Criação de novos layouts de tabuleiro para atualizações futuras.
-* [ ] **6.4 Recursos Visuais**: Assets finais (gatos e cenários), Splash Screens e Logos.
-* [ ] **6.5 UI e Menus**: Menu de Título, Sistema de Loading, UI de Ads e retrabalho de popups (Vitória/Pausa).
-* [ ] **6.6 Onboarding (Tutorial)**: Mini-tabuleiro interativo para ensinar as regras.
-* [ ] **6.7 Funcionalidades Online (Low Priority)**: Placares globais/amigos (Leaderboards).
-* [ ] **6.8 Sistema de Recompensas por Marcos**: A cada X níveis (ex: 10), o jogador ganha um "Baú" (+1 Hint, +1 Undo, +1 Revive). Opção de Ads para 2x.
-* [ ] **6.9 Sistema de Revive F2P com Ads**: Novo comportamento do botão Reviver no Game Over (inicia com 2 usos fixos; esgotados, passa a exigir visualização de anúncio em vídeo para retomar o tabuleiro).
-* [ ] **6.10 Auto-Framing (Zoom Dinâmico)**: Ajuste dinâmico do tamanho das peças baseado na largura/altura do layout atual, com limite mínimo rígido para evitar erros de toque ("fat finger").
-* [ ] **6.11 Persistência de Sessão (Save/Load)**: Serialização do estado exato do tabuleiro, inventário e economia, permitindo que o jogador feche o aplicativo e retome a partida de onde parou.
+### 🎵 Fase 6: Áudio e Sonoplastia (Sound Design)
+* [ ] **6.1 Gerenciador de Áudio (Audio Manager)**: Criação de um Singleton na Godot para controlar os canais de áudio sem interromper sons concorrentes (ex: múltiplos *matches* simultâneos).
+* [ ] **6.2 Efeitos Sonoros do Tabuleiro (SFX)**: Implementação de sons para interações físicas: clique em peça livre (som de pedra), clique em peça bloqueada (som de erro/recusa), som de embaralhar (Shuffle) e som do voo das peças (Undo).
+* [ ] **6.3 Efeitos Sonoros de Interface (UI SFX)**: Sons para botões de menu, abertura de popups, alertas de Toast Message e telas de Vitória/Derrota.
+* [ ] **6.4 Música de Fundo (BGM)**: Implementação de 3 variações de música Lo-fi no estilo de *Samurai Champloo*. Cada faixa terá cerca de 3 minutos de duração com transição suave para um loop perfeito. Incluir uma versão especial contendo miados suaves de gato mixados na batida. Opções de controle de volume (Mudo/Ativo) no menu de pausa.
+* [ ] **6.5 Sincronia de Áudio e Animação**: Garantir que o som de *match* dispare exatamente no frame de colisão das peças no inventário.
+
+### ⏳ Fase 7: Backlog, Retenção (Meta-Jogo) e UX (Futuro)
+* [ ] **7.1 Meta-Jogo (Sistema de Coleção)**: Área de galeria onde o jogador desbloqueia novos tipos de gatos.
+* [ ] **7.2 Progressão Temática e Expansão de Peças**: A cada marco de níveis (ex: a cada 10), o jogo muda o seu tema visual baseando-se numa raça de gato. Uma nova peça inédita da respectiva raça é injetada permanentemente no pool.
+* [ ] **7.3 Expansão do Catálogo de Formatos (Shapes)**: Criação de novos layouts. Inclui a criação de **"fases de respiro"** com formatos divertidos e de resolução linear (ex: layout redondo resolvido em espiral).
+* [ ] **7.4 Recursos Visuais Finais**: Substituição por assets definitivos (gatos e cenários), Splash Screens e Logos.
+* [ ] **7.5 UI e Menus**: Menu de Título, Sistema de Loading, UI de Ads e retrabalho de popups. **(No Menu de Pausa: incluir Label com o número do Nível Atual e Botão de Sair do Jogo)**.
+* [ ] **7.6 Onboarding (Tutorial)**: Mini-tabuleiro interativo para ensinar as regras.
+* [ ] **7.7 Funcionalidades Online (Low Priority)**: Placares globais/amigos.
+* [ ] **7.8 Sistema de Recompensas por Marcos**: Baú a cada X níveis (+1 Hint, +1 Undo, +1 Revive). Opção de Ads para 2x.
+* [ ] **7.9 Sistema de Revive F2P com Ads**: Novo comportamento do botão Reviver no Game Over (contador de 2 usos, mudando para botão de Vídeo/Ad quando esgotado).
+* [ ] **7.10 Auto-Framing (Zoom Dinâmico)**: Ajuste do tamanho das peças baseado no layout atual.
+* [ ] **7.11 Persistência de Sessão (Save/Load)**: Serialização do estado exato para retomar partidas.
+* [ ] **7.12 Nova Animação de Match (Visual)**: Refatoração da animação de destruição das peças ao formar uma trinca no slot do inventário. Adição de um efeito de colisão física/impacto entre as 3 peças antes de desaparecerem.
+* [ ] **7.13 Feedback Tátil (Haptic Feedback)**: Vibrações em três níveis: 1. Toque em peça bloqueada (breve); 2. Toque em peça livre (muito sutil); 3. Match de peças no slot (vibração de impacto, estritamente sincronizada com o clímax da animação da Fase 7.12 e o som da Fase 6.5).
+* [ ] **7.14 Modificadores de Regra (Hidden Tiles/Gatos Dorminhocos)**: Peças nas camadas inferiores aparecem viradas para baixo (apenas o verso visível). O jogador só descobre a estampa ao remover a peça de cima.
+* [ ] **7.15 Modos de Jogo Alternativos**: Quebra da monotonia com novos objetivos:
+    * **Modo Resgate (Gatos Dourados)**: Peças douradas espalhadas pelas camadas (coleta instantânea, não vai para o slot).
+    * **Modo Time Attack**: Nível clássico com um cronômetro desafiador no topo da tela.
 
 ---
 
 ## 🚨 2. Problemas Conhecidos (Lista de Bugs Ativos)
-* **Nenhum bug crítico ativo no momento.** *(Bugs de Estado, Z-Index de Undo/Revive e falha de UI no carregamento de nível foram resolvidos com sucesso na última sessão).*
-
----
+* **Nenhum bug crítico ativo no momento.** ---
 
 ## 🛠️ 3. Especificações Técnicas Atuais
 * **Portrait-First**: Estratégia de design para smartphones de tela longa.
-* **Flow de Dificuldade**: Ciclo de engajamento que intercala relaxamento e tensão, garantido por seeds determinísticas.
-* **Economia F2P Híbrida**: Monetização sustentada por Ads para recarga de poderes e multiplicadores em baús de recompensa.
+* **Flow de Dificuldade**: Ciclo de engajamento garantido por seeds determinísticas e controle algorítmico de profundidade/pool.
+* **Economia F2P Híbrida**: Monetização sustentada por Ads.
