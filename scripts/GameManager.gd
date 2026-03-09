@@ -66,7 +66,7 @@ var _undo_label: Label
 var _shuffle_label: Label
 
 # ─── Progressão ──────────────────────────────────────────────────────
-var current_level: int = 750
+var current_level: int = 1
 
 
 # ═══════════════════════════════════════════════════════════════════════
