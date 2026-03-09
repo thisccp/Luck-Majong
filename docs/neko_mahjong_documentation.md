@@ -1,6 +1,6 @@
 # 🐾 Neko Mahjong - Documentação Técnica Oficial
 
-**Versão:** 65.0  
+**Versão:** 66.0  
 **Última Atualização:** 08/03/2026
 
 ---
@@ -36,8 +36,8 @@
 ### 🚀 Fase 5: Progressão Procedural e Flow (EM EXECUÇÃO)
 * [x] **5.1 Gerador Determinístico de Formatos**: Algoritmo utilizando a "Seed" do nível para garantir layouts fixos por fase.
 * [x] **5.5 Feedback Visual de Hint (UX)**: Implementação de Toast Message devidamente centralizada.
-* [ ] **5.6 Novo Power-up (Shuffle) & Refatoração da HUD**: **[ATIVO - PRÓXIMA SESSÃO]** Implementação do 3º botão de poder (Shuffle) com animação em onda diagonal. **[Ajustes de UI inclusos: 1. Reorganizar ordem para Shuffle, Hint, Undo; 2. Corrigir cor/opacidade do botão Hint para igualar ao Undo]**.
-* [ ] **5.2 Curva de Dificuldade Controlada (Refatoração do Gerador)**: Ajuste das alavancas matemáticas para escalar o desafio real. 1. **Abertura do Pool** (usar todos os 20 gatos em níveis difíceis para lotar o inventário); 2. **Verticalidade** (focar em layouts de "torres" com maior Z-index); 3. **Distância de Geração** (forçar o gerador a espalhar os pares de uma trinca entre o topo e a base oculta do tabuleiro).
+* [x] **5.6 Novo Power-up (Shuffle) & Refatoração da HUD**: Implementação do 3º botão de poder (Shuffle) com animação em onda diagonal (0.5s). Ordem ajustada na UI e texturas unificadas.
+* [x] **5.2 Curva de Dificuldade Controlada (Refatoração do Gerador)**: Implementação da dificuldade infinita por "Mundos" (curva senoidal baseada no `world_index`). Escalonamento da variedade de gatos (`cat_variety`) e verticalidade através da injeção de pares extras (`layer_boost_pairs`). Regra de Oclusão (90/10) corrigida para o eixo Y.
 * [ ] **5.3 Intro Cinematográfica (Tela de Nível)**: Apresentação com Desfoque (Blur), mensagem temática e transição visual.
 * [ ] **5.4 Fluxo de Vitória/Derrota**: Telas de conclusão, cálculo de pontuação e transição de nível.
 
@@ -60,7 +60,7 @@
 * [ ] **7.9 Sistema de Revive F2P com Ads**: Novo comportamento do botão Reviver no Game Over (contador de 2 usos, mudando para botão de Vídeo/Ad quando esgotado).
 * [ ] **7.10 Auto-Framing (Zoom Dinâmico)**: Ajuste do tamanho das peças baseado no layout atual.
 * [ ] **7.11 Persistência de Sessão (Save/Load)**: Serialização do estado exato para retomar partidas.
-* [ ] **7.12 Nova Animação de Match (Visual)**: Refatoração da animação de destruição das peças ao formar uma trinca no slot do inventário. Adição de um efeito de colisão física/impacto entre as 3 peças antes de desaparecerem.
+* [ ] **7.12 Nova Animação de Match (Visual)**: Refatoração da animação de destruição das peças ao formar um par no slot do inventário. Adição de um efeito de colisão física/impacto entre as 2 peças antes de desaparecerem.
 * [ ] **7.13 Feedback Tátil (Haptic Feedback)**: Vibrações em três níveis: 1. Toque em peça bloqueada (breve); 2. Toque em peça livre (muito sutil); 3. Match de peças no slot (vibração de impacto, estritamente sincronizada com o clímax da animação da Fase 7.12 e o som da Fase 6.5).
 * [ ] **7.14 Modificadores de Regra (Hidden Tiles/Gatos Dorminhocos)**: Peças nas camadas inferiores aparecem viradas para baixo (apenas o verso visível). O jogador só descobre a estampa ao remover a peça de cima.
 * [ ] **7.15 Modos de Jogo Alternativos**: Quebra da monotonia com novos objetivos:
@@ -70,9 +70,11 @@
 ---
 
 ## 🚨 2. Problemas Conhecidos (Lista de Bugs Ativos)
-* **Nenhum bug crítico ativo no momento.** ---
+* **Bug do Hint (Spam de Mensagem):** Quando não há jogadas disponíveis pelo botão Hint, múltiplos cliques disparam várias Toast Messages sobrepostas de "utilize outra ajuda". Necessário adicionar trava (cooldown ou verificação de UI).
+
+---
 
 ## 🛠️ 3. Especificações Técnicas Atuais
 * **Portrait-First**: Estratégia de design para smartphones de tela longa.
-* **Flow de Dificuldade**: Ciclo de engajamento garantido por seeds determinísticas e controle algorítmico de profundidade/pool.
+* **Flow de Dificuldade**: Ciclo de engajamento garantido por seeds determinísticas e controle algorítmico de profundidade/pool baseado em Mundos.
 * **Economia F2P Híbrida**: Monetização sustentada por Ads.

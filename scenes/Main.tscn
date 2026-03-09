@@ -7,9 +7,9 @@
 [ext_resource type="Texture2D" uid="uid://cooj844jom3t4" path="res://assets/btn/btn__style_menu.png" id="5_btn_menu"]
 [ext_resource type="Texture2D" uid="uid://b7spc0q0i7gb" path="res://assets/bg/next_bg.png" id="6_next_bg"]
 [ext_resource type="Texture2D" uid="uid://dms52o1v31sbu" path="res://assets/btn/btn_style_hint.png" id="7_btn_hint"]
-[ext_resource type="Texture2D" uid="uid://d2k52o1v31sbu" path="res://assets/btn/btn_style_undo.png" id="8_btn_undo"]
-[ext_resource type="Texture2D" uid="uid://du4ow8021lgvp" path="res://assets/btn/btn_style_shuffle.png" id="10_btn_shuffle"]
+[ext_resource type="Texture2D" uid="uid://b03oh0xe5lhr0" path="res://assets/btn/btn_style_undo.png" id="8_btn_undo"]
 [ext_resource type="PackedScene" uid="uid://c6r8q0y1m4k2" path="res://scenes/AdPopup.tscn" id="9_adpopup"]
+[ext_resource type="Texture2D" uid="uid://du4ow8021lgvp" path="res://assets/btn/btn_style_shuffle.png" id="10_btn_shuffle"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_popup_btn"]
 bg_color = Color(0.44, 0.35, 0.26, 1)
@@ -106,10 +106,10 @@ theme_override_constants/margin_bottom = 45
 [node name="ActionButtonsHBox" type="HBoxContainer" parent="UILayer/VBox/BottomMargin" unique_id=980834065]
 layout_mode = 2
 mouse_filter = 2
-alignment = 1
 theme_override_constants/separation = 20
+alignment = 1
 
-[node name="ShuffleBtn" type="TextureButton" parent="UILayer/VBox/BottomMargin/ActionButtonsHBox"]
+[node name="ShuffleBtn" type="TextureButton" parent="UILayer/VBox/BottomMargin/ActionButtonsHBox" unique_id=987349975]
 custom_minimum_size = Vector2(85, 85)
 layout_mode = 2
 texture_normal = ExtResource("10_btn_shuffle")
@@ -236,4 +236,4 @@ grow_horizontal = 0
 focus_mode = 0
 flat = true
 
-[node name="AdPopup" parent="UILayer" instance=ExtResource("9_adpopup")]
+[node name="AdPopup" parent="UILayer" unique_id=490014247 instance=ExtResource("9_adpopup")]

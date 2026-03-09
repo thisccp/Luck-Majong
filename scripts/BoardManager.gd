@@ -42,7 +42,19 @@ func new_game(level: int = 1, keep_shape: bool = false) -> void:
 	if not keep_shape or current_shape.is_empty():
 		current_shape = get_next_level_shape(level)
 		
-	_generate_beatable(current_shape)
+	var profile: Dictionary = get_level_profile(level)
+	
+	if profile.get("layer_boost_pairs", 0) > 0:
+		_inject_boost_pairs(current_shape, profile["layer_boost_pairs"])
+		
+	# BLINDAGEM MATEMÁTICA OBRIGATÓRIA: Forçar número de layouts para sempre Par
+	if current_shape.size() % 2 != 0:
+		var removed = current_shape.pop_back()
+		print("[BoardManager] BLINDAGEM MATEMÁTICA: O layout base original continha bloco ímpar.", removed, " removido!")
+		
+	assert(current_shape.size() % 2 == 0, "ERRO CRÍTICO: Layout físico tem número ímpar de blocos!")
+		
+	_generate_beatable(current_shape, profile.get("cat_variety", NUM_TYPES))
 	_render_board()
 	print("[BoardManager] new_game: %d tiles gerados" % tiles.size())
 
@@ -78,7 +90,11 @@ func is_tile_free(tile: MahjongTile) -> bool:
 	for other in tiles.values():
 		if not is_instance_valid(other) or not (other is MahjongTile): continue
 		if other.is_matched or other.is_in_inventory: continue
-		if other.grid_pos.z <= tile.grid_pos.z: continue
+		var is_above: bool = (other.grid_pos.z > tile.grid_pos.z)
+		var is_visually_in_front: bool = (other.grid_pos.z == tile.grid_pos.z and other.position.y > tile.position.y)
+		
+		if not (is_above or is_visually_in_front): 
+			continue
 		
 		var other_rect := Rect2(
 			other.grid_pos.x * CELL_W + other.grid_pos.z * Z_OFFSET_X + other.pixel_offset.x,
@@ -266,6 +282,90 @@ func clear_hint_for_type(id: int) -> void:
 			tile.stop_hint_glow()
 
 
+# ─── Progressão e Dificuldade ───────────────────────────────────────
+
+func get_level_profile(level: int) -> Dictionary:
+	"""
+	Retorna a Dificuldade Curva Senoidal estruturada em blocos modulares de Mundo (10 fases).
+	"""
+	var world_index := int((level - 1) / 10)
+	var cur_phase := (level - 1) % 10 + 1 # 1 a 10
+	var variety: int = NUM_TYPES
+	var boost_pairs: int = 0
+	
+	if cur_phase >= 1 and cur_phase <= 4:
+		# Fase 1~4: Fácil / Aquecimento
+		variety = 6 + (cur_phase * 2) # N1=8 ... N4=14
+		boost_pairs = randi() % 2     # 0 a 1 pares físicos a mais
+	elif cur_phase == 5:
+		# Fase 5: Pico Médio (Aumento drástico base)
+		variety = 14
+		boost_pairs = 2
+	elif cur_phase == 6:
+		# Fase 6: Respiro Zen (Muito mais fácil após o pico)
+		variety = 8
+		boost_pairs = 0
+	elif cur_phase >= 7 and cur_phase <= 9:
+		# Fase 7~9: Escalada rumo ao Boss
+		variety = 12 + ((cur_phase - 6) * 1) # N7=13 ... N9=15
+		boost_pairs = randi() % 2 + 1        # 1 a 2 pares extras
+	elif cur_phase == 10:
+		# Fase 10: Boss
+		variety = min(18 + randi() % 3, NUM_TYPES) # 18 a 20 variações de gatos (tensão altíssima de pareamento falso no inventário)
+		boost_pairs = 3 + randi() % 2              # 3 ou 4 pares inteiros a mais fisicamente pendurados em Z acima
+		
+	# Escalada infinita pós mundo 0
+	variety = clampi(variety + (world_index * 2), 1, NUM_TYPES)
+	boost_pairs += world_index
+		
+	return {
+		"cat_variety": variety,
+		"layer_boost_pairs": boost_pairs
+	}
+
+func _inject_boost_pairs(slots: Array[Vector3i], pairs_amount: int) -> void:
+	"""
+	Encontra posições válidas suportadas no layout para socar pares a mais (aumentando a pirâmide atômica).
+	As injeções buscam o Z atual de um bloco base e injetam em Z+1 sobre células seguras validas.
+	"""
+	if pairs_amount <= 0: return
+	var injection_count = pairs_amount * 2
+	
+	# Mapeador de existência temporário local ao layout físico não construído
+	var map_temp := {}
+	var z_max := 0
+	for pos in slots:
+		map_temp[pos] = true
+		if pos.z > z_max:
+			z_max = pos.z
+			
+	var possible_spawns: Array[Vector3i] = []
+	for pos in slots:
+		var target_z = pos.z + 1
+		# Na regra rigorosa um tile físico em X,Y só encaixa estável se as 4 células abaixo base (0,0) também estiverem na cena
+		# Mas considerando nossa simplificação celular da grade onde cada bloco = 1 celular 3D no map:
+		var inject_pos = Vector3i(pos.x, pos.y, target_z)
+		if not map_temp.has(inject_pos):
+			# Pra evitar pirâmides palitinho absurdamente esguias (stack estrito infinito) randomiza mas só onde faz suporte largo
+			var left_support = map_temp.has(Vector3i(pos.x - 2, pos.y, pos.z))
+			var right_support = map_temp.has(Vector3i(pos.x + 2, pos.y, pos.z))
+			# Permite injetar Z+1 se ancorar no bloco e tiver amigos vizinhos da mesma base (espalhamento orgânico)
+			if left_support or right_support or randf() > 0.6: 
+				possible_spawns.append(inject_pos)
+			
+	possible_spawns.shuffle()
+	
+	var injected := 0
+	for sp in possible_spawns:
+		if injected >= injection_count: break
+		# Prevenir sobreposição das novas injeções na rodada
+		if not map_temp.has(sp):
+			slots.append(sp)
+			map_temp[sp] = true
+			injected += 1
+			
+	print("[BoardManager] Injetou %d blocos extras (boost) no layout físico" % injected)
+
 # ─── Layout ─────────────────────────────────────────────────────────
 
 func get_next_level_shape(level: int) -> Array[Vector3i]:
@@ -443,19 +543,27 @@ func _load_shape_flat_field() -> Array[Vector3i]:
 
 # ─── Geração Reversa (Beatable) ────────────────────────────────────
 
-func _generate_beatable(slots: Array[Vector3i]) -> void:
-	"""Algoritmo de Geração Reversa — garante 100% de solvabilidade."""
+func _generate_beatable(slots: Array[Vector3i], cat_variety: int = NUM_TYPES) -> void:
+	"""Algoritmo de Geração Reversa — garante 100% de solvabilidade e utiliza apenas a cota de gatos definida no perfil."""
 	var total := slots.size()
-	if total % 2 != 0:
-		slots.resize(total - 1)
-		total = slots.size()
 	
 	@warning_ignore("integer_division")
 	var num_pairs := total / 2
 	
+	# 1. Definir o pool finito de gatinhos (subset por limitação de fase)
+	var available_cats: Array[int] = []
+	for i in range(1, NUM_TYPES + 1):
+		available_cats.append(i)
+	available_cats.shuffle()
+	
+	var selected_cat_pool: Array[int] = []
+	for i in range(mini(cat_variety, NUM_TYPES)):
+		selected_cat_pool.append(available_cats[i])
+	
+	# 2. Distribuir os IDs pareados utilizando apenas o pool restrito
 	var type_ids: Array[int] = []
 	for i in range(num_pairs):
-		type_ids.append(i % NUM_TYPES + 1)
+		type_ids.append(selected_cat_pool[i % selected_cat_pool.size()])
 	type_ids.shuffle()
 	
 	var remaining_set: Dictionary = {}
@@ -691,6 +799,11 @@ func _render_board() -> void:
 	print("[BoardManager] Board: %.0f×%.0f, Scale: %.2f, Pos: (%.0f, %.0f)" % [
 		board_w, board_h, scale_factor, pos_x, pos_y
 	])
+	
+	# Forçar uma atualização do SceneTree ANTES de pedir as bounding boxes (Occlusion Fix)
+	# para que todas as peças tenham completado sua inserção global, e as globais scales 
+	# contem corretamente na regra de 90/10.
+	await get_tree().process_frame
 	
 	update_tile_states()
 
