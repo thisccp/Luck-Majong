@@ -1,6 +1,6 @@
 # 🐾 Neko Mahjong - Documentação Técnica Oficial
 
-**Versão:** 66.0  
+**Versão:** 68.0  
 **Última Atualização:** 08/03/2026
 
 ---
@@ -36,7 +36,7 @@
 ### 🚀 Fase 5: Progressão Procedural e Flow (EM EXECUÇÃO)
 * [x] **5.1 Gerador Determinístico de Formatos**: Algoritmo utilizando a "Seed" do nível para garantir layouts fixos por fase.
 * [x] **5.2 Curva de Dificuldade Controlada (Refatoração do Gerador)**: Implementação da dificuldade infinita por "Mundos" (curva senoidal baseada no `world_index`). Escalonamento da variedade de gatos (`cat_variety`) e verticalidade através da injeção de pares extras (`layer_boost_pairs`). Regra de Oclusão (90/10) corrigida para o eixo Y.
-* [x] **5.5 Feedback Visual de Hint (UX)**: Implementação de Toast Message devidamente centralizada.
+* [x] **5.5 Feedback Visual de Hint (UX)**: Implementação de Toast Message devidamente centralizada e com trava anti-spam.
 * [x] **5.6 Novo Power-up (Shuffle) & Refatoração da HUD**: Implementação do 3º botão de poder (Shuffle) com animação em onda diagonal (0.5s). Ordem ajustada na UI e texturas unificadas.
 * [ ] **5.7 Sistema de Pontuação e Combos (HUD)**: Lógica de pontuação em tempo real. Cada par gera uma pontuação base. *Matches* rápidos em sequência ativam uma barra de tempo e um multiplicador de Combo. Inclusão do contador de Score (Label) no topo da tela do *gameplay*.
 * [ ] **5.3 Intro Cinematográfica (Tela de Nível)**: Apresentação com Desfoque (Blur), mensagem temática e transição visual.
@@ -80,11 +80,10 @@
 ---
 
 ## 🚨 2. Problemas Conhecidos (Lista de Bugs Ativos)
-* **Bug do Hint (Spam de Mensagem):** Múltiplos cliques no botão Hint (quando não há jogadas) disparam várias Toast Messages sobrepostas de "utilize outra ajuda". Necessita trava (cooldown ou verificação de UI).
+* **Nenhum bug crítico ativo no momento.** A matemática de Match-2 está sólida e a interface está estável.
 
 ---
-
 ## 🛠️ 3. Especificações Técnicas Atuais
-* **Portrait-First**: Estratégia de design para smartphones.
+* **Portrait-First**: Estratégia de design para smartphones de tela longa.
 * **Flow de Dificuldade**: Curva infinita por Mundos (Match-2 Perfeito).
-* **Economia F2P Híbrida**: Monetização baseada em pontos de estrangulamento nos níveis altos.
+* **Economia F2P Híbrida**: Monetização sustentada por Ads.
