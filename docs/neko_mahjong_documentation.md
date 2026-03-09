@@ -1,7 +1,7 @@
 # 🐾 Neko Mahjong - Documentação Técnica Oficial
 
-**Versão:** 68.0  
-**Última Atualização:** 08/03/2026
+**Versão:** 69.0  
+**Última Atualização:** 09/03/2026
 
 ---
 
@@ -54,8 +54,8 @@
 * [ ] **7.1 Meta-Jogo (Sistema de Coleção)**: Área de galeria onde o jogador desbloqueia novos tipos de gatos.
 * [ ] **7.2 Progressão Temática e Expansão de Peças**: A cada marco de níveis (ex: a cada 10), o jogo muda o seu tema visual baseando-se numa raça de gato. Uma nova peça inédita da respectiva raça é injetada permanentemente no pool.
 * [ ] **7.3 Expansão do Catálogo de Formatos (Shapes)**: Criação de novos layouts. Inclui a criação de **"fases de respiro"** com formatos divertidos e de resolução linear (ex: layout redondo resolvido em espiral).
-* [ ] **7.4 Recursos Visuais Finais**: Substituição por assets definitivos (gatos e cenários), Splash Screens e Logos.
-* [ ] **7.5 UI e Menus**: Menu de Título, Sistema de Loading, UI de Ads e retrabalho de popups. **(No Menu de Pausa: incluir Label com o número do Nível Atual e Botão de Sair do Jogo)**.
+* [ ] **7.4 Recursos Visuais Finais**: Substituição por assets definitivos (gatos, cenários e UI/Botões), Splash Screens e Logos. *(Nota: A arte dos botões de poder - Hint, Undo, Shuffle - e do Menu Hamburguer já foi substituída e atualizada pelo Diretor).*
+* [ ] **7.5 UI e Menus**: Menu de Título, Sistema de Loading, UI de Ads e retrabalho de popups. **(No Menu de Pausa: incluir Label com o número do Nível Atual e implementar o botão de "Voltar ao Título" usando o asset `back title` já disponível na pasta `assets/btn`)**.
 * [ ] **7.6 Onboarding (Tutorial)**: Mini-tabuleiro interativo para ensinar as regras.
 * [ ] **7.7 Funcionalidades Online (Low Priority)**: Placares globais/amigos.
 * [ ] **7.8 Sistema de Recompensas por Marcos**: Baú a cada X níveis (+1 Hint, +1 Undo, +1 Revive). Opção de Ads para 2x.
@@ -86,4 +86,4 @@
 ## 🛠️ 3. Especificações Técnicas Atuais
 * **Portrait-First**: Estratégia de design para smartphones de tela longa.
 * **Flow de Dificuldade**: Curva infinita por Mundos (Match-2 Perfeito).
-* **Economia F2P Híbrida**: Monetização sustentada por Ads.
+* **Economia F2P Híbrida**: Monetização sustentada por Ads e pontos de estrangulamento nos níveis altos.
