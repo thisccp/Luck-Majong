@@ -66,7 +66,7 @@ var _undo_label: Label
 var _shuffle_label: Label
 
 # ─── Progressão ──────────────────────────────────────────────────────
-var current_level: int = 1
+var current_level: int = 750
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1027,7 +1027,11 @@ func _on_hint_pressed() -> void:
 
 
 func _show_floating_message(msg_text: String) -> void:
+	if $UILayer.has_node("ToastMessage"):
+		return
+		
 	var container := MarginContainer.new()
+	container.name = "ToastMessage"
 	container.set_anchors_preset(Control.PRESET_CENTER)
 	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	container.modulate.a = 0.0
