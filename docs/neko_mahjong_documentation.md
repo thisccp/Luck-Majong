@@ -1,6 +1,6 @@
 # 🐾 Neko Mahjong - Documentação Técnica Oficial
 
-**Versão:** 69.0  
+**Versão:** 70.0  
 **Última Atualização:** 09/03/2026
 
 ---
@@ -38,9 +38,9 @@
 * [x] **5.2 Curva de Dificuldade Controlada (Refatoração do Gerador)**: Implementação da dificuldade infinita por "Mundos" (curva senoidal baseada no `world_index`). Escalonamento da variedade de gatos (`cat_variety`) e verticalidade através da injeção de pares extras (`layer_boost_pairs`). Regra de Oclusão (90/10) corrigida para o eixo Y.
 * [x] **5.5 Feedback Visual de Hint (UX)**: Implementação de Toast Message devidamente centralizada e com trava anti-spam.
 * [x] **5.6 Novo Power-up (Shuffle) & Refatoração da HUD**: Implementação do 3º botão de poder (Shuffle) com animação em onda diagonal (0.5s). Ordem ajustada na UI e texturas unificadas.
-* [ ] **5.7 Sistema de Pontuação e Combos (HUD)**: Lógica de pontuação em tempo real. Cada par gera uma pontuação base. *Matches* rápidos em sequência ativam uma barra de tempo e um multiplicador de Combo. Inclusão do contador de Score (Label) no topo da tela do *gameplay*.
-* [ ] **5.3 Intro Cinematográfica (Tela de Nível)**: Apresentação com Desfoque (Blur), mensagem temática e transição visual.
-* [ ] **5.4 Fluxo de Vitória/Derrota**: Telas de conclusão, cálculo final de estrelas/pontuação e transição para o próximo nível.
+* [x] **5.3 Intro Cinematográfica (Tela de Nível)**: Apresentação com overlay escuro, mensagem dinâmica de nível, aviso em destaque para "Níveis Difíceis" (baseado na curva senoidal) e transições suaves (Fade-In/Fade-Out) via Tweens. Aplicado Fade-In/Out também ao Popup de Vitória.
+* [ ] **5.7 Sistema de Pontuação e Combos (HUD)**: Lógica de pontuação em tempo real. *Pendente de Definição de Game Design:* Estabelecer a pontuação base por formar um par normal, as circunstâncias exatas de tempo para ativar o combo e a tabela de multiplicadores (ex: x2, x3, x4). Inclusão do contador de Score (Label) e barra de tempo no topo da tela do gameplay.
+* [ ] **5.4 Fluxo de Vitória/Derrota**: Telas de conclusão definitivas. Implementar condição de Derrota (Slots cheios sem pares possíveis) com Popup de Game Over e integração do botão "Reviver". Finalizar a transição lógica de nível (salvar progresso e carregar o próximo nível) no fluxo de Vitória.
 
 ### 🎵 Fase 6: Áudio e Sonoplastia (Sound Design)
 * [ ] **6.1 Gerenciador de Áudio (Audio Manager)**: Criação de um Singleton na Godot para controlar os canais de áudio sem interromper sons concorrentes (ex: múltiplos *matches* simultâneos).

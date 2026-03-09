@@ -318,9 +318,14 @@ func get_level_profile(level: int) -> Dictionary:
 	variety = clampi(variety + (world_index * 2), 1, NUM_TYPES)
 	boost_pairs += world_index
 		
+	var is_hard := false
+	if cur_phase == 5 or cur_phase >= 8:
+		is_hard = true
+		
 	return {
 		"cat_variety": variety,
-		"layer_boost_pairs": boost_pairs
+		"layer_boost_pairs": boost_pairs,
+		"is_hard_level": is_hard
 	}
 
 func _inject_boost_pairs(slots: Array[Vector3i], pairs_amount: int) -> void:

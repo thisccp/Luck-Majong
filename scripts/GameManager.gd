@@ -68,6 +68,12 @@ var _shuffle_label: Label
 # ─── Progressão ──────────────────────────────────────────────────────
 var current_level: int = 1
 
+# ─── Level Intro ─────────────────────────────────────────────────────
+var is_input_locked: bool = false
+var _level_intro_overlay: ColorRect
+var _level_label: Label
+var _warning_label: Label
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # LIFECYCLE
@@ -88,6 +94,7 @@ func _ready() -> void:
 
 	_build_inventory_bar()
 	_build_game_over_popup()
+	_build_level_intro()
 
 	_ad_popup.refill_requested.connect(_on_ad_reward_claimed)
 	_ad_popup.popup_closed.connect(func():
@@ -97,8 +104,18 @@ func _ready() -> void:
 
 	# ── Popups existentes ──
 	$UILayer/WinPopup/PlayAgainBtn.pressed.connect(func():
-		_hide_popups()
-		_start_game()
+		$UILayer/WinPopup/PlayAgainBtn.disabled = true
+		$UILayer/WinPopup/HomeBtn.disabled = true
+		if _win_popup:
+			var tween = create_tween()
+			tween.tween_property(_win_popup, "modulate:a", 0.0, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			tween.finished.connect(func():
+				_hide_popups()
+				_start_game()
+			)
+		else:
+			_hide_popups()
+			_start_game()
 	)
 	$UILayer/WinPopup/HomeBtn.pressed.connect(func():
 		_hide_popups()
@@ -148,6 +165,76 @@ func _load_background() -> void:
 		for x in range(img_w):
 			img.set_pixel(x, y, col)
 	bg_node.texture = ImageTexture.create_from_image(img)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# LEVEL INTRO UI
+# ═══════════════════════════════════════════════════════════════════════
+
+func _build_level_intro() -> void:
+	_level_intro_overlay = ColorRect.new()
+	_level_intro_overlay.name = "LevelIntroOverlay"
+	_level_intro_overlay.color = Color(0, 0, 0, 0.6)
+	_level_intro_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_level_intro_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	_level_intro_overlay.visible = false
+	_level_intro_overlay.z_index = 4096 
+
+	var center_container = CenterContainer.new()
+	center_container.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_level_intro_overlay.add_child(center_container)
+
+	var vbox = VBoxContainer.new()
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_theme_constant_override("separation", 20)
+	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center_container.add_child(vbox)
+
+	_level_label = Label.new()
+	_level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_level_label.add_theme_font_size_override("font_size", 64)
+	_level_label.add_theme_color_override("font_color", Color.WHITE)
+	_level_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	_level_label.add_theme_constant_override("outline_size", 8)
+	vbox.add_child(_level_label)
+
+	_warning_label = Label.new()
+	_warning_label.text = "NÍVEL DIFÍCIL!"
+	_warning_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_warning_label.add_theme_font_size_override("font_size", 42)
+	_warning_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2)) 
+	_warning_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	_warning_label.add_theme_constant_override("outline_size", 6)
+	_warning_label.visible = false
+	vbox.add_child(_warning_label)
+
+	$UILayer.add_child(_level_intro_overlay)
+
+
+func play_level_intro(level: int, is_hard_level: bool) -> void:
+	is_input_locked = true
+	_level_intro_overlay.modulate.a = 0.0
+	_level_intro_overlay.visible = true
+	
+	_level_label.text = "Nível %d" % level
+	if is_hard_level:
+		_level_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5))
+		_warning_label.visible = true
+	else:
+		_level_label.add_theme_color_override("font_color", Color.WHITE)
+		_warning_label.visible = false
+		
+	var tween = create_tween()
+	tween.tween_property(_level_intro_overlay, "modulate:a", 1.0, 0.4)\
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_interval(1.5)
+	tween.tween_property(_level_intro_overlay, "modulate:a", 0.0, 0.5)\
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.finished.connect(func():
+		_level_intro_overlay.visible = false
+		is_input_locked = false
+	)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -370,6 +457,9 @@ func _start_game() -> void:
 	_update_undo_button()
 	_update_hint_button()
 	_board.new_game(current_level, false)
+	
+	var profile = _board.get_level_profile(current_level)
+	play_level_intro(current_level, profile.get("is_hard_level", false))
 
 
 func _restart_level() -> void:
@@ -386,11 +476,14 @@ func _restart_level() -> void:
 	is_hint_active = false
 	active_hint_cat_id = -1
 	_board.new_game(current_level, true)
+	
+	var profile = _board.get_level_profile(current_level)
+	play_level_intro(current_level, profile.get("is_hard_level", false))
 
 
 func _on_tile_pressed(tile: MahjongTile) -> void:
 	"""Clique na peça → adicionar ao inventário (sem bloqueio)."""
-	if _game_paused:
+	if _game_paused or is_input_locked:
 		return
 	if tile.is_in_inventory or tile.is_matched:
 		return
@@ -1119,14 +1212,26 @@ func _on_shuffle_pressed() -> void:
 func _show_win_popup() -> void:
 	current_level += 1
 	var btn = $UILayer/WinPopup/PlayAgainBtn
+	var home_btn = $UILayer/WinPopup/HomeBtn
+	
 	if btn:
 		btn.text = "Nível " + str(current_level)
+		btn.disabled = true
+	if home_btn:
+		home_btn.disabled = true
 		
 	_game_paused = true
 	_dim_overlay.visible = true
 	_dim_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	if _win_popup:
+		_win_popup.modulate.a = 0.0
 		_win_popup.show()
+		var tween = create_tween()
+		tween.tween_property(_win_popup, "modulate:a", 1.0, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.finished.connect(func():
+			if btn: btn.disabled = false
+			if home_btn: home_btn.disabled = false
+		)
 	_set_hud_disabled(true)
 
 
