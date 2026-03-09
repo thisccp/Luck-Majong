@@ -65,8 +65,14 @@ var _hint_label: Label
 var _undo_label: Label
 var _shuffle_label: Label
 
-# ─── Progressão ──────────────────────────────────────────────────────
+# ─── Progressão e Pontuação ─────────────────────────────────────────
 var current_level: int = 1
+
+var current_score: int = 0
+var consecutive_matches: int = 0
+var tiles_slotted_since_last_match: int = 0
+
+var _score_label: Label
 
 # ─── Level Intro ─────────────────────────────────────────────────────
 var is_input_locked: bool = false
@@ -168,10 +174,24 @@ func _load_background() -> void:
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# LEVEL INTRO UI
+# SCORE E LEVEL INTRO UI
 # ═══════════════════════════════════════════════════════════════════════
 
 func _build_level_intro() -> void:
+	# Label de Score da Partida (canto superior ou centro-topo)
+	_score_label = Label.new()
+	_score_label.name = "ScoreLabel"
+	_score_label.text = "0"
+	_score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_score_label.add_theme_font_size_override("font_size", 48)
+	_score_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.4))
+	_score_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	_score_label.add_theme_constant_override("outline_size", 8)
+	_score_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_score_label.offset_top = 20
+	_score_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	$UILayer.add_child(_score_label)
+
 	_level_intro_overlay = ColorRect.new()
 	_level_intro_overlay.name = "LevelIntroOverlay"
 	_level_intro_overlay.color = Color(0, 0, 0, 0.6)
@@ -442,6 +462,11 @@ func _build_game_over_popup() -> void:
 # ═══════════════════════════════════════════════════════════════════════
 
 func _start_game() -> void:
+	current_score = 0
+	consecutive_matches = 0
+	tiles_slotted_since_last_match = 0
+	if _score_label: _score_label.text = "0"
+	
 	# Limpar peças que foram reparentadas ao UILayer
 	for tile in _inventory:
 		if is_instance_valid(tile):
@@ -464,6 +489,11 @@ func _start_game() -> void:
 
 func _restart_level() -> void:
 	"""Reinicia exatamente o meso level sem resetar power-ups."""
+	current_score = 0
+	consecutive_matches = 0
+	tiles_slotted_since_last_match = 0
+	if _score_label: _score_label.text = "0"
+
 	for tile in _inventory:
 		if is_instance_valid(tile):
 			tile.queue_free()
@@ -511,6 +541,9 @@ func _add_to_inventory(tile: MahjongTile) -> void:
 
 	_inventory.append(tile)
 	_slot_assignments[tile] = slot_index
+	
+	# Nova contagem de Streak baseada em Envios ao Inventário
+	tiles_slotted_since_last_match += 1
 	
 	# Gravar histórico local de posição na grade EXATAMENTE quando foi adicionado ao slot
 	_board.move_history.append({
@@ -717,6 +750,25 @@ func _try_instant_pair_resolution() -> void:
 
 		# Atualizar board (peças que ficaram livres)
 		_board.update_tile_states()
+
+		# ==== CÁLCULO DE SCORE DE MATCH EXATO ====
+		var match_score = 220
+		
+		if tiles_slotted_since_last_match <= 2:
+			match_score += (consecutive_matches * 30)
+			consecutive_matches += 1
+		else:
+			consecutive_matches = 1 # Série interrompida, mas esse par inicia uma nova
+			
+		current_score += match_score
+		tiles_slotted_since_last_match = 0 # Prepara o rastreamento do próximo envio
+		
+		if _score_label: _score_label.text = str(current_score)
+		
+		# Calcular o centro aproximado dos dois slots (t1, t2 alvo na tela)
+		var center_slots = (_get_slot_center(indices[0]) + _get_slot_center(indices[1])) / 2.0
+		spawn_floating_score(match_score, center_slots)
+		# =========================================
 
 		# Checar se há outro par (ex: AABB clicados em sequência)
 		pair = _find_inventory_pair()
@@ -1106,6 +1158,7 @@ func _on_hint_pressed() -> void:
 		
 		is_hint_active = true
 		active_hint_cat_id = hint_tiles[0].cat_id
+		consecutive_matches = 0 # Streak Broken by usage of Power
 		
 		# Sincronizar brilho com a peça correspondente no inventário
 		for hint_tile in hint_tiles:
@@ -1201,6 +1254,7 @@ func _on_shuffle_pressed() -> void:
 		
 	shuffle_charges -= 1
 	_update_shuffle_button()
+	consecutive_matches = 0 # Streak Broken by usage of Power
 	
 	_board.execute_shuffle()
 
@@ -1334,3 +1388,37 @@ func _set_ui_mouse_filters(node: Node) -> void:
 		if child is Control:
 			child.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_set_ui_mouse_filters(child)
+
+
+func spawn_floating_score(score: int, base_position: Vector2) -> void:
+	var top_canvas = CanvasLayer.new()
+	top_canvas.layer = 100
+	get_tree().current_scene.add_child(top_canvas)
+	
+	var float_label = Label.new()
+	float_label.text = "+" + str(score)
+	float_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	float_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	float_label.add_theme_font_size_override("font_size", 42)
+	float_label.add_theme_color_override("font_color", Color(0.6, 1.0, 0.6))
+	float_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	float_label.add_theme_constant_override("outline_size", 6)
+	
+	top_canvas.add_child(float_label)
+	
+	# Centralizar o label no ponto âncora
+	float_label.global_position = base_position
+	# Forçar layout para calcular tamanho antes de centralizar, caso contrário size será (0,0)
+	float_label.reset_size()
+	float_label.global_position -= float_label.size / 2.0
+	
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(float_label, "global_position:y", float_label.global_position.y - 80.0, 1.0)\
+		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tween.tween_property(float_label, "modulate:a", 0.0, 1.0)\
+		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+		
+	tween.chain().tween_callback(func():
+		top_canvas.queue_free()
+	)
