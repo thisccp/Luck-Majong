@@ -38,6 +38,8 @@ var original_z_index: int = 0
 var _collision_shape: CollisionShape2D
 var _sprite: Sprite2D
 var _select_tween: Tween
+var _shake_tween: Tween
+var _is_shaking := false
 
 const TOTAL_TYPES := 20
 
@@ -224,15 +226,33 @@ func _update_visuals() -> void:
 func set_blocked(blocked: bool) -> void:
 	if is_selected:
 		return
-		
-	# 2. Sincronia de Grayscale: A peça inteira e a estampa devem mudar
-	# Modulate próprio escurece a textura base, mas os filhos precisam de herança pura ou alteração direta.
-	if blocked:
-		modulate = Color(0.55, 0.55, 0.55)
-		if _sprite: _sprite.modulate = Color(0.7, 0.7, 0.7) # Escurece um pouco menos o gato para ser visível
-	else:
-		modulate = Color(1.0, 1.0, 1.0)
-		if _sprite: _sprite.modulate = Color(1.0, 1.0, 1.0)
+	# Removido o escurecimento (modulate). A peça fica sempre colorida.
+	modulate = Color(1.0, 1.0, 1.0)
+	if _sprite:
+		_sprite.modulate = Color(1.0, 1.0, 1.0)
+
+
+func play_error_shake() -> void:
+	"""Tremor rápido no eixo X para feedback de peça bloqueada."""
+	if _is_shaking or is_in_inventory or is_matched or is_dragging:
+		return
+	
+	_is_shaking = true
+	var orig_x = position.x
+	_shake_tween = create_tween()
+	var offset = 6.0
+	var dur = 0.04
+	
+	# Vai e vem rápido no eixo X
+	_shake_tween.tween_property(self, "position:x", orig_x + offset, dur)
+	_shake_tween.tween_property(self, "position:x", orig_x - offset, dur * 2)
+	_shake_tween.tween_property(self, "position:x", orig_x + (offset / 2.0), dur * 1.5)
+	_shake_tween.tween_property(self, "position:x", orig_x, dur)
+	
+	_shake_tween.tween_callback(func():
+		position.x = orig_x  # Garante o alinhamento no final
+		_is_shaking = false
+	)
 
 
 # ─── Animações ──────────────────────────────────────────────────────

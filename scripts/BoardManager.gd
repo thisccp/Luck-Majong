@@ -896,6 +896,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			_drag_start_screen_pos = world_pos
 			_dragged_tile.start_pos = _dragged_tile.global_position
 			_dragged_tile.animate_lift()
+		else:
+			# Peça bloqueada: dispara o shake visual!
+			topmost_tile.play_error_shake()
 			
 	else:
 		# RELEASE: Soltar a peça ou finalizar clique
