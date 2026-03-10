@@ -1298,6 +1298,15 @@ func _on_shuffle_pressed() -> void:
 	_update_shuffle_button()
 	# Shuffle NÃO altera combo, tier nem tiles_slotted — estado de Fever intacto
 	
+	# ── Limpar qualquer Hint ativo antes de embaralhar ──
+	is_hint_active = false
+	active_hint_cat_id = -1
+	_board.clear_selection()   # Limpa glow de todas as peças do tabuleiro
+	# Limpar glow de peças no inventário também
+	for inv_tile in _inventory:
+		if is_instance_valid(inv_tile) and inv_tile.is_hinted:
+			inv_tile.stop_hint_glow()
+	
 	_board.execute_shuffle()
 
 
