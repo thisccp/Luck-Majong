@@ -66,7 +66,7 @@ var _undo_label: Label
 var _shuffle_label: Label
 
 # ─── Progressão e Pontuação ─────────────────────────────────────────
-var current_level: int = 1
+var current_level: int = 3
 
 var current_score: int = 0
 var current_match_score: int = 250   # Sobe +35 por combo, cap 600, piso 250

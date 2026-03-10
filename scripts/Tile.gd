@@ -183,7 +183,11 @@ func _build_visuals() -> void:
 	# ── Hitbox de precisão ──
 	_collision_shape = CollisionShape2D.new()
 	var shape := RectangleShape2D.new()
-	shape.size = tile_size * (1.0 - HITBOX_SHRINK)
+	
+	# Adiciona 10 pixels extras para cobrir o chanfro 3D e facilitar o toque mobile
+	var hitbox_padding := 10.0 
+	shape.size = Vector2(face_useful_w + hitbox_padding, face_useful_h + hitbox_padding) 
+	
 	_collision_shape.shape = shape
 	_collision_shape.name = "CollisionShape"
 	_collision_shape.position = center_offset
