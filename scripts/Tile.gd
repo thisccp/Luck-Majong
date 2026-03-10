@@ -275,7 +275,10 @@ func stop_hint_glow() -> void:
 		_select_tween.kill()
 		_select_tween = null
 	modulate = Color.WHITE
-	scale = Vector2(1.0, 1.0)
+	# Só reseta escala se a peça estiver no tabuleiro (escala base = 1.0).
+	# Se estiver no inventário, a escala já foi definida pela animação de voo.
+	if not is_in_inventory:
+		scale = Vector2(1.0, 1.0)
 
 
 func mark_matched() -> void:

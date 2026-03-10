@@ -1063,6 +1063,7 @@ func _on_undo_pressed() -> void:
 		return
 		
 	if _board.move_history.size() == 0:
+		_show_floating_message("Sem peças válidas")
 		return
 		
 	var valid_move = null
@@ -1075,6 +1076,7 @@ func _on_undo_pressed() -> void:
 				break
 				
 	if valid_move == null:
+		_show_floating_message("Sem peças para desfazer")
 		return
 		
 	var tile: MahjongTile = valid_move["tile"]
