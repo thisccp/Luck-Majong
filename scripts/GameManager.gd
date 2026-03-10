@@ -69,10 +69,17 @@ var _shuffle_label: Label
 var current_level: int = 1
 
 var current_score: int = 0
-var consecutive_matches: int = 0
+var current_match_score: int = 250   # Sobe +35 por combo, cap 600, piso 250
+var current_combo: int = 0           # Combos consecutivos
+var highest_tier: int = 1            # 1-6, nunca diminui
+var consecutive_non_combos: int = 0  # Non-combos seguidos
 var tiles_slotted_since_last_match: int = 0
 
 var _score_label: Label
+var _fever_vignette: Panel
+var _fever_vignette_style: StyleBoxFlat
+var _fever_breathe_tween: Tween
+var _fever_rainbow_tween: Tween
 
 # ─── Level Intro ─────────────────────────────────────────────────────
 var is_input_locked: bool = false
@@ -101,6 +108,7 @@ func _ready() -> void:
 	_build_inventory_bar()
 	_build_game_over_popup()
 	_build_level_intro()
+	_setup_fever_vignette()
 
 	_ad_popup.refill_requested.connect(_on_ad_reward_claimed)
 	_ad_popup.popup_closed.connect(func():
@@ -314,7 +322,6 @@ func _build_inventory_bar() -> void:
 	# Guardar referência ao bar_img para cálculos de posição
 	set_meta("slots_bar_img", bar_img)
 
-			
 func _get_slot_center(slot_index: int) -> Vector2:
 	"""Calcula o centro do bolso na tela baseado no tamanho atual do TextureRect."""
 	var bar_img: TextureRect = get_meta("slots_bar_img")
@@ -462,10 +469,15 @@ func _build_game_over_popup() -> void:
 # ═══════════════════════════════════════════════════════════════════════
 
 func _start_game() -> void:
+	# Cada nível começa com placar zerado
 	current_score = 0
-	consecutive_matches = 0
+	current_match_score = 250
+	current_combo = 0
+	highest_tier = 1
+	consecutive_non_combos = 0
 	tiles_slotted_since_last_match = 0
 	if _score_label: _score_label.text = "0"
+	_hide_fever_vignette()
 	
 	# Limpar peças que foram reparentadas ao UILayer
 	for tile in _inventory:
@@ -490,9 +502,13 @@ func _start_game() -> void:
 func _restart_level() -> void:
 	"""Reinicia exatamente o meso level sem resetar power-ups."""
 	current_score = 0
-	consecutive_matches = 0
+	current_match_score = 250
+	current_combo = 0
+	highest_tier = 1
+	consecutive_non_combos = 0
 	tiles_slotted_since_last_match = 0
 	if _score_label: _score_label.text = "0"
+	_hide_fever_vignette()
 
 	for tile in _inventory:
 		if is_instance_valid(tile):
@@ -751,23 +767,46 @@ func _try_instant_pair_resolution() -> void:
 		# Atualizar board (peças que ficaram livres)
 		_board.update_tile_states()
 
-		# ==== CÁLCULO DE SCORE DE MATCH EXATO ====
-		var match_score = 220
-		
-		if tiles_slotted_since_last_match <= 2:
-			match_score += (consecutive_matches * 30)
-			consecutive_matches += 1
+		# ==== SISTEMA DE COMBO & TIER ====
+		var is_combo: bool = false
+		if highest_tier == 1:
+			# Tier 1: jogador a aquecer, qualquer match é combo
+			is_combo = true
 		else:
-			consecutive_matches = 1 # Série interrompida, mas esse par inicia uma nova
+			# Tier 2+: só pode errar 1 peça (2 do par + 1 erro = max 3 envios)
+			is_combo = (tiles_slotted_since_last_match <= 3)
+		
+		if is_combo:
+			consecutive_non_combos = 0
+			current_combo += 1
+			if current_combo > 1:
+				current_match_score = min(current_match_score + 35, 600)
 			
-		current_score += match_score
-		tiles_slotted_since_last_match = 0 # Prepara o rastreamento do próximo envio
+			# Tier check a cada 5 combos
+			if current_combo % 5 == 0:
+				spawn_combo_message(current_combo)
+				var calculated_tier = 1 + (current_combo / 5)
+				if calculated_tier > highest_tier:
+					highest_tier = min(calculated_tier, 6)
+					update_tier_vfx(highest_tier)
+		else:
+			# Se NÃO foi combo, a sequência consecutiva quebra na hora!
+			current_combo = 0
+			consecutive_non_combos += 1
+			
+			# A punição de retirar pontos continua restrita ao late-game (Tier 3+ e 2 erros)
+			if consecutive_non_combos >= 2 and highest_tier >= 3:
+				current_match_score = max(current_match_score - 70, 250)
+				consecutive_non_combos = 0 # Reseta o gatilho da punição
+		
+		current_score += current_match_score
+		tiles_slotted_since_last_match = 0
 		
 		if _score_label: _score_label.text = str(current_score)
 		
 		# Calcular o centro aproximado dos dois slots (t1, t2 alvo na tela)
 		var center_slots = (_get_slot_center(indices[0]) + _get_slot_center(indices[1])) / 2.0
-		spawn_floating_score(match_score, center_slots)
+		spawn_floating_score(current_match_score, center_slots)
 		# =========================================
 
 		# Checar se há outro par (ex: AABB clicados em sequência)
@@ -1158,7 +1197,7 @@ func _on_hint_pressed() -> void:
 		
 		is_hint_active = true
 		active_hint_cat_id = hint_tiles[0].cat_id
-		consecutive_matches = 0 # Streak Broken by usage of Power
+		# Hint NÃO afeta combo/score
 		
 		# Sincronizar brilho com a peça correspondente no inventário
 		for hint_tile in hint_tiles:
@@ -1254,7 +1293,7 @@ func _on_shuffle_pressed() -> void:
 		
 	shuffle_charges -= 1
 	_update_shuffle_button()
-	consecutive_matches = 0 # Streak Broken by usage of Power
+	current_combo = 0 # Shuffle breaks combo only
 	
 	_board.execute_shuffle()
 
@@ -1420,5 +1459,150 @@ func spawn_floating_score(score: int, base_position: Vector2) -> void:
 		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
 		
 	tween.chain().tween_callback(func():
+		top_canvas.queue_free()
+	)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# FEVER MODE (VINHETA DE TELA INTEIRA) & COMBO VISUALS
+# ═══════════════════════════════════════════════════════════════════════
+
+const TIER_COLORS: Array = [
+	Color(0.5, 1.0, 0.5, 1.0),   # Tier 1: Verde Claro
+	Color(0.0, 0.7, 0.2, 1.0),   # Tier 2: Verde Escuro
+	Color(0.3, 0.5, 1.0, 1.0),   # Tier 3: Azul
+	Color(0.6, 0.2, 0.9, 1.0),   # Tier 4: Roxo
+	Color(1.0, 0.85, 0.0, 1.0),  # Tier 5: Dourado
+	Color(1.0, 0.3, 0.3, 1.0),   # Tier 6: Arco-íris (cor inicial do ciclo)
+]
+
+const RAINBOW_COLORS: Array = [
+	Color(1.0, 0.3, 0.3, 1.0),
+	Color(1.0, 0.6, 0.0, 1.0),
+	Color(1.0, 1.0, 0.2, 1.0),
+	Color(0.3, 1.0, 0.3, 1.0),
+	Color(0.3, 0.5, 1.0, 1.0),
+	Color(0.6, 0.2, 0.9, 1.0),
+]
+
+
+func _setup_fever_vignette() -> void:
+	_fever_vignette = Panel.new()
+	_fever_vignette.name = "FeverVignette"
+	_fever_vignette.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_fever_vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fever_vignette.modulate.a = 0.0
+	
+	_fever_vignette_style = StyleBoxFlat.new()
+	_fever_vignette_style.bg_color = Color(0, 0, 0, 0)  # Centro totalmente transparente
+	_fever_vignette_style.border_width_left = 60
+	_fever_vignette_style.border_width_top = 60
+	_fever_vignette_style.border_width_right = 60
+	_fever_vignette_style.border_width_bottom = 60
+	_fever_vignette_style.border_blend = true  # Degradê suave da borda para o centro
+	_fever_vignette_style.border_color = Color(1, 1, 1, 0)  # Inicia transparente
+	_fever_vignette.add_theme_stylebox_override("panel", _fever_vignette_style)
+	
+	$UILayer.add_child(_fever_vignette)
+
+
+func update_tier_vfx(tier: int) -> void:
+	if not is_instance_valid(_fever_vignette) or not is_instance_valid(_fever_vignette_style):
+		return
+	
+	# Matar tweens anteriores
+	if _fever_breathe_tween and _fever_breathe_tween.is_valid():
+		_fever_breathe_tween.kill()
+	if _fever_rainbow_tween and _fever_rainbow_tween.is_valid():
+		_fever_rainbow_tween.kill()
+	
+	# Cor da borda do tier
+	var tier_idx = clampi(tier - 1, 0, TIER_COLORS.size() - 1)
+	_fever_vignette_style.border_color = TIER_COLORS[tier_idx]
+	
+	# Efeito Breathe: Alpha pulsa de 0.4 a 1.0
+	_fever_vignette.modulate.a = 1.0
+	_fever_breathe_tween = create_tween()
+	_fever_breathe_tween.set_loops()
+	_fever_breathe_tween.tween_property(_fever_vignette, "modulate:a", 0.4, 1.2)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_fever_breathe_tween.tween_property(_fever_vignette, "modulate:a", 1.0, 1.2)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	
+	# Tier 6: Arco-íris — ciclo de cores na borda
+	if tier >= 6:
+		_fever_rainbow_tween = create_tween()
+		_fever_rainbow_tween.set_loops()
+		for i in range(RAINBOW_COLORS.size()):
+			var next_i = (i + 1) % RAINBOW_COLORS.size()
+			_fever_rainbow_tween.tween_property(_fever_vignette_style, "border_color", RAINBOW_COLORS[next_i], 0.5)\
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+func _hide_fever_vignette() -> void:
+	if _fever_breathe_tween and _fever_breathe_tween.is_valid():
+		_fever_breathe_tween.kill()
+		_fever_breathe_tween = null
+	if _fever_rainbow_tween and _fever_rainbow_tween.is_valid():
+		_fever_rainbow_tween.kill()
+		_fever_rainbow_tween = null
+	if is_instance_valid(_fever_vignette):
+		_fever_vignette.modulate.a = 0.0
+	if is_instance_valid(_fever_vignette_style):
+		_fever_vignette_style.border_color = Color(1, 1, 1, 0)
+
+
+func spawn_combo_message(combo: int) -> void:
+	var top_canvas = CanvasLayer.new()
+	top_canvas.layer = 100
+	get_tree().current_scene.add_child(top_canvas)
+	
+	var combo_label = Label.new()
+	combo_label.text = "Combo x" + str(combo)
+	combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	combo_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	combo_label.add_theme_font_size_override("font_size", 32)
+	combo_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2))
+	combo_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	combo_label.add_theme_constant_override("outline_size", 6)
+	combo_label.modulate.a = 0.0
+	
+	top_canvas.add_child(combo_label)
+	
+	# Posicionar exatamente 15px abaixo da barra de slots
+	var bar_img: TextureRect = get_meta("slots_bar_img")
+	var screen_size = get_viewport().get_visible_rect().size
+	combo_label.reset_size()
+	
+	var pos_y: float
+	if bar_img:
+		pos_y = bar_img.global_position.y + bar_img.size.y - 10.0
+	else:
+		pos_y = screen_size.y * 0.35
+	
+	var start_x = screen_size.x + 100.0  # Fora da tela à direita
+	var center_x = (screen_size.x - combo_label.size.x) / 2.0
+	var exit_x = -combo_label.size.x - 100.0  # Fora da tela à esquerda
+	
+	combo_label.global_position = Vector2(start_x, pos_y)
+	
+	# Animação sequencial: Slide In → Wait → Slide Out
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(combo_label, "global_position:x", center_x, 0.4)\
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(combo_label, "modulate:a", 1.0, 0.4)\
+		.set_ease(Tween.EASE_OUT)
+	
+	tween.chain().tween_interval(0.8)
+	
+	var slide_out = create_tween()
+	slide_out.set_parallel(true)
+	slide_out.tween_property(combo_label, "global_position:x", exit_x, 0.4)\
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN).set_delay(1.6)
+	slide_out.tween_property(combo_label, "modulate:a", 0.0, 0.4)\
+		.set_ease(Tween.EASE_IN).set_delay(1.6)
+	
+	slide_out.chain().tween_callback(func():
 		top_canvas.queue_free()
 	)

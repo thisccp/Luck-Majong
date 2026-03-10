@@ -39,7 +39,8 @@
 * [x] **5.5 Feedback Visual de Hint (UX)**: Implementação de Toast Message devidamente centralizada e com trava anti-spam.
 * [x] **5.6 Novo Power-up (Shuffle) & Refatoração da HUD**: Implementação do 3º botão de poder (Shuffle) com animação em onda diagonal (0.5s). Ordem ajustada na UI e texturas unificadas.
 * [x] **5.3 Intro Cinematográfica (Tela de Nível)**: Apresentação com overlay escuro, mensagem dinâmica de nível, aviso em destaque para "Níveis Difíceis" (baseado na curva senoidal) e transições suaves (Fade-In/Fade-Out) via Tweens. Aplicado Fade-In/Out também ao Popup de Vitória.
-* [ ] **5.7 Sistema de Pontuação e Combos (HUD)**: Lógica de pontuação em tempo real. *Pendente de Definição de Game Design:* Estabelecer a pontuação base por formar um par normal, as circunstâncias exatas de tempo para ativar o combo e a tabela de multiplicadores (ex: x2, x3, x4). Inclusão do contador de Score (Label) e barra de tempo no topo da tela do gameplay.
+* [x] **5.7 Sistema Avançado de Score e Combos (HUD)**: Matemática de Score com teto (Base 250, sobe +35, máx 600). Sistema de Tiers (1 a 6) com evolução baseada em ciclos de 5 combos. Regra de Perdão Inteligente (Tier 1 perdoa tudo; Tier 2+ perdoa 1 peça errada, falhas quebram combo). Punição Late-Game (-70 pontos por 2 erros seguidos no Tier 3+). Adição de texto animado "Combo X" e "Fever Mode" visual (vinheta de tela inteira em degradê). Reset de pontuação e combo na transição de nível.
+* [ ] **5.8 Readequação da Interface (Contadores de Power-ups)**: Reposicionar os números (labels) que indicam os usos restantes para a parte superior dos respectivos botões de poder (Undo, Hint, Shuffle), mantendo os botões na parte inferior da tela. Isso melhora a visibilidade para o jogador na hora do clique e evita que o dedo cubra a informação.
 * [ ] **5.4 Fluxo de Vitória/Derrota**: Telas de conclusão definitivas. Implementar condição de Derrota (Slots cheios sem pares possíveis) com Popup de Game Over e integração do botão "Reviver". Finalizar a transição lógica de nível (salvar progresso e carregar o próximo nível) no fluxo de Vitória.
 
 ### 🎵 Fase 6: Áudio e Sonoplastia (Sound Design)
@@ -76,6 +77,7 @@
 * [ ] **7.16 Remoção do Estado "Acinzentado" (Em Análise)**: Avaliar a possibilidade de abandonar o escurecimento visual das peças bloqueadas. A indicação de que uma peça está presa passaria a depender exclusivamente da interação do jogador, através do feedback tátil (7.13), do som de erro (6.2) e da animação de recusa/shake (7.15).
 * [ ] **7.17 Recompensas e Vitórias Diárias (Lembrete)**: Criar um sistema para incentivar o login e o jogo diário (ex: bônus ao completar a primeira vitória do dia, ou sequência de logins consecutivos). *Pendente de refinamento de Game Design.*
 * [ ] **7.18 Sistema de Moeda In-Game (Economia Interna)**: Lembrete para planear a implementação de uma "Soft Currency" (moedas virtuais). Servirá para adquirir novos gatos para a Galeria (Meta-Jogo) ou como métrica para o placar online (caso implementado).
+* [ ] **7.19 Polimento Visual (Fever Mode)**: Avaliar a possível adição de um sistema de partículas acoplado ao "Fever Mode" de tela inteira nos Tiers mais altos, visando injetar mais dopamina visual. Requer testes de legibilidade e performance.
 
 ---
 
