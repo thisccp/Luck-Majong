@@ -785,25 +785,32 @@ func _render_board() -> void:
 	var usable_h: float = usable_end_y - usable_start_y
 	var usable_w: float = area_w
 	
-	# 1. Escala de Glória (Escala a 96% do dispositivo):
-	var scale_factor: float = minf((usable_w * 0.96) / board_w, (usable_h * 0.96) / board_h)
+	# 1. Escala de Glória (Otimizada para preencher 96% do espaço disponível)
+	var target_scale: float = minf((usable_w * 0.96) / board_w, (usable_h * 0.96) / board_h)
 	
-	self.scale = Vector2(scale_factor, scale_factor)
+	# 2. Limites de Sanidade (Clamping)
+	# Impede que layouts minúsculos fiquem com peças do tamanho da tela, e layouts gigantes fiquem microscópicos
+	var MAX_TILE_SCALE := 1.40 # Peças no máximo 40% maiores que o padrão
+	var MIN_TILE_SCALE := 0.55 # Peças no mínimo 45% menores que o padrão
+	var final_scale := clampf(target_scale, MIN_TILE_SCALE, MAX_TILE_SCALE)
 	
-	# 2. Correção de Pivot e Centralização Horizontal Absoluta
-	var scaled_w: float = board_w * scale_factor
-	# Centraliza na área e anula o offset não-zero (min_px) do grid original
-	var pos_x: float = (area_w - scaled_w) / 2.0 - (min_px.x * scale_factor)
+	self.scale = Vector2(final_scale, final_scale)
 	
-	# 3. Otimização do Espaço Vertical (Trazendo para MAIS PERTO do botão de dica)
-	var scaled_h: float = board_h * scale_factor
-	# Em vez de / 2.0 (centro exato), mudamos para peso 0.65 para descer levemente a pirâmide
-	var pos_y: float = usable_start_y + (usable_h - scaled_h) * 0.65 - (min_px.y * scale_factor)
+	# 3. Centralização Dinâmica e Absoluta
+	var scaled_w: float = board_w * final_scale
+	var scaled_h: float = board_h * final_scale
+	
+	# Centraliza perfeitamente no eixo X, anulando o offset original do gerador
+	var pos_x: float = (area_w - scaled_w) / 2.0 - (min_px.x * final_scale)
+	
+	# No eixo Y, usamos um peso de 0.55 (ligeiramente abaixo do centro geométrico) 
+	# para acomodar o peso visual da pirâmide 3D e ficar mais próximo do jogador
+	var pos_y: float = usable_start_y + (usable_h - scaled_h) * 0.55 - (min_px.y * final_scale)
 	
 	self.position = Vector2(pos_x, pos_y)
 	
-	print("[BoardManager] Board: %.0f×%.0f, Scale: %.2f, Pos: (%.0f, %.0f)" % [
-		board_w, board_h, scale_factor, pos_x, pos_y
+	print("[BoardManager] Auto-Framing | Board: %.0f×%.0f | Escala Final: %.2f | Pos: (%.0f, %.0f)" % [
+		board_w, board_h, final_scale, pos_x, pos_y
 	])
 	
 	# Forçar uma atualização do SceneTree ANTES de pedir as bounding boxes (Occlusion Fix)
