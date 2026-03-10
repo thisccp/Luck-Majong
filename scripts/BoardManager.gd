@@ -104,8 +104,9 @@ func is_tile_free(tile: MahjongTile) -> bool:
 		var intersection := tile_rect.intersection(other_rect)
 		total_overlap += intersection.get_area()
 	
-	# a) Bloqueada se ≥ 10% da área total estiver coberta por PEÇAS ACIMA
-	if total_overlap / tile_area >= 0.10:
+	# a) Bloqueada se >= 45% da face lógica estiver coberta por PEÇAS ACIMA
+	# Tolerância alta para suportar Z-offsets agressivos de cascata (estilo Vita Mahjong)
+	if total_overlap / tile_area >= 0.45:
 		return false
 	
 	# --- b) Bloqueio lateral no MESMO NÍVEL (Z) ---
@@ -631,7 +632,7 @@ func _find_free_slots_for_generation(
 			var intersection := tile_rect.intersection(other_rect)
 			total_overlap += intersection.get_area()
 		
-		var blocked_above := (total_overlap / tile_area) >= 0.10
+		var blocked_above := (total_overlap / tile_area) >= 0.45
 		if blocked_above:
 			continue
 		
