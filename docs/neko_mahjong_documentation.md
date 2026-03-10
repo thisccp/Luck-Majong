@@ -1,7 +1,7 @@
 # 🐾 Neko Mahjong - Documentação Técnica Oficial
 
-**Versão:** 70.0  
-**Última Atualização:** 09/03/2026
+**Versão:** 71.0  
+**Última Atualização:** 10/03/2026
 
 ---
 
@@ -40,7 +40,12 @@
 * [x] **5.6 Novo Power-up (Shuffle) & Refatoração da HUD**: Implementação do 3º botão de poder (Shuffle) com animação em onda diagonal (0.5s). Ordem ajustada na UI e texturas unificadas.
 * [x] **5.3 Intro Cinematográfica (Tela de Nível)**: Apresentação com overlay escuro, mensagem dinâmica de nível, aviso em destaque para "Níveis Difíceis" (baseado na curva senoidal) e transições suaves (Fade-In/Fade-Out) via Tweens. Aplicado Fade-In/Out também ao Popup de Vitória.
 * [x] **5.7 Sistema Avançado de Score e Combos (HUD)**: Matemática de Score com teto (Base 250, sobe +35, máx 600). Sistema de Tiers (1 a 6) com evolução baseada em ciclos de 5 combos. Regra de Perdão Inteligente (Tier 1 perdoa tudo; Tier 2+ perdoa 1 peça errada, falhas quebram combo). Punição Late-Game (-70 pontos por 2 erros seguidos no Tier 3+). Adição de texto animado "Combo X" e "Fever Mode" visual (vinheta de tela inteira em degradê). Reset de pontuação e combo na transição de nível.
-* [ ] **5.8 Readequação da Interface (Contadores de Power-ups)**: Reposicionar os números (labels) que indicam os usos restantes para a parte superior dos respectivos botões de poder (Undo, Hint, Shuffle), mantendo os botões na parte inferior da tela. Isso melhora a visibilidade para o jogador na hora do clique e evita que o dedo cubra a informação.
+* [x] **5.8 Readequação da Interface (Contadores de Power-ups)**: Reposicionamento dos números (labels) de usos restantes para o padrão "Notification Badge" (canto superior direito) usando âncoras da Godot, e aumento ergonômico da área de toque dos botões.
+* [x] **5.9 Polimento Sistêmico e UX (Quality of Life)**: 
+    * **Safe Area & UI:** Placar de Score descido e reajustado (Fonte 30, Offset 70) para fugir do *notch*/câmera frontal. Adição de margem de "respiro" no texto de Combo.
+    * **Auditoria de Combos:** Regras blindadas para Power-ups (Undo subtrai o erro e salva o combo; Shuffle é neutro; Revive zera a sequência).
+    * **Integração Hint vs Shuffle:** O uso do Shuffle agora cancela instantaneamente as dicas ativas. Implementado um fix cirúrgico para garantir que a peça com dica cancelada respeite a escala correta caso já esteja no inventário.
+    * **Feedback Anti-Spam:** Adicionada Toast Message ("Sem peças válidas") ao usar o botão Undo com o inventário vazio, utilizando o mesmo sistema robusto do Hint.
 * [ ] **5.4 Fluxo de Vitória/Derrota**: Telas de conclusão definitivas. Implementar condição de Derrota (Slots cheios sem pares possíveis) com Popup de Game Over e integração do botão "Reviver". Finalizar a transição lógica de nível (salvar progresso e carregar o próximo nível) no fluxo de Vitória.
 
 ### 🎵 Fase 6: Áudio e Sonoplastia (Sound Design)
