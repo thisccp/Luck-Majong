@@ -110,21 +110,21 @@ theme_override_constants/separation = 20
 alignment = 1
 
 [node name="ShuffleBtn" type="TextureButton" parent="UILayer/VBox/BottomMargin/ActionButtonsHBox" unique_id=987349975]
-custom_minimum_size = Vector2(85, 85)
+custom_minimum_size = Vector2(110, 110)
 layout_mode = 2
 texture_normal = ExtResource("10_btn_shuffle")
 ignore_texture_size = true
 stretch_mode = 5
 
 [node name="HintBtn" type="TextureButton" parent="UILayer/VBox/BottomMargin/ActionButtonsHBox" unique_id=980834066]
-custom_minimum_size = Vector2(85, 85)
+custom_minimum_size = Vector2(110, 110)
 layout_mode = 2
 texture_normal = ExtResource("7_btn_hint")
 ignore_texture_size = true
 stretch_mode = 5
 
 [node name="UndoBtn" type="TextureButton" parent="UILayer/VBox/BottomMargin/ActionButtonsHBox" unique_id=980834067]
-custom_minimum_size = Vector2(85, 85)
+custom_minimum_size = Vector2(110, 110)
 layout_mode = 2
 texture_normal = ExtResource("8_btn_undo")
 ignore_texture_size = true

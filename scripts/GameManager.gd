@@ -191,12 +191,12 @@ func _build_level_intro() -> void:
 	_score_label.name = "ScoreLabel"
 	_score_label.text = "0"
 	_score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_score_label.add_theme_font_size_override("font_size", 48)
+	_score_label.add_theme_font_size_override("font_size", 30)
 	_score_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.4))
 	_score_label.add_theme_color_override("font_outline_color", Color.BLACK)
 	_score_label.add_theme_constant_override("outline_size", 8)
 	_score_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	_score_label.offset_top = 20
+	_score_label.offset_top = 70
 	_score_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	$UILayer.add_child(_score_label)
 
@@ -1089,6 +1089,9 @@ func _on_undo_pressed() -> void:
 	_recalculate_slot_assignments()
 	_reorganize_slots()
 	
+	# Perdão de combo: desfazer o "erro" na contagem de envios
+	tiles_slotted_since_last_match = max(0, tiles_slotted_since_last_match - 1)
+	
 	# Usar posição global para não relocar abruptamente na mudança de parent
 	var g_pos = tile.global_position
 	var g_scale = tile.global_scale
@@ -1293,7 +1296,7 @@ func _on_shuffle_pressed() -> void:
 		
 	shuffle_charges -= 1
 	_update_shuffle_button()
-	current_combo = 0 # Shuffle breaks combo only
+	# Shuffle NÃO altera combo, tier nem tiles_slotted — estado de Fever intacto
 	
 	_board.execute_shuffle()
 
@@ -1370,26 +1373,38 @@ func _build_power_labels() -> void:
 	
 	_hint_label = Label.new()
 	_hint_label.label_settings = label_settings
-	_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_hint_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	_hint_label.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_hint_label.position = Vector2(-8, -8)  # Margin tuning
+	_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hint_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_hint_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_hint_label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_hint_label.grow_vertical = Control.GROW_DIRECTION_END
+	_hint_label.offset_top = -10
+	_hint_label.offset_right = 10
+	_hint_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_btn_hint.add_child(_hint_label)
 	
 	_undo_label = Label.new()
 	_undo_label.label_settings = label_settings
-	_undo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_undo_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	_undo_label.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_undo_label.position = Vector2(-8, -8)
+	_undo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_undo_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_undo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_undo_label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_undo_label.grow_vertical = Control.GROW_DIRECTION_END
+	_undo_label.offset_top = -10
+	_undo_label.offset_right = 10
+	_undo_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_btn_undo.add_child(_undo_label)
 
 	_shuffle_label = Label.new()
 	_shuffle_label.label_settings = label_settings
-	_shuffle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_shuffle_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	_shuffle_label.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_shuffle_label.position = Vector2(-8, -8)
+	_shuffle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_shuffle_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_shuffle_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_shuffle_label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_shuffle_label.grow_vertical = Control.GROW_DIRECTION_END
+	_shuffle_label.offset_top = -10
+	_shuffle_label.offset_right = 10
+	_shuffle_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_btn_shuffle.add_child(_shuffle_label)
 
 
@@ -1576,7 +1591,7 @@ func spawn_combo_message(combo: int) -> void:
 	
 	var pos_y: float
 	if bar_img:
-		pos_y = bar_img.global_position.y + bar_img.size.y - 10.0
+		pos_y = bar_img.global_position.y + bar_img.size.y + 11.2
 	else:
 		pos_y = screen_size.y * 0.35
 	
