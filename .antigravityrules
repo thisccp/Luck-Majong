@@ -34,3 +34,5 @@ Toda vez que eu iniciar um chat e digitar APENAS "Próxima tarefa" ou "Continuar
 2. Localizar qual etapa exata está com a marcação `(EM ANDAMENTO)`.
 3. Ler a descrição e os requisitos dessa etapa específica.
 4. Responder no chat com a seguinte estrutura: "Entendido, Diretor. Vamos focar na etapa [Nome/Número da Etapa]. Aqui está o meu plano de ação para começarmos..." e aguardar a minha aprovação ou já iniciar a implementação, conforme o contexto pedir.
+5. Ao terminar a implementação me avise e diga que esta esperando a minha validação, se eu disser "Tarefa completa", você atualiza o roadmap.md na tarefa '(EM ANDAMENTO)' com considerações pertinentes se precisar, e [x] para marcar como completa e aguarde meu próximo comando.
+6. Se eu não disser "Tarefa completa", aguarde os próximos comandos de ajuste. 
