@@ -32,7 +32,7 @@ var _tiles_in_flight: Dictionary = {}
 
 # ─── Reviver ─────────────────────────────────────────────────────────
 
-var revive_limit: int = 3
+var free_revives: int = 2
 
 # ─── Game Over Popup (criado via código) ─────────────────────────────
 
@@ -113,7 +113,8 @@ func _ready() -> void:
 	_ad_popup.refill_requested.connect(_on_ad_reward_claimed)
 	_ad_popup.popup_closed.connect(func():
 		_ad_popup.hide()
-		_game_paused = false
+		if not _game_over_popup.visible:
+			_game_paused = false
 	)
 
 	# ── Popups existentes ──
@@ -437,7 +438,7 @@ func _build_game_over_popup() -> void:
 
 	# Reviver
 	_revive_btn = Button.new()
-	_revive_btn.text = "🔄 Reviver (%d)" % revive_limit
+	_revive_btn.text = "🔄 Reviver Grátis (%d)" % free_revives
 	_revive_btn.custom_minimum_size = Vector2(230, 54)
 	_revive_btn.add_theme_font_size_override("font_size", 22)
 	_revive_btn.add_theme_stylebox_override("normal", btn_style)
@@ -470,6 +471,7 @@ func _build_game_over_popup() -> void:
 
 func _start_game() -> void:
 	# Cada nível começa com placar zerado
+	free_revives = 2
 	current_score = 0
 	current_match_score = 250
 	current_combo = 0
@@ -501,6 +503,7 @@ func _start_game() -> void:
 
 func _restart_level() -> void:
 	"""Reinicia exatamente o meso level sem resetar power-ups."""
+	free_revives = 2
 	current_score = 0
 	current_match_score = 250
 	current_combo = 0
@@ -969,33 +972,46 @@ func _show_game_over_popup() -> void:
 
 
 func _on_revive() -> void:
-	if revive_limit <= 0:
-		return
+	if free_revives > 0:
+		free_revives -= 1
+		_execute_revive_logic()
+	else:
+		# --- 🔌 PREPARAÇÃO PARA O SDK ADMOB / APPLOVIN (Fase 7.16) ---
+		# Quando o plugin real for instalado, apagaremos as linhas abaixo e chamaremos:
+		# AdMob.show_rewarded_video("revive")
+		# O próprio SDK do Android/iOS pausará o jogo e, em caso de sucesso, 
+		# chamará a nossa função _execute_revive_logic() automaticamente.
+		
+		# Por enquanto (Ambiente de Testes), pulamos a popup genérica de 
+		# recarga de poderes e forçamos o sucesso do Ad instantaneamente:
+		ad_requester = "revive"
+		_on_ad_reward_claimed()
 
-	revive_limit -= 1
+func _execute_revive_logic() -> void:
 	_hide_popups()
 
-	# Devolver todas as peças voando de volta ao tabuleiro
 	var tiles_to_revive: Array[MahjongTile] = _inventory.duplicate()
 	_inventory.clear()
 	_slot_assignments.clear()
-	
-	# Quando ressuscitamos, limpar o histórico já que voltaram pro board.
-	# Retira os N últimos items equivalentes ao tamanho do inventário do move_history.
+
+	# Limpar o histórico
 	for i in range(tiles_to_revive.size()):
 		if _board.move_history.size() > 0:
 			_board.move_history.pop_back()
 
 	for tile in tiles_to_revive:
-		# Posição atual na tela (UILayer coords)
-		var current_screen_pos: Vector2 = tile.position
-		var current_scale: Vector2 = tile.scale
+		# Manter a peça no UILayer durante o voo de volta (igual ao Undo!)
+		var g_pos = tile.global_position
+		var g_scale = tile.global_scale
 
-		# Reparentar de volta ao BoardManager
-		if tile.get_parent() != _board:
-			tile.get_parent().remove_child(tile)
-			_board.add_child(tile)
-
+		if tile.get_parent() != get_node("UILayer"):
+			if tile.get_parent():
+				tile.get_parent().remove_child(tile)
+			get_node("UILayer").add_child(tile)
+			
+		tile.global_position = g_pos
+		tile.global_scale = g_scale
+		
 		tile.is_in_inventory = false
 		tile.is_matched = false
 		tile.visible = true
@@ -1005,48 +1021,53 @@ func _on_revive() -> void:
 		else:
 			tile.modulate = Color.WHITE
 			
-		tile.z_index = 4000  # Acima de tudo durante o voo
-
-		# Converter posição da tela para coordenadas locais do board
-		var start_local: Vector2 = (current_screen_pos - _board.global_position) / _board.scale
-		tile.position = start_local
-		tile.scale = current_scale
-
-		# Destino: posição original no board
-		var target_pos: Vector2 = tile.get_meta("original_position") if tile.has_meta("original_position") else start_local
-		var target_z: int = tile.get_calculated_z_index()
-
-		# Garantir que a peça não seja tocada durante o voo
+		tile.z_index = 4000
 		if tile.has_node("CollisionShape"):
 			tile.get_node("CollisionShape").set_deferred("disabled", true)
-
-		# Animar voo de volta
+		
+		# Cálculo do destino preciso
+		var target_local_board: Vector2 = tile.get_meta("original_position") if tile.has_meta("original_position") else Vector2.ZERO
+		var target_global = _board.to_global(target_local_board)
+		var target_z: int = tile.get_calculated_z_index()
+		
 		var tween := create_tween()
 		tween.set_parallel(true)
-		tween.tween_property(tile, "position", target_pos, 0.35)\
+		tween.tween_property(tile, "global_position", target_global, 0.35)\
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
-		tween.tween_property(tile, "scale", Vector2.ONE, 0.35)\
+		tween.tween_property(tile, "scale", _board.global_scale, 0.35)\
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
-		
-		# Chain para o que acontece quando aterra
+			
 		tween.chain().tween_callback(func():
 			if is_instance_valid(tile):
+				# Agora sim reparenta de volta ao BoardManager
+				if tile.get_parent() != _board:
+					tile.get_parent().remove_child(tile)
+					_board.add_child(tile)
+					
+				tile.position = target_local_board
+				tile.scale = Vector2.ONE
 				tile.z_index = target_z
+				
 				if tile.has_node("CollisionShape"):
 					tile.get_node("CollisionShape").set_deferred("disabled", false)
-				# Recalcular bloqueios para garantir que ela fica livre ou bloqueada corretamente
+				
+				# BUG DA SOMBRA CORRIGIDO AQUI:
+				if tile.has_node("DropShadow"):
+					tile.get_node("DropShadow").visible = true
+					
 				_board.update_tile_states()
 		)
 
 
 func _update_revive_button() -> void:
-	_revive_btn.text = "🔄 Reviver (%d)" % revive_limit
-	if revive_limit <= 0:
-		_revive_btn.disabled = true
-		_revive_btn.modulate = Color(1, 1, 1, 0.4)
-	else:
-		_revive_btn.disabled = false
+	if free_revives > 0:
+		_revive_btn.text = "🔄 Reviver Grátis (%d)" % free_revives
 		_revive_btn.modulate = Color.WHITE
+	else:
+		_revive_btn.text = "📺 Assistir Vídeo"
+		_revive_btn.modulate = Color(0.8, 1.0, 0.8) # Tom esverdeado/dourado para destacar o Ad
+	
+	_revive_btn.disabled = false # Nunca desabilita, pois a opção de Ad é infinita
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1423,6 +1444,7 @@ func _build_power_labels() -> void:
 func _show_ad_popup() -> void:
 	_game_paused = true
 	if _ad_popup:
+		_ad_popup.get_parent().move_child(_ad_popup, -1)
 		_ad_popup.show()
 
 
@@ -1434,11 +1456,14 @@ func _on_ad_reward_claimed() -> void:
 		undo_charges += 2
 		_update_undo_button()
 	elif ad_requester == "shuffle":
-		shuffle_charges += 2
+		shuffle_charges += 1  # <-- Reduzido para balanceamento F2P
 		_update_shuffle_button()
+	elif ad_requester == "revive":
+		_execute_revive_logic()
 		
 	ad_requester = ""
-	_ad_popup.hide()
+	if _ad_popup:
+		_ad_popup.hide()
 	_game_paused = false
 
 
