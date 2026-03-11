@@ -30,7 +30,7 @@
 
 ## 5. Rotina Automática de Trabalho (Gatilho do Diretor)
 Toda vez que eu iniciar um chat e digitar APENAS "Próxima tarefa" ou "Continuar o trabalho", você DEVE executar os seguintes passos silenciosamente antes de sugerir qualquer código:
-1. Ler o arquivo `docs/neko_mahjong_roadmap.md` de forma autônoma.
+1. Ler o arquivo `roadmap.md` de forma autônoma.
 2. Localizar qual etapa exata está com a marcação `(EM ANDAMENTO)`.
 3. Ler a descrição e os requisitos dessa etapa específica.
 4. Responder no chat com a seguinte estrutura: "Entendido, Diretor. Vamos focar na etapa [Nome/Número da Etapa]. Aqui está o meu plano de ação para começarmos..." e aguardar a minha aprovação ou já iniciar a implementação, conforme o contexto pedir.

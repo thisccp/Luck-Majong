@@ -47,8 +47,8 @@
 * [x] **5.11 Auto-Framing (Zoom Dinâmico)**: Ajuste automático do tamanho das peças/câmera baseado no layout gerado proceduralmente, com travas matemáticas (`MAX_TILE_SCALE` e `MIN_TILE_SCALE`) para garantir proporções perfeitas na tela.
 * [x] **5.12 Sistema de Revive F2P (Bypass Preparatório)**: Implementada a lógica de Revive com 2 usos gratuitos. A opção de Ads atua com bypass direto (sem popup genérica) revivendo a peça imediatamente, mantendo a arquitetura pronta para a injeção do SDK de anúncios reais.
 
-### 🎵 Fase 6: Áudio e Sonoplastia (Sound Design) - *[A INICIAR]*
-* [ ] **6.1 Gerenciador de Áudio (Audio Manager)**: Criação de um Singleton na Godot para controlar os canais de áudio sem interromper sons concorrentes.
+### 🎵 Fase 6: Áudio e Sonoplastia (Sound Design) - *[INICIADO]*
+* [ ] **6.1 Gerenciador de Áudio (Audio Manager) (EM ANDAMENTO)**: Criação de um Singleton na Godot para controlar os canais de áudio sem interromper sons concorrentes.
 * [ ] **6.2 Efeitos Sonoros do Tabuleiro (SFX)**: Implementação de sons para interações físicas: clique em peça livre (pedra), clique em peça bloqueada (erro/recusa sincronizado com o Shake), Shuffle e Undo.
 * [ ] **6.3 Efeitos Sonoros de Interface (UI SFX)**: Sons para botões de menu, popups, Toast Message e telas finais.
 * [ ] **6.4 Música de Fundo (BGM)**: Implementação de 3 variações de música Lo-fi (*Samurai Champloo* style) com opções de controle (Mudo/Ativo).
