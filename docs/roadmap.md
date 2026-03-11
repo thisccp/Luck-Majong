@@ -49,7 +49,7 @@
 
 ### 🎵 Fase 6: Áudio e Sonoplastia (Sound Design) - *[INICIADO]*
 * [x] **6.1 Gerenciador de Áudio (Audio Manager)**: Criação de um Singleton na Godot para controlar os canais de áudio sem interromper sons concorrentes, com suporte a canais separados (Master, BGM, SFX).
-* [ ] **6.2 Efeitos Sonoros do Tabuleiro (SFX)(EM ANDAMENTO)**: Implementação de sons para interações físicas: clique em peça livre (pedra) assets/sfx/tile_click2.wav, clique em peça bloqueada (erro/recusa sincronizado com o Shake) assets/sfx/tile_block.wav, clique no botão Shuffle assets/sfx/shuffle_click2.wav (se tiver uso disponível, se não nada acontece), Undo assets/sfx/undo_click2.wav (se tiver uso disponível, se não nada acontece) e hint assets/sfx/hint_click2.wav (se tiver uso disponível, se não nada acontece).
+* [x] **6.2 Efeitos Sonoros do Tabuleiro (SFX)**: Implementação de sons para interações físicas: clique em peça livre (pedra) assets/sfx/tile_click2.wav, clique em peça bloqueada (erro/recusa sincronizado com o Shake) assets/sfx/tile_block.wav, clique no botão Shuffle assets/sfx/shuffle_click2.wav, Undo assets/sfx/undo_click2.wav e hint assets/sfx/hint_click2.wav (tocados apenas com uso disponível/sucesso).
 * [ ] **6.3 Efeitos Sonoros de Interface (UI SFX)**: Sons para botões de menu, popups, Toast Message e telas finais.
 * [ ] **6.4 Música de Fundo (BGM)**: Implementação de 3 variações de música Lo-fi (*Samurai Champloo* style) com opções de controle (Mudo/Ativo).
 * [ ] **6.5 Sincronia de Áudio e Animação**: Som de *match* disparado no frame exato de colisão no inventário.

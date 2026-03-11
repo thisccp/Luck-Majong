@@ -29,7 +29,7 @@
 * **Sistema de Score/Combo:** Combos aumentam os Tiers (1 a 6). Regra de perdão: Tier 1 perdoa erros; Tier 2+ quebra o combo se errar. Erros consecutivos no Late-Game (Tier 3+) deduzem pontos.
 
 ## 5. Rotina Automática de Trabalho (Gatilho do Diretor)
-Toda vez que eu iniciar um chat e digitar APENAS "Próxima tarefa" ou "Continuar o trabalho", você DEVE executar os seguintes passos silenciosamente antes de sugerir qualquer código:
+Toda vez que eu iniciar um chat contendo as palavras "Próxima tarefa" ou "Continuar o trabalho", você DEVE executar os seguintes passos silenciosamente antes de sugerir qualquer código:
 1. Ler o arquivo `roadmap.md` de forma autônoma.
 2. Localizar qual etapa exata está com a marcação `(EM ANDAMENTO)`.
 3. Ler a descrição e os requisitos dessa etapa específica.

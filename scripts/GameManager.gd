@@ -58,6 +58,12 @@ var shuffle_charges: int = 2
 var _pairs_matched: int = 0
 var _game_paused: bool = false
 
+# ─── Pré-carregamento de Áudio (SFX) ─────────────────────────────────
+var sfx_tile_click: AudioStream = preload("res://assets/sfx/tile_click.wav")
+var sfx_hint: AudioStream = preload("res://assets/sfx/hint_click.wav")
+var sfx_undo: AudioStream = preload("res://assets/sfx/undo_click.wav")
+var sfx_shuffle: AudioStream = preload("res://assets/sfx/shuffle_click.wav")
+
 # ─── Ads System ──────────────────────────────────────────────────────
 var ad_requester: String = ""
 @onready var _ad_popup: ColorRect = $UILayer/AdPopup
@@ -539,6 +545,10 @@ func _on_tile_pressed(tile: MahjongTile) -> void:
 	# Usar contagem EFETIVA: slots que realmente estão ocupados logicamente
 	if _effective_slot_count() >= MAX_INVENTORY:
 		return
+		
+	# SFX: Peça livre clicada com sucesso
+	AudioManager.play_sfx(sfx_tile_click)
+		
 	_add_to_inventory(tile)
 
 
@@ -1106,6 +1116,9 @@ func _on_undo_pressed() -> void:
 	undo_charges -= 1
 	_update_undo_button()
 	
+	# SFX: Undo executado
+	AudioManager.play_sfx(sfx_undo, 1.0, 6.0)
+	
 	# Limpar a peça do inventário logicamente
 	_inventory.erase(tile)
 	_slot_assignments.erase(tile)
@@ -1219,6 +1232,9 @@ func _on_hint_pressed() -> void:
 		hint_charges -= 1
 		_update_hint_button()
 		
+		# SFX: Dica ativada
+		AudioManager.play_sfx(sfx_hint)
+		
 		_board.highlight_hint(hint_tiles)
 		
 		is_hint_active = true
@@ -1319,6 +1335,10 @@ func _on_shuffle_pressed() -> void:
 		
 	shuffle_charges -= 1
 	_update_shuffle_button()
+	
+	# SFX: Shuffle ativado
+	AudioManager.play_sfx(sfx_shuffle)
+	
 	# Shuffle NÃO altera combo, tier nem tiles_slotted — estado de Fever intacto
 	
 	# ── Limpar qualquer Hint ativo antes de embaralhar ──

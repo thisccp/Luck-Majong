@@ -31,6 +31,9 @@ var move_history: Array = []
 var current_shape: Array[Vector3i] = []
 var is_shuffling: bool = false
 
+# ─── Áudio ──────────────────────────────────────────────────────────
+var sfx_tile_block: AudioStream = preload("res://assets/sfx/tile_block.wav")
+
 # ─── API pública ────────────────────────────────────────────────────
 
 func new_game(level: int = 1, keep_shape: bool = false) -> void:
@@ -904,6 +907,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_dragged_tile.start_pos = _dragged_tile.global_position
 			_dragged_tile.animate_lift()
 		else:
+			# SFX: Peça bloqueada (Aumentado o volume em +8 dB para realçar o erro)
+			AudioManager.play_sfx(sfx_tile_block, 1.0, 10.0)
 			# Peça bloqueada: dispara o shake visual!
 			topmost_tile.play_error_shake()
 			
