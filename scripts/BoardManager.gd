@@ -30,6 +30,7 @@ var tiles: Dictionary = {}
 var move_history: Array = []
 var current_shape: Array[Vector3i] = []
 var is_shuffling: bool = false
+var is_input_locked: bool = false
 
 # ─── Áudio ──────────────────────────────────────────────────────────
 var sfx_tile_block: AudioStream = preload("res://assets/audio/sfx/tile_block.wav")
@@ -843,6 +844,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	REGRA ABSOLUTA: se há uma peça sob o clique, SEMPRE consumir
 	o evento para impedir que ele "atravesse".
 	"""
+	
+	if is_input_locked:
+		return
 	
 	# ─── Arrasto Contínuo (Drag/Motion) ───
 	if is_shuffling:

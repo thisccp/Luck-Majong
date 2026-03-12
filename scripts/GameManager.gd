@@ -118,7 +118,7 @@ func _ready() -> void:
 	_btn_shuffle.pressed.connect(_on_shuffle_pressed)
 	_btn_hint.pressed.connect(_on_hint_pressed)
 	_btn_undo.pressed.connect(_on_undo_pressed)
-	_btn_menu.pressed.connect(_show_pause_popup)
+	_btn_menu.pressed.connect(_on_menu_pressed)
 	_board.tile_pressed.connect(_on_tile_pressed)
 	
 	_build_power_labels()
@@ -132,11 +132,14 @@ func _ready() -> void:
 	_build_level_intro()
 	_setup_fever_vignette()
 
+	_dim_overlay.gui_input.connect(_on_dim_overlay_gui_input)
+
 	_ad_popup.refill_requested.connect(_on_ad_reward_claimed)
 	_ad_popup.popup_closed.connect(func():
 		_ad_popup.hide()
 		if not _game_over_popup.visible:
 			_game_paused = false
+			_set_hud_disabled(false)
 	)
 
 	# ── Popups existentes ──
@@ -1427,7 +1430,21 @@ func _show_pause_popup() -> void:
 	_dim_overlay.visible = true
 	_dim_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	_pause_popup.visible = true
+	_pause_popup.mouse_filter = Control.MOUSE_FILTER_STOP
 	_set_hud_disabled(true)
+
+func _on_menu_pressed() -> void:
+	if _pause_popup.visible:
+		AudioManager.play_sfx(sfx_popup_open, 1.0, -8.0)
+		_hide_popups()
+	elif not _game_paused:
+		_show_pause_popup()
+
+func _on_dim_overlay_gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if _pause_popup.visible:
+			AudioManager.play_sfx(sfx_popup_open, 1.0, -8.0)
+			_hide_popups()
 
 
 func _hide_popups() -> void:
@@ -1447,6 +1464,8 @@ func _set_hud_disabled(disabled: bool) -> void:
 		_btn_hint.disabled = disabled
 	if is_instance_valid(_btn_undo):
 		_btn_undo.disabled = disabled
+	if is_instance_valid(_board):
+		_board.is_input_locked = disabled
 
 func _update_undo_button() -> void:
 	if not is_instance_valid(_btn_undo): return
@@ -1502,6 +1521,7 @@ func _build_power_labels() -> void:
 
 func _show_ad_popup() -> void:
 	_game_paused = true
+	_set_hud_disabled(true)
 	if _ad_popup:
 		_ad_popup.get_parent().move_child(_ad_popup, -1)
 		_ad_popup.show()
@@ -1523,7 +1543,10 @@ func _on_ad_reward_claimed() -> void:
 	ad_requester = ""
 	if _ad_popup:
 		_ad_popup.hide()
-	_game_paused = false
+	
+	if not _game_over_popup.visible:
+		_game_paused = false
+		_set_hud_disabled(false)
 
 
 # ═══════════════════════════════════════════════════════════════════════

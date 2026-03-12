@@ -9,3 +9,7 @@ signal popup_closed
 func _ready() -> void:
 	refill_btn.pressed.connect(func(): refill_requested.emit())
 	close_btn.pressed.connect(func(): popup_closed.emit())
+
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		popup_closed.emit()
