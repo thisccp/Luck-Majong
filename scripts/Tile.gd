@@ -59,10 +59,15 @@ const HITBOX_SHRINK := 0.35
 
 ## Textura compartilhada
 static var _cat_atlas: Texture2D = null
+static var _shadow_material: ShaderMaterial = null
 
 static func _load_atlas() -> void:
 	if _cat_atlas == null:
 		_cat_atlas = load("res://assets/tiles/cats.png")
+	if _shadow_material == null:
+		_shadow_material = ShaderMaterial.new()
+		_shadow_material.shader = load("res://assets/shaders/blur_shadow.gdshader")
+		_shadow_material.set_shader_parameter("blur_amount", 8.0)
 
 
 func _ready() -> void:
@@ -133,15 +138,15 @@ func _build_visuals() -> void:
 	var scale_y := tile_size.y / base_h
 	base_sprite.scale = Vector2(scale_x, scale_y)
 	
-	# ── Sombra de Profundidade estrutural (Para Z > 0) ──
-	if grid_pos.z > 0:
-		var drop_shadow := Sprite2D.new()
-		drop_shadow.texture = base_sprite.texture
-		drop_shadow.scale = Vector2(scale_x, scale_y)
-		drop_shadow.position = Vector2(4.0, 6.0) # Sombra sutil de relevo
-		drop_shadow.modulate = Color(0, 0, 0, 0.15)
-		drop_shadow.name = "DropShadow"
-		add_child(drop_shadow)
+	# ── Sombra de Profundidade estrutural ──
+	var drop_shadow := Sprite2D.new()
+	drop_shadow.texture = base_sprite.texture
+	drop_shadow.scale = Vector2(scale_x, scale_y)
+	drop_shadow.position = Vector2(2.5, 4.0) # Sombra sutil de relevo (mais centrada)
+	drop_shadow.modulate = Color(0, 0, 0, 0.15) # Um pouco mais visível
+	drop_shadow.material = _shadow_material
+	drop_shadow.name = "DropShadow"
+	add_child(drop_shadow)
 	
 	add_child(base_sprite)
 	
@@ -166,9 +171,10 @@ func _build_visuals() -> void:
 	# Sombra do sticker (efeito "adesivo colado")
 	var sticker_shadow := Sprite2D.new()
 	sticker_shadow.texture = tex_atlas
-	sticker_shadow.modulate = Color(0, 0, 0, 0.15)
+	sticker_shadow.modulate = Color(0, 0, 0, 0.12) # Levemente mais visível
 	sticker_shadow.scale = Vector2(scale_fit, scale_fit)
 	sticker_shadow.position = center_offset + Vector2(1.0, 1.5)
+	sticker_shadow.material = _shadow_material
 	sticker_shadow.name = "StickerShadow"
 	add_child(sticker_shadow)
 	
@@ -325,7 +331,7 @@ func animate_lift() -> void:
 	
 	if has_node("DropShadow"):
 		var shadow = get_node("DropShadow")
-		shadow.position = Vector2(8.0, 12.0)
+		shadow.position = Vector2(4.0, 6.0)
 		shadow.modulate = Color(0, 0, 0, 0.08)
 
 
@@ -346,6 +352,6 @@ func animate_drop() -> void:
 		
 		if has_node("DropShadow"):
 			var shadow = get_node("DropShadow")
-			shadow.position = Vector2(4.0, 6.0)
+			shadow.position = Vector2(2.5, 4.0)
 			shadow.modulate = Color(0, 0, 0, 0.15)
 	)
