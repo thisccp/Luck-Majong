@@ -112,6 +112,8 @@ var _warning_label: Label
 # ═══════════════════════════════════════════════════════════════════════
 
 func _ready() -> void:
+	AudioManager.start_bgm_rotation()
+	
 	_win_sfx_list = [sfx_win_1, sfx_win_2, sfx_win_3]
 	_lose_sfx_list = [sfx_lose_1, sfx_lose_2]
 	
@@ -162,7 +164,9 @@ func _ready() -> void:
 		get_tree().quit()
 	)
 	$UILayer/PausePopup/SoundToggle.toggled.connect(func(bp: bool):
-		print("Sound toggled: ", bp)
+		# No nosso jogo, botão pressionado (toggled=true) geralmente significa LIGADO.
+		# bp = true (toca), bp = false (para).
+		AudioManager.set_bgm_enabled(bp)
 	)
 	$UILayer/PausePopup/RestartBtn.pressed.connect(func():
 		_hide_popups()
@@ -819,6 +823,7 @@ func _try_instant_pair_resolution() -> void:
 			# Tier check a cada 5 combos
 			if current_combo % 5 == 0:
 				spawn_combo_message(current_combo)
+				@warning_ignore("integer_division")
 				var calculated_tier = 1 + (current_combo / 5)
 				if calculated_tier > highest_tier:
 					highest_tier = min(calculated_tier, 6)
@@ -958,7 +963,7 @@ func _show_game_over_popup() -> void:
 	if not available_sfx.is_empty():
 		var chosen_sfx: AudioStream = available_sfx.pick_random()
 		_last_lose_sfx = chosen_sfx
-		AudioManager.play_sfx(chosen_sfx, 1.0, -5.0)
+		AudioManager.play_sfx(chosen_sfx, 1.0, -8.0)
 
 	_game_paused = true
 	_dim_overlay.visible = true
@@ -1397,7 +1402,7 @@ func _show_win_popup() -> void:
 	if not available_sfx.is_empty():
 		var chosen_sfx: AudioStream = available_sfx.pick_random()
 		_last_win_sfx = chosen_sfx
-		AudioManager.play_sfx(chosen_sfx, 1.0, -5.0)
+		AudioManager.play_sfx(chosen_sfx, 1.0, -8.0)
 
 	current_level += 1
 	var btn = $UILayer/WinPopup/PlayAgainBtn
@@ -1455,7 +1460,6 @@ func _hide_popups() -> void:
 	_pause_popup.visible = false
 	_game_over_popup.visible = false
 	_set_hud_disabled(false)
-
 
 func _set_hud_disabled(disabled: bool) -> void:
 	if is_instance_valid(_btn_shuffle):
