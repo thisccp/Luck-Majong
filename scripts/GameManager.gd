@@ -59,11 +59,23 @@ var _pairs_matched: int = 0
 var _game_paused: bool = false
 
 # ─── Pré-carregamento de Áudio (SFX) ─────────────────────────────────
-var sfx_tile_click: AudioStream = preload("res://assets/sfx/tile_click.wav")
-var sfx_hint: AudioStream = preload("res://assets/sfx/hint_click.wav")
-var sfx_undo: AudioStream = preload("res://assets/sfx/undo_click.wav")
-var sfx_shuffle: AudioStream = preload("res://assets/sfx/shuffle_click.wav")
-var sfx_all_btn: AudioStream = preload("res://assets/sfx/all_btn.wav")
+var sfx_tile_click: AudioStream = preload("res://assets/audio/sfx/tile_click.wav")
+var sfx_hint: AudioStream = preload("res://assets/audio/sfx/hint_click.wav")
+var sfx_undo: AudioStream = preload("res://assets/audio/sfx/undo_click.wav")
+var sfx_shuffle: AudioStream = preload("res://assets/audio/sfx/shuffle_click.wav")
+var sfx_all_btn: AudioStream = preload("res://assets/audio/sfx/all_btn.wav")
+var sfx_popup_open: AudioStream = preload("res://assets/audio/sfx/popup_open.wav")
+var sfx_win_1: AudioStream = preload("res://assets/audio/sfx/win_popup_1.wav")
+var sfx_win_2: AudioStream = preload("res://assets/audio/sfx/win_popup_2.wav")
+var sfx_win_3: AudioStream = preload("res://assets/audio/sfx/win_popup_3.wav")
+var sfx_lose_1: AudioStream = preload("res://assets/audio/sfx/lose_popup_1.wav")
+var sfx_lose_2: AudioStream = preload("res://assets/audio/sfx/lose_popup_2.wav")
+
+var _win_sfx_list: Array[AudioStream] = []
+var _last_win_sfx: AudioStream = null
+
+var _lose_sfx_list: Array[AudioStream] = []
+var _last_lose_sfx: AudioStream = null
 
 # ─── Ads System ──────────────────────────────────────────────────────
 var ad_requester: String = ""
@@ -100,6 +112,9 @@ var _warning_label: Label
 # ═══════════════════════════════════════════════════════════════════════
 
 func _ready() -> void:
+	_win_sfx_list = [sfx_win_1, sfx_win_2, sfx_win_3]
+	_lose_sfx_list = [sfx_lose_1, sfx_lose_2]
+	
 	_btn_shuffle.pressed.connect(_on_shuffle_pressed)
 	_btn_hint.pressed.connect(_on_hint_pressed)
 	_btn_undo.pressed.connect(_on_undo_pressed)
@@ -151,6 +166,7 @@ func _ready() -> void:
 		_restart_level()
 	)
 	$UILayer/PausePopup/ClosePauseBtn.pressed.connect(func():
+		AudioManager.play_sfx(sfx_popup_open, 1.0, -8.0)
 		_hide_popups()
 	)
 
@@ -931,6 +947,16 @@ func _reorganize_slots() -> void:
 # ═══════════════════════════════════════════════════════════════════════
 
 func _show_game_over_popup() -> void:
+	var available_sfx: Array[AudioStream] = []
+	for sfx in _lose_sfx_list:
+		if sfx != _last_lose_sfx:
+			available_sfx.append(sfx)
+			
+	if not available_sfx.is_empty():
+		var chosen_sfx: AudioStream = available_sfx.pick_random()
+		_last_lose_sfx = chosen_sfx
+		AudioManager.play_sfx(chosen_sfx, 1.0, -5.0)
+
 	_game_paused = true
 	_dim_overlay.visible = true
 	_dim_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -1235,7 +1261,7 @@ func _on_hint_pressed() -> void:
 		_update_hint_button()
 		
 		# SFX: Dica ativada
-		AudioManager.play_sfx(sfx_hint)
+		AudioManager.play_sfx(sfx_hint, 1.0, 5.0)
 		
 		_board.highlight_hint(hint_tiles)
 		
@@ -1339,7 +1365,7 @@ func _on_shuffle_pressed() -> void:
 	_update_shuffle_button()
 	
 	# SFX: Shuffle ativado
-	AudioManager.play_sfx(sfx_shuffle)
+	AudioManager.play_sfx(sfx_shuffle, 1.0, -10.0)
 	
 	# Shuffle NÃO altera combo, tier nem tiles_slotted — estado de Fever intacto
 	
@@ -1360,6 +1386,16 @@ func _on_shuffle_pressed() -> void:
 # ═══════════════════════════════════════════════════════════════════════
 
 func _show_win_popup() -> void:
+	var available_sfx: Array[AudioStream] = []
+	for sfx in _win_sfx_list:
+		if sfx != _last_win_sfx:
+			available_sfx.append(sfx)
+			
+	if not available_sfx.is_empty():
+		var chosen_sfx: AudioStream = available_sfx.pick_random()
+		_last_win_sfx = chosen_sfx
+		AudioManager.play_sfx(chosen_sfx, 1.0, -5.0)
+
 	current_level += 1
 	var btn = $UILayer/WinPopup/PlayAgainBtn
 	var home_btn = $UILayer/WinPopup/HomeBtn
@@ -1386,6 +1422,7 @@ func _show_win_popup() -> void:
 
 
 func _show_pause_popup() -> void:
+	AudioManager.play_sfx(sfx_popup_open, 1.0, -8.0)
 	_game_paused = true
 	_dim_overlay.visible = true
 	_dim_overlay.mouse_filter = Control.MOUSE_FILTER_STOP

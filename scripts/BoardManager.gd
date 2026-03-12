@@ -32,7 +32,7 @@ var current_shape: Array[Vector3i] = []
 var is_shuffling: bool = false
 
 # ─── Áudio ──────────────────────────────────────────────────────────
-var sfx_tile_block: AudioStream = preload("res://assets/sfx/tile_block.wav")
+var sfx_tile_block: AudioStream = preload("res://assets/audio/sfx/tile_block.wav")
 
 # ─── API pública ────────────────────────────────────────────────────
 

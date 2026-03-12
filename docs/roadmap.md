@@ -51,7 +51,7 @@
 * [x] **6.1 Gerenciador de Áudio (Audio Manager)**: Criação de um Singleton na Godot para controlar os canais de áudio sem interromper sons concorrentes, com suporte a canais separados (Master, BGM, SFX).
 * [x] **6.2 Efeitos Sonoros do Tabuleiro (SFX)**: Implementação de sons para interações físicas: clique em peça livre (pedra) `assets/sfx/tile_click2.wav`, clique em peça bloqueada (erro/recusa sincronizado com o Shake) `assets/sfx/tile_block.wav`, clique no botão Shuffle `assets/sfx/shuffle_click2.wav`, Undo `assets/sfx/undo_click2.wav` e hint `assets/sfx/hint_click2.wav` (tocados apenas com uso disponível/sucesso).
 * [x] **6.3 Feedback Tátil de Interface (Juicy Buttons)**: Criação de um sistema universal base (`JuicyButton.gd` ou modificação direta) para que os botões de imagem da UI sofram um efeito de "esmagamento" (Squash de escala via Tween) ao serem pressionados.
-* [x] **6.4 Efeitos Sonoros de Interface (UI SFX)**: Sons para botões de menu, popups, Toast Message e telas finais.
+* [x] **6.4 Efeitos Sonoros de Interface (UI SFX)**: Sons para botões de menu, popups e telas finais.
 * [ ] **6.5 Música de Fundo (BGM)**: Implementação de 3 variações de música Lo-fi (*Samurai Champloo* style) com opções de controle (Mudo/Ativo).
 * [ ] **6.6 Sincronia de Áudio e Animação**: Som de *match* disparado no frame exato de colisão no inventário.
 * [ ] **6.7 Locução de Feedback (Announcer)**: Vozes de incentivo ("Good!", "Perfect!") atreladas aos Combos.
