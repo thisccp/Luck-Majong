@@ -1,6 +1,6 @@
 # 🐾 Neko Mahjong - Documentação Técnica Oficial
 
-**Versão:** 80.0  
+**Versão:** 81.0  
 **Última Atualização:** 11/03/2026
 
 ---
@@ -47,13 +47,14 @@
 * [x] **5.11 Auto-Framing (Zoom Dinâmico)**: Ajuste automático do tamanho das peças/câmera baseado no layout gerado proceduralmente, com travas matemáticas (`MAX_TILE_SCALE` e `MIN_TILE_SCALE`) para garantir proporções perfeitas na tela.
 * [x] **5.12 Sistema de Revive F2P (Bypass Preparatório)**: Implementada a lógica de Revive com 2 usos gratuitos. A opção de Ads atua com bypass direto (sem popup genérica) revivendo a peça imediatamente, mantendo a arquitetura pronta para a injeção do SDK de anúncios reais.
 
-### 🎵 Fase 6: Áudio e Sonoplastia (Sound Design) - *[INICIADO]*
+### 🎵 Fase 6: Áudio, Sonoplastia e UX Tátil (Sound Design) - *[INICIADO]*
 * [x] **6.1 Gerenciador de Áudio (Audio Manager)**: Criação de um Singleton na Godot para controlar os canais de áudio sem interromper sons concorrentes, com suporte a canais separados (Master, BGM, SFX).
-* [x] **6.2 Efeitos Sonoros do Tabuleiro (SFX)**: Implementação de sons para interações físicas: clique em peça livre (pedra) assets/sfx/tile_click2.wav, clique em peça bloqueada (erro/recusa sincronizado com o Shake) assets/sfx/tile_block.wav, clique no botão Shuffle assets/sfx/shuffle_click2.wav, Undo assets/sfx/undo_click2.wav e hint assets/sfx/hint_click2.wav (tocados apenas com uso disponível/sucesso).
-* [ ] **6.3 Efeitos Sonoros de Interface (UI SFX)**: Sons para botões de menu, popups, Toast Message e telas finais.
-* [ ] **6.4 Música de Fundo (BGM)**: Implementação de 3 variações de música Lo-fi (*Samurai Champloo* style) com opções de controle (Mudo/Ativo).
-* [ ] **6.5 Sincronia de Áudio e Animação**: Som de *match* disparado no frame exato de colisão no inventário.
-* [ ] **6.6 Locução de Feedback (Announcer)**: Vozes de incentivo ("Good!", "Perfect!") atreladas aos Combos.
+* [x] **6.2 Efeitos Sonoros do Tabuleiro (SFX)**: Implementação de sons para interações físicas: clique em peça livre (pedra) `assets/sfx/tile_click2.wav`, clique em peça bloqueada (erro/recusa sincronizado com o Shake) `assets/sfx/tile_block.wav`, clique no botão Shuffle `assets/sfx/shuffle_click2.wav`, Undo `assets/sfx/undo_click2.wav` e hint `assets/sfx/hint_click2.wav` (tocados apenas com uso disponível/sucesso).
+* [x] **6.3 Feedback Tátil de Interface (Juicy Buttons)**: Criação de um sistema universal base (`JuicyButton.gd` ou modificação direta) para que os botões de imagem da UI sofram um efeito de "esmagamento" (Squash de escala via Tween) ao serem pressionados.
+* [x] **6.4 Efeitos Sonoros de Interface (UI SFX)**: Sons para botões de menu, popups, Toast Message e telas finais.
+* [ ] **6.5 Música de Fundo (BGM)**: Implementação de 3 variações de música Lo-fi (*Samurai Champloo* style) com opções de controle (Mudo/Ativo).
+* [ ] **6.6 Sincronia de Áudio e Animação**: Som de *match* disparado no frame exato de colisão no inventário.
+* [ ] **6.7 Locução de Feedback (Announcer)**: Vozes de incentivo ("Good!", "Perfect!") atreladas aos Combos.
 
 ### ⏳ Fase 7: Backlog, Retenção (Meta-Jogo) e UX (Futuro)
 * [ ] **7.1 Meta-Jogo (Sistema de Coleção)**: Área de galeria onde o jogador desbloqueia novos tipos de gatos.

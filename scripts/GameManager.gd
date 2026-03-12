@@ -63,6 +63,7 @@ var sfx_tile_click: AudioStream = preload("res://assets/sfx/tile_click.wav")
 var sfx_hint: AudioStream = preload("res://assets/sfx/hint_click.wav")
 var sfx_undo: AudioStream = preload("res://assets/sfx/undo_click.wav")
 var sfx_shuffle: AudioStream = preload("res://assets/sfx/shuffle_click.wav")
+var sfx_all_btn: AudioStream = preload("res://assets/sfx/all_btn.wav")
 
 # ─── Ads System ──────────────────────────────────────────────────────
 var ad_requester: String = ""
@@ -155,6 +156,7 @@ func _ready() -> void:
 
 	_hide_popups()
 	_set_ui_mouse_filters(self)
+	_apply_juicy_to_all_buttons(self)
 
 	await get_tree().create_timer(0.3).timeout
 	_load_background()
@@ -1262,7 +1264,7 @@ func _show_floating_message(msg_text: String) -> void:
 	container.set_anchors_preset(Control.PRESET_CENTER)
 	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	container.modulate.a = 0.0
-	container.z_index = 5000 # Supera popups normais
+	container.z_index = 4096 # Supera popups normais (Max na Godot é 4096)
 	
 	var panel := PanelContainer.new()
 	var style := StyleBoxFlat.new()
@@ -1677,3 +1679,75 @@ func spawn_combo_message(combo: int) -> void:
 	slide_out.chain().tween_callback(func():
 		top_canvas.queue_free()
 	)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# JUICY BUTTONS (Tactile UI)
+# ═══════════════════════════════════════════════════════════════════════
+
+func _apply_juicy_to_all_buttons(node: Node) -> void:
+	if node is BaseButton:
+		_make_button_juicy(node)
+	
+	for child in node.get_children():
+		_apply_juicy_to_all_buttons(child)
+
+func _make_button_juicy(btn: BaseButton) -> void:
+	# Ignorar botoes que já têm esse comportamento
+	if btn.has_meta("is_juicy"):
+		return
+	btn.set_meta("is_juicy", true)
+	
+	# Salvar a escala original
+	btn.set_meta("juicy_orig_scale", btn.scale)
+	
+	# Garantir que o pivot de escala esteja no centro do botão
+	btn.pivot_offset = btn.size / 2.0
+	
+	# Atualizar o pivot se o botão for redimensionado
+	if not btn.resized.is_connected(_update_juicy_pivot.bind(btn)):
+		btn.resized.connect(_update_juicy_pivot.bind(btn))
+	
+	if not btn.button_down.is_connected(_on_juicy_down.bind(btn)):
+		btn.button_down.connect(_on_juicy_down.bind(btn))
+	if not btn.button_down.is_connected(_play_universal_btn_sound):
+		btn.button_down.connect(_play_universal_btn_sound)
+	if not btn.button_up.is_connected(_on_juicy_up.bind(btn)):
+		btn.button_up.connect(_on_juicy_up.bind(btn))
+	if not btn.mouse_exited.is_connected(_on_juicy_up.bind(btn)):
+		btn.mouse_exited.connect(_on_juicy_up.bind(btn))
+
+func _play_universal_btn_sound() -> void:
+	# pitch_scale = 1.0, volume_db = -18.0 (diminui bastante a altura do som)
+	AudioManager.play_ui_sfx(sfx_all_btn, 1.0, -22.0)
+
+func _update_juicy_pivot(btn: BaseButton) -> void:
+	btn.pivot_offset = btn.size / 2.0
+
+func _on_juicy_down(btn: BaseButton) -> void:
+	if btn.disabled:
+		return
+	var orig_scale: Vector2 = btn.get_meta("juicy_orig_scale", Vector2.ONE)
+	# Mata o tween antigo se existir para não conflitar
+	if btn.has_meta("juicy_tween"):
+		var old_tween: Tween = btn.get_meta("juicy_tween")
+		if is_instance_valid(old_tween) and old_tween.is_valid():
+			old_tween.kill()
+	
+	var tween = btn.create_tween()
+	btn.set_meta("juicy_tween", tween)
+	tween.tween_property(btn, "scale", orig_scale * 0.85, 0.08).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+func _on_juicy_up(btn: BaseButton) -> void:
+	if btn.disabled:
+		return
+	var orig_scale: Vector2 = btn.get_meta("juicy_orig_scale", Vector2.ONE)
+	if btn.has_meta("juicy_tween"):
+		var old_tween: Tween = btn.get_meta("juicy_tween")
+		if is_instance_valid(old_tween) and old_tween.is_valid():
+			old_tween.kill()
+			
+	var tween = btn.create_tween()
+	btn.set_meta("juicy_tween", tween)
+	# Transição elástica rápida
+	tween.tween_property(btn, "scale", orig_scale, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
