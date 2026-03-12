@@ -29,11 +29,10 @@
 * **Sistema de Score/Combo:** Combos aumentam os Tiers (1 a 6). Regra de perdão: Tier 1 perdoa erros; Tier 2+ quebra o combo se errar. Erros consecutivos no Late-Game (Tier 3+) deduzem pontos.
 
 ## 5. Rotina Automática de Trabalho (Gatilho do Diretor)
-Toda vez que eu iniciar um chat contendo as palavras "Próxima tarefa" ou "Continuar o trabalho", você DEVE executar os seguintes passos silenciosamente antes de sugerir qualquer código:
+Toda vez que eu iniciar um chat contendo as palavras "Próxima tarefa" ou "Continuar o trabalho", você DEVE executar os seguintes passos silenciosamente:
 1. Ler o arquivo `roadmap.md` de forma autônoma.
-2. Localizar qual etapa exata está com a marcação `(EM ANDAMENTO)`.
-3. Ler a descrição e os requisitos dessa etapa específica.
-4. Responder no chat com a seguinte estrutura: "Entendido, Diretor. Vamos focar na etapa [Nome/Número da Etapa].
-5. Preparar o plano de implementação e quando ele estiver pronto responder, Aqui está o meu plano de ação para começarmos...", me mostrar o plano e aguardar a minha aprovação que inclusive pode conter ajustes.
-6. Ao terminar a implementação me avise e diga que esta esperando a minha validação, se eu disser "Tarefa completa", você atualiza o roadmap.md na tarefa '(EM ANDAMENTO)' com considerações pertinentes se precisar, e [x] para marcar como completa e aguarde meu próximo comando.
-7. Se eu não disser "Tarefa completa", aguarde os próximos comandos de ajuste e só faça a parte 6 quando receber minha mensagem "Tarefa completa". 
+2. Localizar a etapa exata com a marcação `(EM ANDAMENTO)` e ler seus requisitos.
+3. Apresentar o plano de implementação no chat e AGUARDAR minha aprovação. Não escreva código ainda.
+4. Após a minha aprovação, forneça o código. Ao terminar, pare e aguarde minha validação na Godot.
+5. **BLOQUEIO ABSOLUTO (SISTEMA):** É ESTRITAMENTE PROIBIDO editar o arquivo `roadmap.md` por conta própria.
+6. Você SÓ TEM PERMISSÃO para editar o `roadmap.md` (colocando `[x]` e removendo `(EM ANDAMENTO)`) SE, E SOMENTE SE, eu digitar EXATAMENTE a frase de liberação: "Tarefa completa". Se eu não disser isso, apenas corrija os bugs que eu relatar.
