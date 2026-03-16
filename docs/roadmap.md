@@ -1,6 +1,6 @@
 # 🐾 Neko Mahjong - Documentação Técnica Oficial
 
-**Versão:** 83.0  
+**Versão:** 83.2  
 **Última Atualização:** 16/03/2026
 
 ---
@@ -14,70 +14,82 @@
 * [x] **Layout Turtle**: Implementação inicial da estrutura clássica.
 
 ### ✅ Fase 2: Mecânicas e Regras de Jogo (Concluído)
-* [x] **Regra 55/45 (Antiga 90/10)**: Lógica de bloqueio vertical recalibrada para offsets agressivos.
+* [x] **Regra 55/45 (Antiga 90/10)**: Lógica de bloqueio vertical recalibrada. A tolerância de sobreposição foi aumentada para 45% para suportar offsets agressivos de perspectiva 3D (estilo cascata/Vita Mahjong) sem gerar falsos bloqueios.
 * [x] **Geração Reversa**: Algoritmo para tabuleiros 100% solucionáveis.
 * [x] **Sistema de Inventário**: Implementação dos 4 slots de armazenamento.
-* [x] **Bloqueio Lateral**: Validação de peças livres através das bordas.
+* [x] **Bloqueio Lateral**: Validação de peças livres através das bordas na mesma camada (Z-index).
 
 ### ✅ Fase 3: Renderização e Imersão (Concluído)
 * [x] **3.1 - 3.4**: Sincronização via `await`, Escala Dinâmica e Maximização de Sprites.
-* [x] **3.5 Neko Block (Verticalização)**: Transição para layout Portrait (Pillar de 6 colunas).
-* [x] **3.6 Ajuste de Contato**: Encaixe "Beijo de Pixel", sobreposição tátil (Z+1) e correção do Drop Shadow.
+* [x] **3.5 Neko Block (Verticalização)**: Transição para layout Portrait (Pillar de 6 colunas) validado para escala premium no S25.
+* [x] **3.6 Ajuste de Contato**: Implementação do encaixe "Beijo de Pixel", sobreposição tátil (Z+1) e correção do Drop Shadow.
 
 ### ✅ Fase 4: Sistemas de Apoio e Economia (Concluído)
-* [x] **4.1 Hint V2 (Dica Inteligente)**: Prioridade para esvaziar slots e trava anti-spam.
+* [x] **4.1 Hint V2 (Dica Inteligente)**: Prioridade para esvaziar slots, persistência visual e trava anti-spam. Correção visual para desligar dica no Game Over.
 * [x] **4.2 Reverse (Undo)**: Retorno ao grid com animação de voo e Z-index dinâmico.
-* [x] **4.3 Drag & Peek (Arrasto Livre)**: Mecânica tátil com retorno elástico.
-* [x] **4.4 UI de Cargas e Ads**: Labels numéricos e popup de recarga (+2 usos).
+* [x] **4.3 Drag & Peek (Arrasto Livre)**: Mecânica tátil com retorno elástico, protegendo o estado visual.
+* [x] **4.4 UI de Cargas e Ads**: Remoção de bloqueio visual, adição de labels numéricos e popup genérico de recarga (+2 usos) individual por poder.
 
 ### ✅ Pré-Fase 5: Refatoração e Otimização Arquitetural (Concluído)
-* [x] **Separação de Responsabilidades**: Interface de Ads/Popups em cenas independentes (`.tscn`).
+* [x] **Separação de Responsabilidades**: Refatoração da interface de Ads/Popups para cenas independentes (`.tscn`), blindando a lógica principal de UI gerada por código.
 
 ### ✅ Fase 5: Progressão Procedural e Flow (Concluído)
-* [x] **5.1 a 5.3**: Gerador Determinístico, Curva Senoidal e Intro Cinematográfica.
-* [x] **5.4 a 5.12**: Sistema de Score/Combos, Auto-Framing e Sistema de Revive F2P.
+* [x] **5.1 Gerador Determinístico de Formatos**: Algoritmo utilizando a "Seed" do nível para garantir layouts fixos por fase.
+* [x] **5.2 Curva de Dificuldade Controlada (Refatoração do Gerador)**: Implementação da dificuldade infinita por "Mundos" (curva senoidal baseada no `world_index`). Escalonamento da variedade de gatos (`cat_variety`) e verticalidade através da injeção de pares extras (`layer_boost_pairs`). Regra de Oclusão corrigida para o eixo Y.
+* [x] **5.3 Intro Cinematográfica (Tela de Nível)**: Apresentação com overlay escuro, mensagem dinâmica de nível, aviso em destaque para "Níveis Difíceis" (baseado na curva senoidal) e transições suaves via Tweens. Aplicado Fade-In/Out também ao Popup de Vitória.
+* [x] **5.4 Fluxo de Vitória/Derrota (Greybox)**: Core loop fechado com telas funcionais de transição de nível (Vitória) e Game Over com Revive. 
+* [x] **5.5 Feedback Visual de Hint (UX)**: Implementação de Toast Message devidamente centralizada e com trava anti-spam.
+* [x] **5.6 Novo Power-up (Shuffle) & Refatoração da HUD**: Implementação do 3º botão de poder (Shuffle) com animação em onda diagonal (0.5s). Ordem ajustada na UI e texturas unificadas.
+* [x] **5.7 Sistema Avançado de Score e Combos (HUD)**: Matemática de Score com teto (Base 250, sobe +35, máx 600). Sistema de Tiers (1 a 6) com evolução baseada em ciclos de 5 combos. Regra de Perdão Inteligente e Punição Late-Game. Adição de texto animado "Combo X" e "Fever Mode" visual.
+* [x] **5.8 Readequação da Interface (Contadores de Power-ups)**: Reposicionamento dos números (labels) de usos restantes para o padrão "Notification Badge" usando âncoras da Godot, e aumento ergonômico da área de toque dos botões.
+* [x] **5.9 Polimento Sistêmico e UX (Quality of Life)**: Safe Area reajustada (Fonte 30, Offset 70). Auditoria de Combos (Power-ups não quebram combo). Shuffle cancela Dicas ativas. Adicionada Toast Message ("Sem peças válidas") ao Undo.
+* [x] **5.10 Remoção do Estado "Acinzentado" & Shake Visual**: Tabuleiro 100% colorido. Feedback visual de erro com animação de tremor (Shake no eixo X) ao clicar numa peça bloqueada. Hitbox expandida (+10px padding) para precisão no toque mobile (Regra do Dedo Gordo).
+* [x] **5.11 Auto-Framing (Zoom Dinâmico)**: Ajuste automático do tamanho das peças/câmera baseado no layout gerado proceduralmente, com travas matemáticas (`MAX_TILE_SCALE` e `MIN_TILE_SCALE`) para garantir proporções perfeitas na tela.
+* [x] **5.12 Sistema de Revive F2P (Bypass Preparatório)**: Implementada a lógica de Revive com 2 usos gratuitos. A opção de Ads atua com bypass direto (sem popup genérica) revivendo a peça imediatamente, mantendo a arquitetura pronta para a injeção do SDK de anúncios reais.
 
 ### 🎵 Fase 6: Áudio e Performance Mobile - [EM ANDAMENTO]
-* [x] **6.1 - 6.5**: Audio Manager, SFX de Tabuleiro, Juicy Buttons e BGM Lo-fi.
-* [x] **6.8 Blindagem de CPU (S25)**: Object Pooling e Caching de Bloqueio (Redução p/ 5min CPU).
-* [ ] **6.9 Otimização de GPU e Térmica**: Static Shader Sharing e Overdraw Reduction. — **[Claude Sonnet 4.6 (Thinking)]**
-* [ ] **6.6 Sincronia de Áudio e Animação**: Som de *match* no frame exato de colisão. — **[Gemini 3.1 Pro (High)]**
-* [ ] **6.7 Locução de Feedback (Announcer)**: Vozes de incentivo para Combos/Fever. — **[Gemini 3 Flash]**
+* [x] **6.1 - 6.5**: Gerenciador de Áudio, SFX do Tabuleiro, Juicy Buttons, SFX de Interface e BGM Lo-fi.
+* [x] **6.8 Blindagem de CPU e Performance (S25)**: Object Pooling, Caching de Bloqueio e Reset de Estado concluídos.
+* [x] **6.8.1 Hotfix de Alinhamento (Undo/Revive)**: Correção de coordenadas dinâmicas e âncoras de grade após zoom concluída.
+* [ ] **6.6 Sincronia de Áudio e Impacto Visual (Refatoração de Match)**: Implementação da animação de choque físico entre as peças no inventário e efeito de desintegração, sincronizados com o som de colisão de pedras. — **[Claude Sonnet 4.6 (Thinking)]**
+* [ ] **6.7 Locução de Feedback (Announcer)**: Vozes de incentivo ("Good!", "Perfect!") atreladas aos Combos. — **[Gemini 3 Flash]**
+* [x] **6.9 Otimização de GPU e Térmica**: Movida para o final do projeto (Fase 7.18) para priorizar estabilidade lógica.
 
 ### 🏗️ Fase R: Refatoração e Desacoplamento Arquitetural (Estratégico)
-* [ ] **R.1 Extração de Responsabilidades**: Mover Score, Inventário e Ads para Singletons. — **[Claude Opus 4.6 (Thinking)]**
-* [ ] **R.2 Finite State Machine (FSM)**: Controle rígido de estados de jogo. — **[Claude Sonnet 4.6 (Thinking)]**
-* [ ] **R.3 Barramento de Sinais**: Substituição de `get_node` por sinal modular. — **[Gemini 3.1 Pro (High)]**
+* [ ] **R.1 Extração de Responsabilidades**: Mover Score, Inventário e Ads para Singletons/Nodes independentes. — **[Claude Opus 4.6 (Thinking)]**
+* [ ] **R.2 Finite State Machine (FSM)**: Controle rígido de estados (IDLE, PIECE_FLYING, MATCH_ANIM, PAUSED). — **[Claude Sonnet 4.6 (Thinking)]**
+* [ ] **R.3 Barramento de Sinais**: Substituição de caminhos diretos (`get_node`) por sinais para UI modular. — **[Gemini 3.1 Pro (High)]**
 
 ### ⏳ Fase 7: Backlog, Retenção (Meta-Jogo) e UX (Futuro)
-* [ ] **7.1 Meta-Jogo (Sistema de Coleção)**: Galeria de gatinhos colecionáveis. — **[GPT-OSS 120B (Medium)]**
-* [ ] **7.2 Progressão Temática**: Mudança visual de peças por Mundos. — **[GPT-OSS 120B (Medium)]**
-* [ ] **7.3 Expansão de Formatos**: Novos layouts (Respiro vs. Boss). — **[GPT-OSS 120B (Medium)]**
-* [ ] **7.4 Recursos Visuais Finais**: Assets definitivos, Splash e Logos. — **[Gemini 3 Flash]**
-* [ ] **7.5 UI e Menus (Refatoração)**: Menu de Título e Novo Fluxo de Vitória. — **[Gemini 3.1 Pro (Low)]**
-* [ ] **7.6 Onboarding (Tutorial)**: Mini-tabuleiro interativo de ensino. — **[Claude Sonnet 4.6 (Thinking)]**
+* [ ] **7.1 Meta-Jogo (Sistema de Coleção)**: Área de galeria onde o jogador desbloqueia novos tipos de gatos. — **[GPT-OSS 120B (Medium)]**
+* [ ] **7.2 Progressão Temática e Expansão de Peças**: Mudança de tema visual e introdução de novas peças baseadas em raças de gatos. — **[GPT-OSS 120B (Medium)]**
+* [ ] **7.3 Expansão do Catálogo de Formatos**: Criação de novos layouts (Fases Respiro vs. Fases Boss). — **[GPT-OSS 120B (Medium)]**
+* [ ] **7.4 Recursos Visuais Finais**: Assets definitivos, Splash Screens e Logos. — **[Gemini 3 Flash]**
+* [ ] **7.5 UI e Menus**: Menu de Título, Sistema de Loading e retrabalho final dos popups. — **[Gemini 3.1 Pro (Low)]**
+* [ ] **7.6 Onboarding (Tutorial)**: Mini-tabuleiro interativo para ensinar as regras. — **[Claude Sonnet 4.6 (Thinking)]**
 * [ ] **7.7 Funcionalidades Online**: Placares globais/amigos. — **[Gemini 3.1 Pro (High)]**
-* [ ] **7.8 Recompensas por Marcos**: Baú de Fim de Mundo (Poderes Permanentes). — **[Gemini 3.1 Pro (High)]**
+* [ ] **7.8 Sistema de Recompensas por Marcos**: Conceder cargas permanentes de poderes ao completar milestones. — **[Gemini 3.1 Pro (High)]**
 * [ ] **7.9 Persistência de Sessão**: Cloud Save e Local State. — **[Gemini 3.1 Pro (High)]**
-* [ ] **7.10 Nova Animação de Match**: Refatoração visual de destruição 3D. — **[Claude Sonnet 4.6 (Thinking)]**
-* [ ] **7.11 Feedback Tátil (Haptic)**: Vibrações sincronizadas. — **[Gemini 3 Flash]**
-* [ ] **7.12 Modos de Jogo Alternativos**: Time Attack e Modo Memória. — **[GPT-OSS 120B (Medium)]**
-* [ ] **7.13 Recompensas Diárias**: Sistema de Login Progressivo. — **[GPT-OSS 120B (Medium)]**
-* [ ] **7.14 Sistema de Moeda In-Game**: Soft Currency para Galeria. — **[Gemini 3.1 Pro (Low)]**
-* [ ] **7.15 Polimento Fever Mode**: Partículas e efeitos visuais extras. — **[Claude Sonnet 4.6 (Thinking)]**
-* [ ] **7.16 Integração SDK Monetização**: Injeção de AdMob/AppLovin real. — **[Claude Opus 4.6 (Thinking)]**
-* [ ] **7.17 Modelo de Monetização Premium**: Versão paga p/ remoção de ads. — **[Gemini 3.1 Pro (Low)]**
-* [ ] **7.18 Polimento de Sombras Final**: Sombras premium sem custo de GPU. — **[Claude Sonnet 4.6 (Thinking)]**
+* [x] **7.10 Nova Animação de Match**: Movida para a Fase 6.6 para sincronia sonora imediata.
+* [ ] **7.11 Feedback Tátil (Haptic Feedback)**: Vibrações sincronizadas (Android/iOS). — **[Gemini 3 Flash]**
+* [ ] **7.12 Modos de Jogo Alternativos**: Gatos Dourados, Time Attack, Modo Memória. — **[GPT-OSS 120B (Medium)]**
+* [ ] **7.13 Recompensas e Vitórias Diárias**: Sistema de login diário. — **[GPT-OSS 120B (Medium)]**
+* [ ] **7.14 Sistema de Moeda In-Game**: "Soft Currency" para a Galeria. — **[Gemini 3.1 Pro (Low)]**
+* [ ] **7.15 Polimento Visual (Fever Mode)**: Partículas no "Fever Mode" para níveis altos de combo. — **[Claude Sonnet 4.6 (Thinking)]**
+* [ ] **7.16 Integração do SDK de Monetização**: Substituição do simulador pelo plugin real (AdMob/AppLovin). — **[Claude Opus 4.6 (Thinking)]**
+* [ ] **7.17 Modelo de Monetização Premium**: Versão paga para remoção de anúncios. — **[Gemini 3.1 Pro (Low)]**
+* [ ] **7.18 Polimento de Sombras e GPU**: Estudo de sombras premium sem custo excessivo de GPU (Foco Térmico). — **[Claude Sonnet 4.6 (Thinking)]**
 
 ---
 
 ## 🚨 2. Problemas Conhecidos
-* **Aquecimento Térmico (GPU)**: O jogo apresenta aquecimento leve após 20min devido ao processamento de sombras (Shader Blur). Requer otimização na Fase 6.9 com Claude.
+* **Feedback de Impacto (Match)**: A animação atual é funcional, mas carece de impacto físico e sincronia sonora premium. (Em desenvolvimento na 6.6).
+* **Eficiência Térmica (GPU)**: Aquecimento leve persistente devido aos Shaders de Drop Shadow. (Adiado para Fase 7.18).
 
 ---
 ## 🛠️ 3. Especificações Técnicas Atuais
 * **Portrait-First**: Design otimizado para smartphones (Pillar de 6 colunas).
 * **CPU Status**: Otimizada (5min CPU / 20min Tela).
 * **Bateria Status**: Estável (1,5% / 20min Tela).
-* **FPS**: Travado em 60Hz para estabilidade térmica.
-* **Monetização**: Sustentada por Ads (Vídeo Premiado).
+* **FPS**: Travado em 60Hz para controle de estabilidade térmica.
+* **Monetização**: Sustentada por Ads.

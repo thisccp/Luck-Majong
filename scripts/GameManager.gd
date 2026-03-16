@@ -65,6 +65,7 @@ var sfx_undo: AudioStream = preload("res://assets/audio/sfx/undo_click.wav")
 var sfx_shuffle: AudioStream = preload("res://assets/audio/sfx/shuffle_click.wav")
 var sfx_all_btn: AudioStream = preload("res://assets/audio/sfx/all_btn.wav")
 var sfx_popup_open: AudioStream = preload("res://assets/audio/sfx/popup_open.wav")
+var sfx_match_impact: AudioStream = preload("res://assets/audio/sfx/tile_match.wav")  # Impacto do choque de match
 var sfx_win_1: AudioStream = preload("res://assets/audio/sfx/win_popup_1.wav")
 var sfx_win_2: AudioStream = preload("res://assets/audio/sfx/win_popup_2.wav")
 var sfx_win_3: AudioStream = preload("res://assets/audio/sfx/win_popup_3.wav")
@@ -652,7 +653,7 @@ func _animate_tile_to_slot(tile: MahjongTile, slot_index: int) -> void:
 		var partner: MahjongTile = tile.get_meta("matched_partner")
 		if is_instance_valid(partner) and partner.has_meta("match_landed") and partner.get_meta("match_landed"):
 			# Ambos pousaram → disparar animação de match por IMPACTO
-			_executar_animacao_fantasma(tile, partner)
+			_executar_animacao_choque_e_desintegracao(tile, partner)
 	elif tile.is_in_inventory:
 		# Tile normal (não matched) — finalizar no UI
 		_reparent_tile_to_ui(tile)
@@ -812,7 +813,7 @@ func _try_instant_pair_resolution() -> void:
 
 		if t1_landed and t2_landed:
 			# Ambos já pousaram → animação imediata
-			_executar_animacao_fantasma(t1, t2)
+			_executar_animacao_choque_e_desintegracao(t1, t2)
 
 		# Atualizar board (peças que ficaram livres)
 		_board.update_tile_states()
@@ -872,60 +873,74 @@ func _try_instant_pair_resolution() -> void:
 		_show_win_popup()
 
 
-func _executar_animacao_fantasma(peca_a: MahjongTile, peca_b: MahjongTile) -> void:
-	"""Coreografia Visual Independente (A Peça Fantasma)
-	Animação de match: desliza suavemente para cima (Y-=50) e fading,
-	renderizando por cima de tudo para que a reorganização do slot ocorra limpa por baixo."""
+func _executar_animacao_choque_e_desintegracao(peca_a: MahjongTile, peca_b: MahjongTile) -> void:
+	"""Match Animation V2 — Fast Flow (Non-Blocking)
+	Fase 1 (0.075s): as peças colidem no ponto médio com spring elástico.
+	Fase 2 (0.20s): desintegração independente via play_disintegrate_nonblocking().
+	Tudo via callbacks — NUNCA bloqueia input."""
 	
-	# Garantir que colisão está desabilitada e parar hint glow durante a animação
+	# Preparação: parar glows, desabilitar colisão, elevar para o topo absoluto
+	# GODOT 4: CANVAS_ITEM_Z_MAX = 4096 — mantemos abaixo desse limite
+	var z_offset := _fading_animations * 2
 	for t in [peca_a, peca_b]:
 		t.input_pickable = false
 		t.stop_hint_glow()
 		if t.has_node("CollisionShape"):
 			t.get_node("CollisionShape").set_deferred("disabled", true)
-			
-	# Passo A: Elevar z_index para o céu
-	peca_a.z_index = 4000
-	peca_b.z_index = 4000
-
+		t.z_index = 4090 - z_offset
+	
 	_fading_animations += 1
 	
-	# Chamar a reorganização dos slots IMEDIATAMENTE (antes da animação de saída)
-	# Assim as peças já começam a deslizar debaixo do match ativo
-	if _fading_animations == 1:
-		_reorganize_slots()
+	# Reorganizar slots IMEDIATAMENTE para que as peças restantes deslizem
+	# por baixo do choque, dando fluidez visual ao jogador
+	_reorganize_slots()
 
-	# Passo C: Iniciar um Tween que faz ambas as peças subirem e desaparecerem
-	var fade_tween := create_tween()
-	fade_tween.set_parallel(true)
-
-	# Peca A
-	fade_tween.tween_property(peca_a, "position:y", peca_a.position.y - 50.0, 0.3)\
-		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	fade_tween.tween_property(peca_a, "modulate:a", 0.0, 0.3)\
-		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-
-	# Peca B
-	fade_tween.tween_property(peca_b, "position:y", peca_b.position.y - 50.0, 0.3)\
-		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	fade_tween.tween_property(peca_b, "modulate:a", 0.0, 0.3)\
-		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-
-	# Passo D: Chame queue_free() apenas ao final desta animação
-	fade_tween.finished.connect(func():
+	# ── Fase 1: CHOQUE SPRING (0.075s) ──
+	var midpoint: Vector2 = (peca_a.position + peca_b.position) / 2.0
+	
+	var impact_tween := create_tween()
+	impact_tween.set_parallel(true)
+	impact_tween.tween_property(peca_a, "position", midpoint, 0.075)\
+		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	impact_tween.tween_property(peca_b, "position", midpoint, 0.075)\
+		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	
+	# ── Ao chegar no impacto: SFX + squash + Fase 2 ──
+	impact_tween.finished.connect(func():
+		# SFX no momento exato do contato
+		AudioManager.play_sfx(sfx_match_impact, 1.35, 0.0)
+		
+		# Squash visual no ponto de impacto (peças "amassam" brevemente)
+		var squash_a := peca_a.create_tween() if is_instance_valid(peca_a) else null
+		var squash_b := peca_b.create_tween() if is_instance_valid(peca_b) else null
+		for sq in [squash_a, squash_b]:
+			if sq:
+				sq.tween_property(
+					peca_a if sq == squash_a else peca_b,
+					"scale",
+					(peca_a if sq == squash_a else peca_b).scale * Vector2(1.3, 0.75),
+					0.04
+				).set_ease(Tween.EASE_OUT)
+		
+		# ── Fase 2: DESINTEGRAÇÃO (0.20s, fire-and-forget por peça) ──
+		# Cada peça gerencia seu próprio ciclo de vida — total independência
+		var done_count := [0]  # Array para captura por referência no closure
+		var on_piece_done := func():
+			done_count[0] += 1
+			if done_count[0] >= 2:
+				# Ambas desintegraram → decrementar contador e checar reorganização
+				_fading_animations -= 1
+				if _fading_animations == 0:
+					_reorganize_slots()
+		
 		if is_instance_valid(peca_a):
-			peca_a.queue_free()
+			peca_a.play_disintegrate_nonblocking(on_piece_done)
+		else:
+			on_piece_done.call()  # Peça já foi liberada, contar assim mesmo
 		if is_instance_valid(peca_b):
-			peca_b.queue_free()
-		
-		_fading_animations -= 1
-		
-		# A reorganização baseada em _fading_animations == 0 final foi movida pro início,
-		# mas caso haja múltiplas intercaladas, garantimos aqui também.
-		if _fading_animations == 0:
-			await get_tree().create_timer(0.05).timeout
-			if _fading_animations == 0:
-				_reorganize_slots()
+			peca_b.play_disintegrate_nonblocking(on_piece_done)
+		else:
+			on_piece_done.call()
 	)
 
 
@@ -933,23 +948,19 @@ func _executar_animacao_fantasma(peca_a: MahjongTile, peca_b: MahjongTile) -> vo
 
 
 func _reorganize_slots() -> void:
-	"""Desliza peças restantes para os bolsos corretos (efeito pilha)."""
+	"""Desliza peças restantes para os bolsos corretos (efeito pilha).
+	Peças em desintegração (is_matched=true) são ignoradas — são 'fantasmas'
+	que gerenciam seu próprio ciclo de vida."""
 	for i in range(_inventory.size()):
 		var tile: MahjongTile = _inventory[i]
 
-		# Só reposicionar peças já no UILayer (não as que ainda estão voando)
-		if tile.get_parent() == _board:
+		# Ignorar peças em desintegração (fantasmas visuais) e peças ainda no tabuleiro
+		if tile.is_matched or tile.get_parent() == _board:
 			continue
 
 		var pocket_center: Vector2 = _get_slot_center(i)
 		
-		# Define o z_index dinâmico baseado na posição do slot (efeito cascata)
-		# Peças mais à esquerda (índice menor) recebem z_index menor (ex: 50, 51, 52...)
-		# Garantindo que a peça que chega da direita e desliza para a esquerda passe POR BAIXO da peça que já estava na direita.
-		# Espera, a regra visual desejada: quem está no slot 1 (esq) fica por baixo de quem tá no slot 2 (dir)? 
-		# "que a peça que esta chegando em um slot que estava ocupada [ao deslizar da direita pra esq.], vá por baixo da peça que ja estava lá"
-		# Se as peças deslizam em bando para a esquerda, elas devem ir sucessivamente descendo de camada.
-		# Quem está mais BEM POSICIONADO à esquerda ganha MENOR z_index.
+		# z_index dinâmico: peças mais à esquerda ficam abaixo das da direita
 		tile.z_index = 50 + i
 
 		# Só animar se a peça não está já na posição correta

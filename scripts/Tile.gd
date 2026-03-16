@@ -39,6 +39,7 @@ var _collision_shape: CollisionShape2D
 var _sprite: Sprite2D
 var _select_tween: Tween
 var _shake_tween: Tween
+var _disintegrate_tween: Tween
 var _is_shaking := false
 
 const TOTAL_TYPES := 20
@@ -298,6 +299,46 @@ func play_match_animation() -> void:
 	await match_tween.finished
 	visible = false
 	_collision_shape.set_deferred("disabled", true)
+
+
+func play_disintegrate_nonblocking(on_done: Callable = Callable()) -> void:
+	"""Desintegração fire-and-forget — NÃO usa await, não bloqueia input.
+	Fase 1 (0.05s): squash elástico leve (scale x1.15).
+	Fase 2 (0.15s): colapso para 0 + fade simultâneo.
+	Chama on_done() ao terminar (opcional)."""
+	is_matched = true
+	input_pickable = false
+	if _select_tween and _select_tween.is_valid():
+		_select_tween.kill()
+		_select_tween = null
+	if _disintegrate_tween and _disintegrate_tween.is_valid():
+		_disintegrate_tween.kill()
+	
+	var cur_scale := scale
+	
+	# Fase 1: squash elástico rápido
+	_disintegrate_tween = create_tween()
+	_disintegrate_tween.tween_property(self, "scale",
+		Vector2(cur_scale.x * 1.15, cur_scale.y * 1.15), 0.05)\
+		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	
+	# Fase 2: colapso + fade em paralelo
+	_disintegrate_tween.tween_callback(func():
+		var phase2 := create_tween()
+		phase2.set_parallel(true)
+		phase2.tween_property(self, "scale", Vector2.ZERO, 0.15)\
+			.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_BACK)
+		phase2.tween_property(self, "modulate:a", 0.0, 0.12)\
+			.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+		phase2.finished.connect(func():
+			visible = false
+			if _collision_shape:
+				_collision_shape.set_deferred("disabled", true)
+			if on_done.is_valid():
+				on_done.call()
+			queue_free()
+		)
+	)
 
 
 func play_hint_glow() -> void:
