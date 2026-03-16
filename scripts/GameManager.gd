@@ -874,73 +874,92 @@ func _try_instant_pair_resolution() -> void:
 
 
 func _executar_animacao_choque_e_desintegracao(peca_a: MahjongTile, peca_b: MahjongTile) -> void:
-	"""Match Animation V2 — Fast Flow (Non-Blocking)
-	Fase 1 (0.075s): as peças colidem no ponto médio com spring elástico.
-	Fase 2 (0.20s): desintegração independente via play_disintegrate_nonblocking().
-	Tudo via callbacks — NUNCA bloqueia input."""
-	
-	# Preparação: parar glows, desabilitar colisão, elevar para o topo absoluto
-	# GODOT 4: CANVAS_ITEM_Z_MAX = 4096 — mantemos abaixo desse limite
-	var z_offset := _fading_animations * 2
+	"""Match Animation V2 — Coreografia de 3 Atos (Non-Blocking)
+	- Ato 1 (0.08s): Antecipação — recuo de 15px + scale 110% (tensão)
+	- Ato 2 (0.07s): Choque — colapso seco no ponto médio
+	- Ato 3 (instant): Reação — SFX + desintegração fire-and-forget
+	Os slots lógicos JÁ estão livres antes desta função ser chamada."""
+
+	# ── Segurança: preparação de cada peça ──
 	for t in [peca_a, peca_b]:
 		t.input_pickable = false
 		t.stop_hint_glow()
 		if t.has_node("CollisionShape"):
 			t.get_node("CollisionShape").set_deferred("disabled", true)
-		t.z_index = 4090 - z_offset
-	
+		# z_index fixo, nunca maior que 4095 (CANVAS_ITEM_Z_MAX = 4096)
+		t.z_index = 4095
+
 	_fading_animations += 1
-	
-	# Reorganizar slots IMEDIATAMENTE para que as peças restantes deslizem
-	# por baixo do choque, dando fluidez visual ao jogador
+
+	# Reorganização imediata: peças restantes deslizam por baixo da coreografia
 	_reorganize_slots()
 
-	# ── Fase 1: CHOQUE SPRING (0.075s) ──
-	var midpoint: Vector2 = (peca_a.position + peca_b.position) / 2.0
-	
-	var impact_tween := create_tween()
-	impact_tween.set_parallel(true)
-	impact_tween.tween_property(peca_a, "position", midpoint, 0.075)\
-		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
-	impact_tween.tween_property(peca_b, "position", midpoint, 0.075)\
-		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
-	
-	# ── Ao chegar no impacto: SFX + squash + Fase 2 ──
-	impact_tween.finished.connect(func():
-		# SFX no momento exato do contato
-		AudioManager.play_sfx(sfx_match_impact, 1.35, 0.0)
-		
-		# Squash visual no ponto de impacto (peças "amassam" brevemente)
-		var squash_a := peca_a.create_tween() if is_instance_valid(peca_a) else null
-		var squash_b := peca_b.create_tween() if is_instance_valid(peca_b) else null
-		for sq in [squash_a, squash_b]:
-			if sq:
-				sq.tween_property(
-					peca_a if sq == squash_a else peca_b,
-					"scale",
-					(peca_a if sq == squash_a else peca_b).scale * Vector2(1.3, 0.75),
-					0.04
-				).set_ease(Tween.EASE_OUT)
-		
-		# ── Fase 2: DESINTEGRAÇÃO (0.20s, fire-and-forget por peça) ──
-		# Cada peça gerencia seu próprio ciclo de vida — total independência
-		var done_count := [0]  # Array para captura por referência no closure
-		var on_piece_done := func():
-			done_count[0] += 1
-			if done_count[0] >= 2:
-				# Ambas desintegraram → decrementar contador e checar reorganização
-				_fading_animations -= 1
-				if _fading_animations == 0:
-					_reorganize_slots()
-		
-		if is_instance_valid(peca_a):
-			peca_a.play_disintegrate_nonblocking(on_piece_done)
-		else:
-			on_piece_done.call()  # Peça já foi liberada, contar assim mesmo
-		if is_instance_valid(peca_b):
-			peca_b.play_disintegrate_nonblocking(on_piece_done)
-		else:
-			on_piece_done.call()
+	# ── Pré-cálculo de posições para os 3 atos ──
+	var pos_a := peca_a.position
+	var pos_b := peca_b.position
+	var midpoint := (pos_a + pos_b) / 2.0
+
+	# Direção de recuo: cada peça afasta-se do centro do par (normalizado)
+	var dir_a := (pos_a - midpoint).normalized()
+	var dir_b := (pos_b - midpoint).normalized()
+	# Fallback se as peças estiverem exatamente sobrepostas
+	if dir_a == Vector2.ZERO: dir_a = Vector2.LEFT
+	if dir_b == Vector2.ZERO: dir_b = Vector2.RIGHT
+
+	var scale_a := peca_a.scale
+	var scale_b := peca_b.scale
+
+	# ── ATO 1: ANTECIPAÇÃO (0.08s) ──
+	# Peças recuam 15px para fora e crescem 10% — cria tensão antes do impacto
+	var anticipate := create_tween()
+	anticipate.set_parallel(true)
+	anticipate.tween_property(peca_a, "position", pos_a + dir_a * 15.0, 0.08)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	anticipate.tween_property(peca_b, "position", pos_b + dir_b * 15.0, 0.08)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	anticipate.tween_property(peca_a, "scale", scale_a * 1.1, 0.08)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	anticipate.tween_property(peca_b, "scale", scale_b * 1.1, 0.08)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+	# ── ATO 2 + 3: após a antecipação ──
+	anticipate.finished.connect(func():
+		if not is_instance_valid(peca_a) or not is_instance_valid(peca_b):
+			_fading_animations -= 1
+			return
+
+		# ATO 2: CHOQUE (0.07s) — movimento seco e violento para o centro
+		var impact := create_tween()
+		impact.set_parallel(true)
+		impact.tween_property(peca_a, "position", midpoint, 0.07)\
+			.set_trans(Tween.TRANS_CIRC).set_ease(Tween.EASE_IN)
+		impact.tween_property(peca_b, "position", midpoint, 0.07)\
+			.set_trans(Tween.TRANS_CIRC).set_ease(Tween.EASE_IN)
+
+		# ATO 3: REAÇÃO — no frame exato do impacto
+		impact.finished.connect(func():
+			# SFX de colisão no momento do contato
+			AudioManager.play_sfx(sfx_match_impact, 1.35, 0.0)
+
+			# Contador compartilhado entre as 2 peças (closure por referência)
+			var done_count := [0]
+			var on_piece_done := func():
+				done_count[0] += 1
+				if done_count[0] >= 2:
+					_fading_animations -= 1
+					if _fading_animations == 0:
+						_reorganize_slots()
+
+			# Desintegração fire-and-forget — cada peça gere seu próprio ciclo
+			if is_instance_valid(peca_a):
+				peca_a.play_disintegrate_nonblocking(on_piece_done)
+			else:
+				on_piece_done.call()
+			if is_instance_valid(peca_b):
+				peca_b.play_disintegrate_nonblocking(on_piece_done)
+			else:
+				on_piece_done.call()
+		)
 	)
 
 
