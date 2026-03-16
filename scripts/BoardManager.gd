@@ -156,7 +156,7 @@ func try_match(t1: MahjongTile, t2: MahjongTile) -> bool:
 	return true
 
 
-func record_match(t1: MahjongTile, t2: MahjongTile) -> void:
+func record_match(_t1: MahjongTile, _t2: MahjongTile) -> void:
 	"""Registra um match já validado e animado."""
 	pass # Move history is now dynamically pushed in GameManager per tile.
 
@@ -230,7 +230,7 @@ func execute_shuffle() -> void:
 	var total_anim_time := 0.5
 	var num_tiles := active.size()
 	var time_per_tile := total_anim_time / num_tiles
-	var tweens_completed := 0
+	var _tweens_completed := 0
 	
 	for i in range(num_tiles):
 		var tile = active[i]
@@ -304,7 +304,7 @@ func get_level_profile(level: int) -> Dictionary:
 	"""
 	Retorna a Dificuldade Curva Senoidal estruturada em blocos modulares de Mundo (10 fases).
 	"""
-	var world_index := int((level - 1) / 10)
+	var world_index := int((level - 1) / 10.0)
 	var cur_phase := (level - 1) % 10 + 1 # 1 a 10
 	var variety: int = NUM_TYPES
 	var boost_pairs: int = 0

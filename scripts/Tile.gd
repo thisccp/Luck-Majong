@@ -68,8 +68,10 @@ static func _load_atlas() -> void:
 		_cat_atlas = load("res://assets/tiles/cats.png")
 	if _shadow_material == null:
 		_shadow_material = ShaderMaterial.new()
-		_shadow_material.shader = load("res://assets/shaders/blur_shadow.gdshader")
-		_shadow_material.set_shader_parameter("blur_amount", 8.0)
+		var shader_path := "res://assets/shaders/blur_shadow.gdshader"
+		if FileAccess.file_exists(shader_path):
+			_shadow_material.shader = load(shader_path)
+			_shadow_material.set_shader_parameter("blur_amount", 8.0)
 	if _base_texture == null:
 		_base_texture = load("res://assets/tiles/tile_base.png")
 
@@ -249,7 +251,7 @@ func _update_visuals() -> void:
 		scale = Vector2(1.0, 1.0)
 
 
-func set_blocked(blocked: bool) -> void:
+func set_blocked(_blocked: bool) -> void:
 	if is_selected:
 		return
 	# Removido o escurecimento (modulate). A peça fica sempre colorida.
