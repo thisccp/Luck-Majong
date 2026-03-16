@@ -71,6 +71,12 @@ var sfx_win_2: AudioStream = preload("res://assets/audio/sfx/win_popup_2.wav")
 var sfx_win_3: AudioStream = preload("res://assets/audio/sfx/win_popup_3.wav")
 var sfx_lose_1: AudioStream = preload("res://assets/audio/sfx/lose_popup_1.wav")
 var sfx_lose_2: AudioStream = preload("res://assets/audio/sfx/lose_popup_2.wav")
+var sfx_combo: AudioStream = preload("res://assets/audio/sfx/combo.wav")
+var sfx_fever: AudioStream = preload("res://assets/audio/sfx/fever.wav")
+
+var _last_combo_sfx_time: int = 0
+var _last_fever_sfx_time: int = 0
+const AUDIO_COOLDOWN_MS: int = 150
 
 var _win_sfx_list: Array[AudioStream] = []
 var _last_win_sfx: AudioStream = null
@@ -836,6 +842,12 @@ func _try_instant_pair_resolution() -> void:
 			# Tier check a cada 5 combos
 			if current_combo % 5 == 0:
 				spawn_combo_message(current_combo)
+				# SFX Combo: Tocar apenas se respeitar o cooldown
+				var now = Time.get_ticks_msec()
+				if now - _last_combo_sfx_time > AUDIO_COOLDOWN_MS:
+					AudioManager.play_sfx(sfx_combo, 1.0, -3.0)
+					_last_combo_sfx_time = now
+					
 				@warning_ignore("integer_division")
 				var calculated_tier = 1 + (current_combo / 5)
 				if calculated_tier > highest_tier:
@@ -1697,6 +1709,14 @@ func update_tier_vfx(tier: int) -> void:
 		_fever_breathe_tween.kill()
 	if _fever_rainbow_tween and _fever_rainbow_tween.is_valid():
 		_fever_rainbow_tween.kill()
+	
+	# SFX Fever: Tocar ao mudar de tier ou ativar (exclui Reset/Tier 1 silencioso)
+	if tier > 1:
+		var now = Time.get_ticks_msec()
+		if now - _last_fever_sfx_time > AUDIO_COOLDOWN_MS:
+			# Volume +2dB para destaque conforme solicitado
+			AudioManager.play_sfx(sfx_fever, 1.0, -3.0)
+			_last_fever_sfx_time = now
 	
 	# Cor da borda do tier
 	var tier_idx = clampi(tier - 1, 0, TIER_COLORS.size() - 1)
