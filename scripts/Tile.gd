@@ -60,6 +60,7 @@ const HITBOX_SHRINK := 0.35
 ## Textura compartilhada
 static var _cat_atlas: Texture2D = null
 static var _shadow_material: ShaderMaterial = null
+static var _base_texture: Texture2D = null
 
 static func _load_atlas() -> void:
 	if _cat_atlas == null:
@@ -68,6 +69,8 @@ static func _load_atlas() -> void:
 		_shadow_material = ShaderMaterial.new()
 		_shadow_material.shader = load("res://assets/shaders/blur_shadow.gdshader")
 		_shadow_material.set_shader_parameter("blur_amount", 8.0)
+	if _base_texture == null:
+		_base_texture = load("res://assets/tiles/tile_base.png")
 
 
 func _ready() -> void:
@@ -129,7 +132,7 @@ func _build_visuals() -> void:
 	
 	# ── Base: imagem premium do azulejo 3D ──
 	var base_sprite := Sprite2D.new()
-	base_sprite.texture = load("res://assets/tiles/tile_base.png")
+	base_sprite.texture = _base_texture
 	base_sprite.name = "Base"
 	
 	var base_w: float = base_sprite.texture.get_width()

@@ -23,6 +23,8 @@ const FADE_DURATION: float = 2.0
 const SILENCE_DURATION: float = 15.0
 const MAX_BGM_VOLUME: float = -12.0 # Em dB
 
+var bgm_transition_timer: Timer
+
 func _ready() -> void:
 	# Configurar BGM Player
 	bgm_player = AudioStreamPlayer.new()
@@ -31,6 +33,12 @@ func _ready() -> void:
 	add_child(bgm_player)
 	
 	bgm_player.finished.connect(_on_bgm_finished)
+	
+	bgm_transition_timer = Timer.new()
+	bgm_transition_timer.name = "BGMTransitionTimer"
+	bgm_transition_timer.one_shot = true
+	bgm_transition_timer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(bgm_transition_timer)
 	
 	# Configurar UI Player
 	ui_player = AudioStreamPlayer.new()
@@ -73,6 +81,7 @@ func stop_bgm(with_fade: bool = false) -> void:
 		if _fade_tween and _fade_tween.is_valid():
 			_fade_tween.kill()
 		bgm_player.stop()
+		bgm_transition_timer.stop()
 
 # --- BGM Rotation Logic ---
 
@@ -132,7 +141,9 @@ func _play_next_bgm() -> void:
 		var stream_length = stream.get_length() if stream is AudioStream else 0.0
 		if stream_length > FADE_DURATION:
 			var fade_out_time = stream_length - FADE_DURATION
-			get_tree().create_timer(fade_out_time, false).timeout.connect(_on_time_to_fade_out)
+			_clear_bgm_timer_connections()
+			bgm_transition_timer.timeout.connect(_on_time_to_fade_out)
+			bgm_transition_timer.start(fade_out_time)
 
 func _start_fade(is_fade_out: bool) -> void:
 	if _fade_tween and _fade_tween.is_valid():
@@ -167,11 +178,19 @@ func _on_bgm_finished() -> void:
 	bgm_player.stream = null
 	
 	# Pede 15 segundos de silêncio (não pausa com o jogo)
-	get_tree().create_timer(SILENCE_DURATION, false).timeout.connect(
-		func(): 
-			if _is_bgm_active and _is_bgm_enabled:
-				_play_next_bgm()
-	)
+	_clear_bgm_timer_connections()
+	bgm_transition_timer.timeout.connect(_on_silence_finished)
+	bgm_transition_timer.start(SILENCE_DURATION)
+
+func _on_silence_finished() -> void:
+	if _is_bgm_active and _is_bgm_enabled:
+		_play_next_bgm()
+
+func _clear_bgm_timer_connections() -> void:
+	if bgm_transition_timer.timeout.is_connected(_on_time_to_fade_out):
+		bgm_transition_timer.timeout.disconnect(_on_time_to_fade_out)
+	if bgm_transition_timer.timeout.is_connected(_on_silence_finished):
+		bgm_transition_timer.timeout.disconnect(_on_silence_finished)
 
 func play_ui_sfx(stream: AudioStream, pitch_scale: float = 1.0, volume_db: float = 0.0) -> void:
 	if stream == null: return

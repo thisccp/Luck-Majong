@@ -107,11 +107,18 @@ var _level_label: Label
 var _warning_label: Label
 
 
+var _effect_layer: CanvasLayer
+
 # ═══════════════════════════════════════════════════════════════════════
 # LIFECYCLE
 # ═══════════════════════════════════════════════════════════════════════
 
 func _ready() -> void:
+	_effect_layer = CanvasLayer.new()
+	_effect_layer.name = "EffectLayer"
+	_effect_layer.layer = 100
+	add_child(_effect_layer)
+
 	AudioManager.start_bgm_rotation()
 	
 	_win_sfx_list = [sfx_win_1, sfx_win_2, sfx_win_3]
@@ -145,37 +152,11 @@ func _ready() -> void:
 	)
 
 	# ── Popups existentes ──
-	$UILayer/WinPopup/PlayAgainBtn.pressed.connect(func():
-		$UILayer/WinPopup/PlayAgainBtn.disabled = true
-		$UILayer/WinPopup/HomeBtn.disabled = true
-		if _win_popup:
-			var tween = create_tween()
-			tween.tween_property(_win_popup, "modulate:a", 0.0, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-			tween.finished.connect(func():
-				_hide_popups()
-				_start_game()
-			)
-		else:
-			_hide_popups()
-			_start_game()
-	)
-	$UILayer/WinPopup/HomeBtn.pressed.connect(func():
-		_hide_popups()
-		get_tree().quit()
-	)
-	$UILayer/PausePopup/SoundToggle.toggled.connect(func(bp: bool):
-		# No nosso jogo, botão pressionado (toggled=true) geralmente significa LIGADO.
-		# bp = true (toca), bp = false (para).
-		AudioManager.set_bgm_enabled(bp)
-	)
-	$UILayer/PausePopup/RestartBtn.pressed.connect(func():
-		_hide_popups()
-		_restart_level()
-	)
-	$UILayer/PausePopup/ClosePauseBtn.pressed.connect(func():
-		AudioManager.play_sfx(sfx_popup_open, 1.0, -8.0)
-		_hide_popups()
-	)
+	$UILayer/WinPopup/PlayAgainBtn.pressed.connect(_on_win_play_again_pressed)
+	$UILayer/WinPopup/HomeBtn.pressed.connect(_on_win_home_pressed)
+	$UILayer/PausePopup/SoundToggle.toggled.connect(_on_sound_toggle_toggled)
+	$UILayer/PausePopup/RestartBtn.pressed.connect(_on_pause_restart_pressed)
+	$UILayer/PausePopup/ClosePauseBtn.pressed.connect(_on_pause_close_pressed)
 
 	_hide_popups()
 	_set_ui_mouse_filters(self)
@@ -184,6 +165,36 @@ func _ready() -> void:
 	await get_tree().create_timer(0.3).timeout
 	_load_background()
 	_start_game()
+
+func _on_win_play_again_pressed() -> void:
+	$UILayer/WinPopup/PlayAgainBtn.disabled = true
+	$UILayer/WinPopup/HomeBtn.disabled = true
+	if _win_popup:
+		var tween = create_tween()
+		tween.tween_property(_win_popup, "modulate:a", 0.0, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.finished.connect(_on_win_fade_finished)
+	else:
+		_hide_popups()
+		_start_game()
+
+func _on_win_fade_finished() -> void:
+	_hide_popups()
+	_start_game()
+
+func _on_win_home_pressed() -> void:
+	_hide_popups()
+	get_tree().quit()
+
+func _on_sound_toggle_toggled(bp: bool) -> void:
+	AudioManager.set_bgm_enabled(bp)
+
+func _on_pause_restart_pressed() -> void:
+	_hide_popups()
+	_restart_level()
+
+func _on_pause_close_pressed() -> void:
+	AudioManager.play_sfx(sfx_popup_open, 1.0, -8.0)
+	_hide_popups()
 
 
 func _load_background() -> void:
@@ -487,10 +498,7 @@ func _build_game_over_popup() -> void:
 	_restart_go_btn.add_theme_stylebox_override("normal", btn_style)
 	_restart_go_btn.add_theme_stylebox_override("pressed", btn_pressed)
 	_restart_go_btn.add_theme_stylebox_override("hover", btn_hover)
-	_restart_go_btn.pressed.connect(func():
-		_hide_popups()
-		_restart_level()
-	)
+	_restart_go_btn.pressed.connect(_on_pause_restart_pressed)
 	vbox.add_child(_restart_go_btn)
 
 	$UILayer.add_child(_game_over_popup)
@@ -1567,10 +1575,6 @@ func _set_ui_mouse_filters(node: Node) -> void:
 
 
 func spawn_floating_score(score: int, base_position: Vector2) -> void:
-	var top_canvas = CanvasLayer.new()
-	top_canvas.layer = 100
-	get_tree().current_scene.add_child(top_canvas)
-	
 	var float_label = Label.new()
 	float_label.text = "+" + str(score)
 	float_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1580,7 +1584,7 @@ func spawn_floating_score(score: int, base_position: Vector2) -> void:
 	float_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 	float_label.add_theme_constant_override("outline_size", 6)
 	
-	top_canvas.add_child(float_label)
+	_effect_layer.add_child(float_label)
 	
 	# Centralizar o label no ponto âncora
 	float_label.global_position = base_position
@@ -1596,7 +1600,7 @@ func spawn_floating_score(score: int, base_position: Vector2) -> void:
 		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
 		
 	tween.chain().tween_callback(func():
-		top_canvas.queue_free()
+		float_label.queue_free()
 	)
 
 
@@ -1690,10 +1694,6 @@ func _hide_fever_vignette() -> void:
 
 
 func spawn_combo_message(combo: int) -> void:
-	var top_canvas = CanvasLayer.new()
-	top_canvas.layer = 100
-	get_tree().current_scene.add_child(top_canvas)
-	
 	var combo_label = Label.new()
 	combo_label.text = "Combo x" + str(combo)
 	combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1704,7 +1704,7 @@ func spawn_combo_message(combo: int) -> void:
 	combo_label.add_theme_constant_override("outline_size", 6)
 	combo_label.modulate.a = 0.0
 	
-	top_canvas.add_child(combo_label)
+	_effect_layer.add_child(combo_label)
 	
 	# Posicionar exatamente 15px abaixo da barra de slots
 	var bar_img: TextureRect = get_meta("slots_bar_img")
@@ -1741,7 +1741,7 @@ func spawn_combo_message(combo: int) -> void:
 		.set_ease(Tween.EASE_IN).set_delay(1.6)
 	
 	slide_out.chain().tween_callback(func():
-		top_canvas.queue_free()
+		combo_label.queue_free()
 	)
 
 

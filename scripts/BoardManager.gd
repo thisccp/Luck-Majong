@@ -740,7 +740,19 @@ func _render_board() -> void:
 		var cat_id_val: int = data["cat_id"]
 		var pix_offset: Vector2 = data.get("pixel_offset", Vector2.ZERO) if data is Dictionary else Vector2.ZERO
 		
-		var tile_node := MahjongTile.new()
+		var tile_node: MahjongTile
+		if _tile_pool.size() > 0:
+			tile_node = _tile_pool.pop_back()
+			tile_node.modulate = Color.WHITE
+			tile_node.scale = Vector2.ONE
+			tile_node.visible = true
+			tile_node.is_matched = false
+			tile_node.is_in_inventory = false
+			tile_node.is_hinted = false
+			tile_node.is_selected = false
+		else:
+			tile_node = MahjongTile.new()
+			
 		tile_node.setup(pos, cat_id_val, Vector2(TILE_W, TILE_H))
 		tile_node.pixel_offset = pix_offset
 		
@@ -953,6 +965,13 @@ func _has_neighbor(x: int, y: int, z: int) -> bool:
 	return false
 
 
+var _tile_pool: Array[MahjongTile] = []
+
 func _clear_children() -> void:
 	for child in get_children():
-		child.queue_free()
+		if child is MahjongTile:
+			child.hide()
+			remove_child(child)
+			_tile_pool.push_back(child)
+		else:
+			child.queue_free()
