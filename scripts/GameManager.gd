@@ -1083,8 +1083,11 @@ func _execute_revive_logic() -> void:
 		if tile.has_node("CollisionShape"):
 			tile.get_node("CollisionShape").set_deferred("disabled", true)
 		
-		# Cálculo do destino preciso
-		var target_local_board: Vector2 = tile.get_meta("original_position") if tile.has_meta("original_position") else Vector2.ZERO
+		# Cálculo do destino preciso baseado na grid_pos atual (ignora zoom/framing)
+		var target_local_board: Vector2 = tile.calculate_target_pos(
+			_board.CELL_W, _board.CELL_H, _board.TILE_W, _board.TILE_H,
+			_board.Z_OFFSET_X, _board.Z_OFFSET_Y
+		)
 		var target_global = _board.to_global(target_local_board)
 		var target_z: int = tile.get_calculated_z_index()
 		
@@ -1204,8 +1207,12 @@ func _on_undo_pressed() -> void:
 	if tile.has_node("CollisionShape"):
 		tile.get_node("CollisionShape").set_deferred("disabled", true)
 	
-	var target_local_board: Vector2 = tile.get_meta("original_position") if tile.has_meta("original_position") else Vector2.ZERO
-	# Precisar converter a posição local do tabuleiro para a tela (UILayer) para saber a reta do voo
+	# Cálculo do destino preciso baseado na grid_pos atual (ignora zoom/framing)
+	var target_local_board: Vector2 = tile.calculate_target_pos(
+		_board.CELL_W, _board.CELL_H, _board.TILE_W, _board.TILE_H,
+		_board.Z_OFFSET_X, _board.Z_OFFSET_Y
+	)
+	# Converter a posição local do tabuleiro para a tela (UILayer) para saber a reta do voo
 	var target_global = _board.to_global(target_local_board)
 	var target_z: int = tile.get_calculated_z_index()
 	

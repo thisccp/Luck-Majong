@@ -84,6 +84,15 @@ func _ready() -> void:
 func get_calculated_z_index() -> int:
 	return grid_pos.z * 500 + grid_pos.y * 20 + grid_pos.x
 
+
+func calculate_target_pos(cell_w: float, cell_h: float, tile_w: float, tile_h: float, z_off_x: float, z_off_y: float) -> Vector2:
+	"""Calcula a posição LOCAL correta dentro do BoardManager baseada exclusivamente
+	em grid_pos e pixel_offset. Usado pelo Undo/Revive para garantir alinhamento
+	preciso independente do zoom (Auto-Framing) atual do tabuleiro."""
+	var sx := grid_pos.x * cell_w + grid_pos.z * z_off_x + tile_w / 2.0 + pixel_offset.x
+	var sy := grid_pos.y * cell_h + grid_pos.z * z_off_y + tile_h / 2.0 + pixel_offset.y
+	return Vector2(sx, sy)
+
 func setup(pos: Vector3i, type_id: int, size: Vector2) -> void:
 	if _select_tween and _select_tween.is_valid(): _select_tween.kill()
 	if _shake_tween and _shake_tween.is_valid(): _shake_tween.kill()
