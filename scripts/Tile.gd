@@ -85,6 +85,9 @@ func get_calculated_z_index() -> int:
 	return grid_pos.z * 500 + grid_pos.y * 20 + grid_pos.x
 
 func setup(pos: Vector3i, type_id: int, size: Vector2) -> void:
+	if _select_tween and _select_tween.is_valid(): _select_tween.kill()
+	if _shake_tween and _shake_tween.is_valid(): _shake_tween.kill()
+	
 	grid_pos = pos
 	cat_id = type_id
 	tile_size = size

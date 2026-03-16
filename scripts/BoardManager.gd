@@ -31,6 +31,7 @@ var move_history: Array = []
 var current_shape: Array[Vector3i] = []
 var is_shuffling: bool = false
 var is_input_locked: bool = false
+var _blocking_cache: Dictionary = {}
 
 # ─── Áudio ──────────────────────────────────────────────────────────
 var sfx_tile_block: AudioStream = preload("res://assets/audio/sfx/tile_block.wav")
@@ -73,60 +74,69 @@ func active_tiles() -> Array[MahjongTile]:
 
 
 func is_tile_free(tile: MahjongTile) -> bool:
-	"""
-	Uma peça está livre se:
-	  1. Regra 90/10: menos de 10% da sua área está coberta por peças acima.
-	  2. Pelo menos um dos lados (esquerdo ou direito) está livre.
-	"""
+	"""Retorna APENAS o estado cacheado para performance extrema (CPU)."""
 	if tile.is_matched or tile.is_in_inventory:
 		return false
+	return _blocking_cache.get(tile, true)
+
+
+func recalculate_all_blocking() -> void:
+	"""
+	Executa o loop pesado de oclusão 55/45 UMA ÚNICA VEZ e preenche o _blocking_cache.
+	"""
+	_blocking_cache.clear()
+	var active = active_tiles()
 	
-	# --- Bloqueio por sobreposição — Regra 90/10 (pixel-based) ---
-	# Retângulo visual da própria peça
-	var tile_rect := Rect2(
-		tile.grid_pos.x * CELL_W + tile.grid_pos.z * Z_OFFSET_X + tile.pixel_offset.x,
-		tile.grid_pos.y * CELL_H + tile.grid_pos.z * Z_OFFSET_Y + tile.pixel_offset.y,
-		TILE_W, TILE_H
-	)
-	var tile_area := TILE_W * TILE_H
-	var total_overlap := 0.0
-	
-	for other in tiles.values():
-		if not is_instance_valid(other) or not (other is MahjongTile): continue
-		if other.is_matched or other.is_in_inventory: continue
-		var is_above: bool = (other.grid_pos.z > tile.grid_pos.z)
-		var is_visually_in_front: bool = (other.grid_pos.z == tile.grid_pos.z and other.position.y > tile.position.y)
-		
-		if not (is_above or is_visually_in_front): 
-			continue
-		
-		var other_rect := Rect2(
-			other.grid_pos.x * CELL_W + other.grid_pos.z * Z_OFFSET_X + other.pixel_offset.x,
-			other.grid_pos.y * CELL_H + other.grid_pos.z * Z_OFFSET_Y + other.pixel_offset.y,
+	# Cache de retângulos para evitar recálculo no loop interno
+	var tile_rects: Dictionary = {}
+	for tile in active:
+		tile_rects[tile] = Rect2(
+			tile.grid_pos.x * CELL_W + tile.grid_pos.z * Z_OFFSET_X + tile.pixel_offset.x,
+			tile.grid_pos.y * CELL_H + tile.grid_pos.z * Z_OFFSET_Y + tile.pixel_offset.y,
 			TILE_W, TILE_H
 		)
-		var intersection := tile_rect.intersection(other_rect)
-		total_overlap += intersection.get_area()
-	
-	# a) Bloqueada se >= 45% da face lógica estiver coberta por PEÇAS ACIMA
-	# Tolerância alta para suportar Z-offsets agressivos de cascata (estilo Vita Mahjong)
-	if total_overlap / tile_area >= 0.45:
-		return false
-	
-	# --- b) Bloqueio lateral no MESMO NÍVEL (Z) ---
-	# A peça precisa ter pelo menos um lado (esquerdo OU direito) livre.
-	var left_blocked := false
-	var right_blocked := false
-	for dy in range(-1, 2):
-		if _has_neighbor(tile.grid_pos.x - 2, tile.grid_pos.y + dy, tile.grid_pos.z):
-			left_blocked = true
-		if _has_neighbor(tile.grid_pos.x + 2, tile.grid_pos.y + dy, tile.grid_pos.z):
-			right_blocked = true
-	
-	if left_blocked and right_blocked:
-		return false
-	
-	return true
+
+	for tile in active:
+		var tile_rect: Rect2 = tile_rects[tile]
+		var tile_area = TILE_W * TILE_H
+		var total_overlap = 0.0
+		var is_blocked_above = false
+		
+		# --- 1. Bloqueio por sobreposição (Z+1 ou Visual Front) ---
+		for other in active:
+			if other == tile: continue
+			
+			var is_above: bool = (other.grid_pos.z > tile.grid_pos.z)
+			var is_visually_in_front: bool = (other.grid_pos.z == tile.grid_pos.z and other.position.y > tile.position.y)
+			
+			if not (is_above or is_visually_in_front): 
+				continue
+			
+			var other_rect: Rect2 = tile_rects[other]
+			var intersection := tile_rect.intersection(other_rect)
+			total_overlap += intersection.get_area()
+			
+			if total_overlap / tile_area >= 0.45:
+				is_blocked_above = true
+				break
+		
+		if is_blocked_above:
+			_blocking_cache[tile] = false
+			continue
+			
+		# --- 2. Bloqueio lateral no MESMO NÍVEL (Z) ---
+		var left_blocked := false
+		var right_blocked := false
+		for dy in range(-1, 2):
+			if _has_neighbor(tile.grid_pos.x - 2, tile.grid_pos.y + dy, tile.grid_pos.z):
+				left_blocked = true
+			if _has_neighbor(tile.grid_pos.x + 2, tile.grid_pos.y + dy, tile.grid_pos.z):
+				right_blocked = true
+				
+		if left_blocked and right_blocked:
+			_blocking_cache[tile] = false
+		else:
+			_blocking_cache[tile] = true
 
 
 func try_match(t1: MahjongTile, t2: MahjongTile) -> bool:
@@ -257,6 +267,7 @@ func execute_shuffle() -> void:
 
 func update_tile_states() -> void:
 	"""Atualiza visual de blocked/free em todas as peças."""
+	recalculate_all_blocking()
 	for tile in tiles.values():
 		if is_instance_valid(tile) and tile is MahjongTile and not tile.is_matched and not tile.is_in_inventory:
 			tile.set_blocked(not is_tile_free(tile))
@@ -750,6 +761,12 @@ func _render_board() -> void:
 			tile_node.is_in_inventory = false
 			tile_node.is_hinted = false
 			tile_node.is_selected = false
+			
+			# Reset Adicional (Blindagem de Reset):
+			tile_node.stop_hint_glow() # Garante que brilhos não vazem no pool
+			tile_node.set_meta("matched_partner", null)
+			tile_node.set_meta("match_landed", false)
+			tile_node.set_meta("original_position", null)
 		else:
 			tile_node = MahjongTile.new()
 			

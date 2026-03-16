@@ -114,6 +114,10 @@ var _effect_layer: CanvasLayer
 # ═══════════════════════════════════════════════════════════════════════
 
 func _ready() -> void:
+	# Trava de Performance para evitar aquecimento
+	Engine.max_fps = 60 
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED)
+	
 	_effect_layer = CanvasLayer.new()
 	_effect_layer.name = "EffectLayer"
 	_effect_layer.layer = 100
