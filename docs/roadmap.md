@@ -58,8 +58,9 @@
 * [x] **6.10 Sistema de Atmosfera Zen (Estrutura Inicial)**: Playlists ambientes (Floresta, Casa, Chuva).
 * [x] **6.11 Cleanup de Áudio Legado**: Remoção completa do sistema de BGM Lo-fi e arquivos redundantes.
 * [ ] **6.12 Vacina do Match & Vitória Física (Prioridade 0)** — **[Gemini 3.1 Pro (High)]**: Resolução de condição de corrida (Race Condition) que prende peças no slot e correção do bug de tabuleiro vazio sem tela de vitória. Implementar checagem rigorosa de instâncias físicas e casting seguro de IDs.
-* [ ] **6.13 Atmosfera Zen Contínua (Seamless)** — **[Gemini 3 Flash]**: Remover `Timer` de silêncio e implementar loop ininterrupto de sons ambientes com transições suaves (crossfade) para maior imersão.
-* [ ] **6.14 Fever Mode Dinâmico (Áudio e Efeitos)** — **[Gemini 3 Flash]**: Escalonar complexidade sonora e impacto visual do Fever Mode baseado progressivamente no Tier atingido.
+* [x] **6.13 Atmosfera Zen Contínua (Seamless)** — **[Gemini 3 Flash]**: Remover `Timer` de silêncio e implementar loop ininterrupto de sons ambientes com transições suaves (crossfade) para maior imersão.
+* [ ] **6.14 Revisão de Áudio (Alteração de fim de jogo e derrota)** — **[Gemini 3 Flash]**: Alterar audios de miados e efeitos felinos nas telas de Vitória e Derrota por que agora o som zen de fundo tem esses efeitos, trocar por efeitos satisfatórios e leves.
+* [ ] **6.15 Fever Mode Dinâmico (Áudio e Efeitos)** — **[Gemini 3 Flash]**: Escalonar complexidade sonora e impacto visual do Fever Mode baseado progressivamente no Tier atingido.
 
 ### 🏗️ Fase R: Refatoração e Desacoplamento Arquitetural (Estratégico)
 * [ ] **R.1 Extração de Responsabilidades** — **[Claude Sonnet 4.6 (Thinking)]**: Mover Score, Inventário e Ads para Singletons/Nodes independentes.
@@ -89,7 +90,6 @@
 * [ ] **7.20 Poder de Match Automático via Ads** — **[Gemini 3.1 Pro (High)]**: Botão flutuante deslizante que aparece após inatividade com um timer. Exige visualizar anúncio e recompensa o jogador levando automaticamente 1 ou 2 pares disponíveis no tabuleiro para os slots.
 * [ ] **7.21 Smart Hint V3 (Segurança e Camadas)** — **[Claude Opus 4.6 (Thinking)]**: Evitar Game Over garantindo que a dica de tabuleiro só aconteça se houver `vagas >= 2` ou `vagas >= 3`. Adicionar verificação algorítmica profunda para sugerir remoção de peças obstruindo pares na camada inferior (resolução espacial 3D) (desde que existam vagas suficientes). lembrando que a regra atual de hint deve ser mantida e melhorada (na ordem de prioridade, hint verifica primeiro se alguma peça nos slots caso haja alguma, da match do alguma do tabuleiro, depois se alguma peça dos slots caso haja alguma peça nos slots da match com a camada de baixo de acordo com as vagas nos slots, se não há peças nos slots ou não há matsh a serem feitos nas condições anteriores, aí ele começa verificar o tabuleiro, se tem jogadas disponiveis de acordo com as vagas de slots, primeiro visando a camada de cima e depois podendo considerar a próxima camada de baixo também).
 * [ ] **7.22 Recompensa de "Caminho Perfeito" (BAIXA PRIORIDADE)** — **[Claude Opus 4.6 (Thinking)]**: Desenvolver algoritmo de comparação de grafos para dar feedback visual sazonal para jogadas que seguem exatamente a rota original de resolução gerada pelo algoritmo reverso.
-* [ ] **7.23 Revisão de Áudio (Limpeza de Fim de Jogo)** — **[Gemini 3 Flash]**: Considerar remoção de miados e efeitos felinos nas telas de Vitória e Derrota para alinhar o tom do jogo à atmosfera Zen.
 
 ---
 
