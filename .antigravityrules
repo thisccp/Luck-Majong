@@ -19,9 +19,9 @@
 * **Tipagem e Validação (CRÍTICO):** Para evitar *Race Conditions*, comparações de IDs de peças (`cat_id`) DEVEM usar casting explícito para inteiro (`int()`). Validações de fim de jogo e vitória DEVEM checar a presença física dos nós na cena, e não apenas variáveis lógicas.
 
 ## 3. Direção de Arte e Renderização
-* **Perspectiva 3D (Sombra):** A peça NÃO deve parecer flutuar. A `DropShadow` deve ser dura, sutil e "colada" à peça de baixo. Configuração exata: clonar a textura base, pintar de preto (Opacidade 0.3), sem desfoque (sem fuzzy), com um deslocamento milimétrico de `Vector2(2, 4)` (direita e baixo).
+* **Filosofia Visual:** O jogo segue uma estética "Zen", limpa e tátil. Quaisquer ajustes visuais (sombras, shaders, partículas) DEVEM focar primariamente em eficiência térmica e baixo consumo de GPU para mobile.
 * **Auto-Framing:** O tabuleiro se ajusta à tela dinamicamente (Best Fit), mas estritamente limitado por `MAX_TILE_SCALE` e `MIN_TILE_SCALE` para não deformar em layouts extremos.
-* **Transições (Voo):** Durante animações de voo (Undo ou envio ao inventário), a peça DEVE ir para a `CanvasLayer` (z_index 4000) e ter a sua `DropShadow` ocultada para não quebrar a ilusão 3D. A sombra deve ser reativada ao pousar.
+* **Transições (Voo):** Durante animações de voo (Undo ou envio ao inventário), a peça DEVE ir para a `CanvasLayer` (z_index 4000) temporariamente para sobrepor a UI e não quebrar a ilusão de profundidade.
 
 ## 4. Economia F2P (Free-to-Play) e Ads
 * **Sistema Híbrido:** O jogo monetiza via *Rewarded Video* (Vídeo Premiado). Banners são estritamente proibidos para manter a estética "Zen".
