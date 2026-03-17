@@ -596,7 +596,7 @@ func _on_tile_pressed(tile: MahjongTile) -> void:
 		return
 		
 	# SFX: Peça livre clicada com sucesso
-	AudioManager.play_sfx(sfx_tile_click, 1.0, -3.0)
+	AudioManager.play_sfx(sfx_tile_click, 1.0, -5.0)
 		
 	_add_to_inventory(tile)
 
@@ -850,7 +850,7 @@ func _try_instant_pair_resolution() -> void:
 				# SFX Combo: Tocar apenas se respeitar o cooldown
 				var now = Time.get_ticks_msec()
 				if now - _last_combo_sfx_time > AUDIO_COOLDOWN_MS:
-					AudioManager.play_sfx(sfx_combo, 1.0, -5.0)
+					AudioManager.play_sfx(sfx_combo, 1.0, -11.0)
 					_last_combo_sfx_time = now
 					
 				@warning_ignore("integer_division")
@@ -956,7 +956,7 @@ func _executar_animacao_choque_e_desintegracao(peca_a: MahjongTile, peca_b: Mahj
 		# ATO 3: REAÇÃO — no frame exato do impacto
 		impact.finished.connect(func():
 			# SFX de colisão no momento do contato
-			AudioManager.play_sfx(sfx_match_impact, 1.35, -1.0)
+			AudioManager.play_sfx(sfx_match_impact, 1.35, -5.0)
 
 			# Contador compartilhado entre as 2 peças (closure por referência)
 			var done_count := [0]
@@ -1022,7 +1022,7 @@ func _show_game_over_popup() -> void:
 	if not available_sfx.is_empty():
 		var chosen_sfx: AudioStream = available_sfx.pick_random()
 		_last_lose_sfx = chosen_sfx
-		AudioManager.play_sfx(chosen_sfx, 1.0, -12.0)
+		AudioManager.play_sfx(chosen_sfx, 1.0, -18.0)
 
 	_game_paused = true
 	_dim_overlay.visible = true
@@ -1720,7 +1720,7 @@ func update_tier_vfx(tier: int) -> void:
 		var now = Time.get_ticks_msec()
 		if now - _last_fever_sfx_time > AUDIO_COOLDOWN_MS:
 			# Volume +2dB para destaque conforme solicitado
-			AudioManager.play_sfx(sfx_fever, 1.0, -5.0)
+			AudioManager.play_sfx(sfx_fever, 1.0, -17.0)
 			_last_fever_sfx_time = now
 	
 	# Cor da borda do tier

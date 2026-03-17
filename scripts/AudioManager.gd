@@ -1,50 +1,36 @@
-## AudioManager.gd — Versão 84.2 (Correção de Toggle e Persistência)
+## AudioManager.gd — Versão 85.0 (Playlist Contínua e Bag Shuffle)
 ##
-## Ajuste: Agora o sistema memoriza a faixa atual ao desligar 
-## e a retoma corretamente ao ligar o som novamente no mesmo mundo.
+## Refatoração: Playlist única, Gapless Playback (sem Tweens no BGM)
+## e Memória de Estado (Resume position).
 
 extends Node
 
 # --- CONFIGURAÇÕES DE ÁUDIO ---
-const MAX_AMB_VOLUME: float = -15.0
-const AMB_CROSSFADE_DURATION: float = 3.0
-const AMB_SILENCE_MIN: float = 15.0
-const AMB_SILENCE_MAX: float = 30.0
+const BGM_PLAYLIST: Array[String] = [
+	"res://assets/audio/bgm/bgs_house_cats.ogg",
+	"res://assets/audio/bgm/bgs_forest_1.ogg",
+	"res://assets/audio/bgm/bgs_forest_1_cats.ogg",
+	"res://assets/audio/bgm/bgs_forest_2.ogg",
+	"res://assets/audio/bgm/bgs_forest_2_cats.ogg",
+	"res://assets/audio/bgm/bgs_rain_1.ogg",
+	"res://assets/audio/bgm/bgs_rain_1_cats.ogg"
+]
 
-const AMBIENT_TRACKS: Dictionary = {
-	0: [
-		"res://assets/audio/bgm/bgs_forest_1.ogg",
-		"res://assets/audio/bgm/bgs_forest_2.ogg",
-		"res://assets/audio/bgm/bgs_forest_3.ogg",
-		"res://assets/audio/bgm/bgs_forest_4.ogg",
-	],
-	1: [
-		"res://assets/audio/bgm/bgs_house_1.ogg",
-		"res://assets/audio/bgm/bgs_house_2.ogg",
-	],
-	2: [
-		"res://assets/audio/bgm/bgs_rain_1.ogg",
-		"res://assets/audio/bgm/bgs_rain_2.ogg",
-	],
-}
+const BGM_VOLUME_DEFAULT: float = -8.0
 
-# --- VARIÁVEIS DE SISTEMA ---
+# --- VARIÁVEIS DE SISTEMA (SFX) ---
 var sfx_pool: Array[AudioStreamPlayer] = []
 var next_sfx_player: int = 0
 var num_sfx_players: int = 8
 var ui_player: AudioStreamPlayer
 
-var _amb_a: AudioStreamPlayer
-var _amb_b: AudioStreamPlayer
-var _amb_active_player: AudioStreamPlayer
-var _amb_inactive_player: AudioStreamPlayer
-
-var _current_world_id: int = -1
-var _current_amb_path: String = ""
-var _unplayed_amb: Array[String] = []
-var _amb_silence_timer: Timer
-var _amb_crossfade_tween: Tween
-var _is_amb_active: bool = false
+# --- VARIÁVEIS DE SISTEMA (BGM) ---
+var _bgm_player: AudioStreamPlayer
+var _unplayed_tracks: Array[String] = []
+var _last_track_path: String = ""
+var _is_bgm_active: bool = false
+var _saved_position: float = 0.0
+var _current_track_path: String = ""
 
 # ═══════════════════════════════════════════════════════════════
 # INICIALIZAÇÃO
@@ -54,36 +40,28 @@ func _ready() -> void:
 	var bgm_bus = &"BGM" if AudioServer.get_bus_index("BGM") != -1 else &"Master"
 	var sfx_bus = &"SFX" if AudioServer.get_bus_index("SFX") != -1 else &"Master"
 
+	# UI SFX Setup
 	ui_player = AudioStreamPlayer.new()
 	ui_player.bus = sfx_bus
 	add_child(ui_player)
 
+	# SFX Pool Setup
 	for i in num_sfx_players:
 		var p = AudioStreamPlayer.new()
 		p.bus = sfx_bus
 		add_child(p)
 		sfx_pool.append(p)
 
-	_amb_a = _create_amb_player(bgm_bus, "AmbPlayerA")
-	_amb_b = _create_amb_player(bgm_bus, "AmbPlayerB")
-	_amb_active_player = _amb_a
-	_amb_inactive_player = _amb_b
-
-	_amb_silence_timer = Timer.new()
-	_amb_silence_timer.one_shot = true
-	_amb_silence_timer.process_mode = Node.PROCESS_MODE_ALWAYS
-	add_child(_amb_silence_timer)
-
-func _create_amb_player(bus_name: StringName, p_name: String) -> AudioStreamPlayer:
-	var p = AudioStreamPlayer.new()
-	p.bus = bus_name
-	p.name = p_name
-	p.process_mode = Node.PROCESS_MODE_ALWAYS
-	add_child(p)
-	return p
+	# BGM Player Setup
+	_bgm_player = AudioStreamPlayer.new()
+	_bgm_player.bus = bgm_bus
+	_bgm_player.name = "BGMPlayer"
+	_bgm_player.process_mode = Node.PROCESS_MODE_ALWAYS
+	_bgm_player.finished.connect(_on_bgm_finished)
+	add_child(_bgm_player)
 
 # ═══════════════════════════════════════════════════════════════
-# API DE SFX
+# API DE SFX (Mantida Intacta)
 # ═══════════════════════════════════════════════════════════════
 
 func play_sfx(stream: AudioStream, pitch: float = 1.0, volume: float = 0.0) -> void:
@@ -103,150 +81,66 @@ func play_ui_sfx(stream: AudioStream, pitch: float = 1.0, volume: float = 0.0) -
 	ui_player.play()
 
 # ═══════════════════════════════════════════════════════════════
-# API DE AMBIENTE
+# API DE AMBIENTE / BGM
 # ═══════════════════════════════════════════════════════════════
 
-func update_ambient(level: int) -> void:
-	var world_id: int = int(floor(float(level - 1) / 10.0)) % 3
-	
-	# Caso 1: O som estava desligado e foi ligado no mesmo mundo
-	if world_id == _current_world_id and not _is_amb_active:
-		_is_amb_active = true
-		if _current_amb_path != "":
-			_resume_specific_track(_current_amb_path)
-		else:
-			_start_amb_world(world_id, false)
-		return
-
-	# Caso 2: Mudança de mundo
-	if world_id != _current_world_id:
-		var should_fade = _current_world_id >= 0 and _is_amb_active
-		_current_world_id = world_id
-		_is_amb_active = true
-		_start_amb_world(world_id, should_fade)
-		return
-	
-	# Caso 3: Mesmo mundo e já está ativo (ex: mudou de fase comum)
-	# Não fazemos nada para manter a música fluindo sem cortes
-
-func stop_ambient(with_fade: bool = true) -> void:
-	_is_amb_active = false
-	_clear_amb_timer()
-	
-	if _amb_crossfade_tween and _amb_crossfade_tween.is_valid():
-		_amb_crossfade_tween.kill()
+## Inicia ou retoma a playlist global.
+## Parâmetro 'level' mantido para compatibilidade, mas ignorado na nova lógica.
+func update_ambient(_level: int = 0) -> void:
+	if _is_bgm_active:
+		return # Já está tocando
 		
-	if with_fade:
-		var t = create_tween()
-		if _amb_active_player.playing:
-			t.tween_property(_amb_active_player, "volume_db", -80.0, 1.5)
-		t.tween_callback(func(): 
-			_amb_a.stop()
-			_amb_b.stop()
-		)
+	_is_bgm_active = true
+	
+	if _current_track_path != "":
+		_resume_bgm()
 	else:
-		_amb_a.stop()
-		_amb_b.stop()
+		_play_next_track()
+
+## Para a reprodução e salva a posição atual.
+func stop_ambient(_with_fade: bool = false) -> void:
+	_is_bgm_active = false
+	if _bgm_player.playing:
+		_saved_position = _bgm_player.get_playback_position()
+		_current_track_path = _bgm_player.stream.resource_path
+		_bgm_player.stop()
 
 # ═══════════════════════════════════════════════════════════════
-# LÓGICA INTERNA
+# LÓGICA INTERNA DE BGM
 # ═══════════════════════════════════════════════════════════════
 
-func _start_amb_world(world_id: int, do_crossfade: bool) -> void:
-	_clear_amb_timer()
-	# Aqui zeramos o path para forçar uma escolha aleatória do novo mundo
-	_current_amb_path = ""
-	_unplayed_amb.clear()
-	_refill_amb_pool(world_id)
-	_play_next_amb(do_crossfade)
-
-func _resume_specific_track(path: String) -> void:
-	"""Retoma uma faixa específica (usado ao ligar o som no menu)."""
-	var stream = load(path)
-	if not stream:
-		_play_next_amb(false)
-		return
+func _play_next_track() -> void:
+	if not _is_bgm_active: return
+	
+	if _unplayed_tracks.is_empty():
+		_refill_and_shuffle()
 		
-	_amb_active_player.stream = stream
-	_amb_active_player.volume_db = -80.0
-	_amb_active_player.play()
+	# Garante que não repita a mesma música seguida na virada do "saco"
+	if _unplayed_tracks.size() > 1 and _unplayed_tracks[0] == _last_track_path:
+		_unplayed_tracks.shuffle()
 	
-	var t = create_tween()
-	t.tween_property(_amb_active_player, "volume_db", MAX_AMB_VOLUME, 1.5)
-	_schedule_amb_end(stream)
-
-func _refill_amb_pool(world_id: int) -> void:
-	var tracks = AMBIENT_TRACKS.get(world_id, [])
-	_unplayed_amb.clear()
-	for p in tracks:
-		_unplayed_amb.append(str(p))
-	_unplayed_amb.shuffle()
-
-func _play_next_amb(do_crossfade: bool = false) -> void:
-	if not _is_amb_active: return
-	if _unplayed_amb.is_empty(): _refill_amb_pool(_current_world_id)
-	if _unplayed_amb.is_empty(): return
-
-	_current_amb_path = _unplayed_amb.pop_front()
-	var stream = load(_current_amb_path)
+	var next_path = _unplayed_tracks.pop_front()
+	_last_track_path = next_path
+	_current_track_path = next_path
 	
-	if not stream: return
+	var stream = load(next_path)
+	if stream:
+		_bgm_player.stream = stream
+		_bgm_player.volume_db = BGM_VOLUME_DEFAULT
+		_bgm_player.play()
+		_saved_position = 0.0 # Reseta posição salva ao iniciar nova música
 
-	if do_crossfade:
-		_do_crossfade(stream)
-	else:
-		_amb_active_player.stream = stream
-		_amb_active_player.volume_db = -80.0
-		_amb_active_player.play()
-		var t = create_tween()
-		t.tween_property(_amb_active_player, "volume_db", MAX_AMB_VOLUME, AMB_CROSSFADE_DURATION)
+func _resume_bgm() -> void:
+	var stream = load(_current_track_path)
+	if stream:
+		_bgm_player.stream = stream
+		_bgm_player.volume_db = BGM_VOLUME_DEFAULT
+		_bgm_player.play(_saved_position)
 
-	_schedule_amb_end(stream)
+func _refill_and_shuffle() -> void:
+	_unplayed_tracks = BGM_PLAYLIST.duplicate()
+	_unplayed_tracks.shuffle()
 
-func _do_crossfade(new_stream: AudioStream) -> void:
-	if _amb_crossfade_tween and _amb_crossfade_tween.is_valid():
-		_amb_crossfade_tween.kill()
-
-	_amb_inactive_player.stream = new_stream
-	_amb_inactive_player.volume_db = -80.0
-	_amb_inactive_player.play()
-
-	var old_p = _amb_active_player
-	var new_p = _amb_inactive_player
-	_amb_active_player = new_p
-	_amb_inactive_player = old_p
-
-	_amb_crossfade_tween = create_tween().set_parallel(true)
-	_amb_crossfade_tween.tween_property(new_p, "volume_db", MAX_AMB_VOLUME, AMB_CROSSFADE_DURATION)
-	_amb_crossfade_tween.tween_property(old_p, "volume_db", -80.0, AMB_CROSSFADE_DURATION)
-	_amb_crossfade_tween.chain().tween_callback(old_p.stop)
-
-func _schedule_amb_end(stream: AudioStream) -> void:
-	var length = stream.get_length() if stream else 120.0
-	if length < 0.1: length = 120.0
-	
-	_clear_amb_timer()
-	_amb_silence_timer.timeout.connect(_on_amb_track_finished)
-	_amb_silence_timer.start(length)
-
-func _on_amb_track_finished() -> void:
-	_clear_amb_timer()
-	if not _is_amb_active: return
-
-	var silence = randf_range(AMB_SILENCE_MIN, AMB_SILENCE_MAX)
-	
-	var t = create_tween()
-	t.tween_property(_amb_active_player, "volume_db", -80.0, 2.0)
-	t.tween_callback(_amb_active_player.stop)
-
-	_amb_silence_timer.timeout.connect(_on_amb_silence_finished)
-	_amb_silence_timer.start(silence)
-
-func _on_amb_silence_finished() -> void:
-	_clear_amb_timer()
-	if _is_amb_active: _play_next_amb(false)
-
-func _clear_amb_timer() -> void:
-	_amb_silence_timer.stop()
-	for sig in _amb_silence_timer.timeout.get_connections():
-		_amb_silence_timer.timeout.disconnect(sig.callable)
+func _on_bgm_finished() -> void:
+	if _is_bgm_active:
+		_play_next_track()
