@@ -8,13 +8,15 @@
 ## 1. Visão Geral e Arquitetura
 * **Motor:** Godot 4.x (Mobile-first, Portrait mode).
 * **Core Classes:** `BoardManager` (gerencia a grade e regras) e `MahjongTile` (peças individuais).
-* **Regra de Ouro do Workflow:** Antes de escrever ou alterar qualquer código, você DEVE ler o arquivo `docs/neko_mahjong_roadmap.md` para entender o contexto global. Ao finalizar uma tarefa com sucesso, você DEVE me instruir a atualizar o `.md`, marcando `[x]` e passando para a próxima etapa.
+* **Regra de Ouro do Workflow:** Antes de escrever ou alterar qualquer código, você DEVE ler o arquivo de documentação do roadmap para entender o contexto global e a fase atual do projeto. Ao finalizar uma tarefa com sucesso, você DEVE me instruir a atualizar o `.md`, marcando `[x]` e passando para a próxima etapa.
+* **Preparação para Refatoração (Fase R):** O projeto está migrando para uma arquitetura desacoplada. Evite inchar o `GameManager`. Sempre projete soluções compatíveis com Singletons e Barramento de Sinais (Signal Bus).
 
 ## 2. Regras de Negócio e Lógica (Mahjong Solitaire)
 * **Geração:** O tabuleiro usa Geração Reversa (sempre 100% solucionável) baseada em uma "Seed".
 * **Regra 55/45:** O bloqueio vertical tem uma tolerância de 45% de sobreposição para suportar offsets de perspectiva 3D (estilo Vita Mahjong) sem gerar falsos bloqueios.
 * **Bloqueio Lateral:** Validado através da colisão de bordas na mesma camada exata de Z-index.
-* **Inventário:** Máximo de 4 slots. O par é detectado e resolvido IMEDIATAMENTE no clique (liberando espaço lógico na hora), mas a animação visual de match aguarda o voo terminar.
+* **Inventário e Match:** Máximo de 4 slots. O par é detectado e resolvido IMEDIATAMENTE.
+* **Tipagem e Validação (CRÍTICO):** Para evitar *Race Conditions*, comparações de IDs de peças (`cat_id`) DEVEM usar casting explícito para inteiro (`int()`). Validações de fim de jogo e vitória DEVEM checar a presença física dos nós na cena, e não apenas variáveis lógicas.
 
 ## 3. Direção de Arte e Renderização
 * **Perspectiva 3D (Sombra):** A peça NÃO deve parecer flutuar. A `DropShadow` deve ser dura, sutil e "colada" à peça de baixo. Configuração exata: clonar a textura base, pintar de preto (Opacidade 0.3), sem desfoque (sem fuzzy), com um deslocamento milimétrico de `Vector2(2, 4)` (direita e baixo).
@@ -24,6 +26,5 @@
 ## 4. Economia F2P (Free-to-Play) e Ads
 * **Sistema Híbrido:** O jogo monetiza via *Rewarded Video* (Vídeo Premiado). Banners são estritamente proibidos para manter a estética "Zen".
 * **Revive (Game Over):** O jogador recebe 2 revives gratuitos por nível. Após isso, o botão exige um Ad. O Revive por Ad devolve o jogador IMEDIATAMENTE ao tabuleiro (não adiciona "cargas" ao bolso e não exibe a popup de power-ups).
-* **Power-ups (Recompensas de Ad):** * `Hint` (Dica) e `Undo` (Desfazer) concedem **+2 cargas** por anúncio assistido.
-  * `Shuffle` (Embaralhar) é um poder "Tier S" e concede **apenas +1 carga** por anúncio.
+* **Power-ups (Recompensas de Ad):** `Hint` (Dica) e `Undo` (Desfazer) concedem +2 cargas por anúncio assistido. `Shuffle` (Embaralhar) é um poder "Tier S" e concede apenas +1 carga por anúncio.
 * **Sistema de Score/Combo:** Combos aumentam os Tiers (1 a 6). Regra de perdão: Tier 1 perdoa erros; Tier 2+ quebra o combo se errar. Erros consecutivos no Late-Game (Tier 3+) deduzem pontos.
