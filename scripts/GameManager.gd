@@ -130,7 +130,7 @@ func _ready() -> void:
 	_effect_layer.layer = 100
 	add_child(_effect_layer)
 
-	AudioManager.start_bgm_rotation()
+	AudioManager.update_ambient(current_level)
 	
 	_win_sfx_list = [sfx_win_1, sfx_win_2, sfx_win_3]
 	_lose_sfx_list = [sfx_lose_1, sfx_lose_2]
@@ -197,7 +197,10 @@ func _on_win_home_pressed() -> void:
 	get_tree().quit()
 
 func _on_sound_toggle_toggled(bp: bool) -> void:
-	AudioManager.set_bgm_enabled(bp)
+	if bp:
+		AudioManager.update_ambient(current_level)
+	else:
+		AudioManager.stop_ambient(true)
 
 func _on_pause_restart_pressed() -> void:
 	_hide_popups()
@@ -549,6 +552,7 @@ func _start_game() -> void:
 	
 	var profile = _board.get_level_profile(current_level)
 	play_level_intro(current_level, profile.get("is_hard_level", false))
+	AudioManager.update_ambient(current_level)
 
 
 func _restart_level() -> void:
@@ -578,6 +582,7 @@ func _restart_level() -> void:
 	
 	var profile = _board.get_level_profile(current_level)
 	play_level_intro(current_level, profile.get("is_hard_level", false))
+	AudioManager.update_ambient(current_level)
 
 
 func _on_tile_pressed(tile: MahjongTile) -> void:
