@@ -1,8 +1,8 @@
 # 🐾 Neko Mahjong - Documentação Técnica Oficial
 
-**Versão:** 84.2
+**Versão:** 84.3
 **Última Atualização:** 17/03/2026
-**Status Atual:** Estabilização Crítica (Pré-Refatoração)
+**Status Atual:** Estabilização Crítica (Pré-Refatoração) e Pivot de Renderização
 
 ---
 
@@ -62,7 +62,9 @@
 * [ ] **6.14 Revisão de Áudio (Alteração de fim de jogo e derrota)** — **[Gemini 3 Flash]**: Alterar audios de miados e efeitos felinos nas telas de Vitória e Derrota por que agora o som zen de fundo tem esses efeitos, trocar por efeitos satisfatórios e leves.
 * [ ] **6.15 Fever Mode Dinâmico (Áudio e Efeitos)** — **[Gemini 3 Flash]**: Escalonar complexidade sonora e impacto visual do Fever Mode baseado progressivamente no Tier atingido.
 * [ ] **6.16 Novos Sons Zen (Vitória/Derrota)** — **[Gemini 3 Flash]**: Substituição direta dos sons de fim de jogo para manter a atmosfera imersiva.
-* [ ] **6.17 Otimização Extrema de GPU (POCO X3 e Mid-ranges)** — **[Gemini 3.1 Pro (High)]**: Implementar estritamente as diretrizes do **"Documento de Otimizações Consolidadas (Boas Práticas a Manter) (DOCUMENTO EXTERNO)"**. Inclui adoção do Master Atlas, Cache de Instâncias (`AtlasTexture`), Hard Shadows, Z-Index matemático unificado e Oclusão Pura para aniquilar o *Overdraw* e restaurar o *Batching* antes da refatoração estrutural.
+* [ ] **6.17 Otimização Extrema de GPU (POCO X3 e Mid-ranges) [PIVOT DE ARQUITETURA]** — **[Gemini 3.1 Pro (High)]**: *Em andamento.* Fase dividida em duas etapas:
+    * **Etapa 1 (Concluída):** Código limpo, Z-Index matemático unificado e Draw Calls reduzidos a 15 no PC.
+    * **Etapa 2 (Atual):** Resolução do gargalo de *Overdraw* e *Fill Rate* em GPUs mobile intermediárias. Abandono da montagem dinâmica de peças. Transição completa para a Arquitetura "Mega Bake" (1 Peça = 1 Imagem única contendo Sombra + Base + Gato achatados no Photoshop) visando reduzir os cálculos de transparência na tela em até 75%.
 
 ### 🏗️ Fase R: Refatoração e Desacoplamento Arquitetural (Estratégico)
 * [ ] **R.1 Extração de Responsabilidades** — **[Claude Sonnet 4.6 (Thinking)]**: Mover Score, Inventário e Ads para Singletons/Nodes independentes.
@@ -102,7 +104,7 @@
 
 ---
 
-## 🛠️ 3. Especificações Técnicas: Sistema de Atmosfera (V84.2)
+## 🛠️ 3. Especificações Técnicas: Sistema de Atmosfera (V84.3)
 
 | Mundo | Faixa de Níveis | Tema Atmosférico | Arquivos (res://assets/audio/bgm/) |
 | :--- | :--- | :--- | :--- |
