@@ -1,7 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://tile_scene"]
+[gd_scene format=3 uid="uid://dhoe3va2454wx"]
 
-[ext_resource type="Script" path="res://scripts/Tile.gd" id="1"]
+[ext_resource type="Script" uid="uid://cgfi6bfk8aw2t" path="res://scripts/Tile.gd" id="1"]
 
-[node name="Tile" type="Area2D"]
-input_pickable = true
+[node name="Tile" type="Area2D" unique_id=1811159463]
 script = ExtResource("1")

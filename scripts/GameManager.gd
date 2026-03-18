@@ -13,9 +13,9 @@ extends Control
 @onready var _btn_hint: TextureButton = $UILayer/VBox/BottomMargin/ActionButtonsHBox/HintBtn
 @onready var _btn_undo: TextureButton = $UILayer/VBox/BottomMargin/ActionButtonsHBox/UndoBtn
 @onready var _btn_menu: TextureButton = $UILayer/MenuBtn
-@onready var _dim_overlay: ColorRect = $UILayer/DimOverlay
-@onready var _win_popup: TextureRect = $UILayer/WinPopup
-@onready var _pause_popup: TextureRect = $UILayer/PausePopup
+@onready var _dim_overlay: ColorRect = $PopupLayer/DimOverlay
+@onready var _win_popup: TextureRect = $PopupLayer/WinPopup
+@onready var _pause_popup: TextureRect = $PopupLayer/PausePopup
 
 # ─── Inventário (4 Slots) ───────────────────────────────────────────
 
@@ -86,7 +86,7 @@ var _last_lose_sfx: AudioStream = null
 
 # ─── Ads System ──────────────────────────────────────────────────────
 var ad_requester: String = ""
-@onready var _ad_popup: ColorRect = $UILayer/AdPopup
+@onready var _ad_popup: ColorRect = $PopupLayer/AdPopup
 var _hint_label: Label
 var _undo_label: Label
 var _shuffle_label: Label
@@ -163,11 +163,11 @@ func _ready() -> void:
 	)
 
 	# ── Popups existentes ──
-	$UILayer/WinPopup/PlayAgainBtn.pressed.connect(_on_win_play_again_pressed)
-	$UILayer/WinPopup/HomeBtn.pressed.connect(_on_win_home_pressed)
-	$UILayer/PausePopup/SoundToggle.toggled.connect(_on_sound_toggle_toggled)
-	$UILayer/PausePopup/RestartBtn.pressed.connect(_on_pause_restart_pressed)
-	$UILayer/PausePopup/ClosePauseBtn.pressed.connect(_on_pause_close_pressed)
+	$PopupLayer/WinPopup/PlayAgainBtn.pressed.connect(_on_win_play_again_pressed)
+	$PopupLayer/WinPopup/HomeBtn.pressed.connect(_on_win_home_pressed)
+	$PopupLayer/PausePopup/SoundToggle.toggled.connect(_on_sound_toggle_toggled)
+	$PopupLayer/PausePopup/RestartBtn.pressed.connect(_on_pause_restart_pressed)
+	$PopupLayer/PausePopup/ClosePauseBtn.pressed.connect(_on_pause_close_pressed)
 
 	_hide_popups()
 	_set_ui_mouse_filters(self)
@@ -178,8 +178,8 @@ func _ready() -> void:
 	_start_game()
 
 func _on_win_play_again_pressed() -> void:
-	$UILayer/WinPopup/PlayAgainBtn.disabled = true
-	$UILayer/WinPopup/HomeBtn.disabled = true
+	$PopupLayer/WinPopup/PlayAgainBtn.disabled = true
+	$PopupLayer/WinPopup/HomeBtn.disabled = true
 	if _win_popup:
 		var tween = create_tween()
 		tween.tween_property(_win_popup, "modulate:a", 0.0, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -263,7 +263,8 @@ func _build_level_intro() -> void:
 	_level_intro_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_level_intro_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	_level_intro_overlay.visible = false
-	_level_intro_overlay.z_index = 4096 
+	_level_intro_overlay.z_index = 0 
+	$PopupLayer.add_child(_level_intro_overlay)
 
 	var center_container = CenterContainer.new()
 	center_container.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -294,7 +295,7 @@ func _build_level_intro() -> void:
 	_warning_label.visible = false
 	vbox.add_child(_warning_label)
 
-	$UILayer.add_child(_level_intro_overlay)
+	# (Já adicionado em PopupLayer no _build_level_intro)
 
 
 func play_level_intro(level: int, is_hard_level: bool) -> void:
@@ -515,7 +516,7 @@ func _build_game_over_popup() -> void:
 	_restart_go_btn.pressed.connect(_on_pause_restart_pressed)
 	vbox.add_child(_restart_go_btn)
 
-	$UILayer.add_child(_game_over_popup)
+	$PopupLayer.add_child(_game_over_popup)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -550,6 +551,10 @@ func _start_game() -> void:
 	_update_hint_button()
 	_board.new_game(current_level, false)
 	
+	# Forçar espera da GPU para processar o "Mega Bake" antes de mostrar a intro
+	await get_tree().process_frame
+	await get_tree().process_frame
+	
 	var profile = _board.get_level_profile(current_level)
 	play_level_intro(current_level, profile.get("is_hard_level", false))
 	AudioManager.update_ambient(current_level)
@@ -579,6 +584,10 @@ func _restart_level() -> void:
 	is_hint_active = false
 	active_hint_cat_id = -1
 	_board.new_game(current_level, true)
+	
+	# Forçar espera da GPU para processar o "Mega Bake" antes de mostrar a intro
+	await get_tree().process_frame
+	await get_tree().process_frame
 	
 	var profile = _board.get_level_profile(current_level)
 	play_level_intro(current_level, profile.get("is_hard_level", false))
@@ -692,10 +701,6 @@ func _fly_tile_to_slot(tile: MahjongTile, slot_index: int) -> void:
 	if tile.get_parent() == _board:
 		_board.remove_child(tile)
 		$UILayer.add_child(tile)
-
-	# Remover a sombra estrutural assim que a peça "levantar voo" para a UI limpa
-	if tile.has_node("DropShadow"):
-		tile.get_node("DropShadow").visible = false
 
 	tile.z_index = 4000
 	tile.position = start_screen_pos
@@ -1043,32 +1048,22 @@ func _show_game_over_popup() -> void:
 		if is_instance_valid(tile):
 			tile.modulate = Color(0.5, 0.5, 0.5, 1.0)
 
-	# Mostrar as 4 peças bloqueadoras (base + gato)
+	# Mostrar as 4 peças bloqueadoras (imagem mega bake)
 	for child in _go_tiles_hbox.get_children():
 		child.queue_free()
 
-	var tile_base_tex: Texture2D = load("res://assets/tiles/tile_base.png")
 	for tile in _inventory:
 		var container := Control.new()
 		container.custom_minimum_size = Vector2(50, 68)
 		container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-		var base_rect := TextureRect.new()
-		base_rect.texture = tile_base_tex
-		base_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		base_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED  # Em vez de SCALE para não amassar as peças!
-		base_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
-		base_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		container.add_child(base_rect)
-
-		# Sticker do gato por cima
-		var cat_rect := TextureRect.new()
-		cat_rect.texture = tile._create_cat_atlas_texture(tile.cat_id)
-		cat_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		cat_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		cat_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
-		cat_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		container.add_child(cat_rect)
+		var tile_rect := TextureRect.new()
+		tile_rect.texture = load("res://assets/tiles/cat%d.png" % tile.cat_id)
+		tile_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tile_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tile_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+		tile_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		container.add_child(tile_rect)
 
 		_go_tiles_hbox.add_child(container)
 
@@ -1158,10 +1153,6 @@ func _execute_revive_logic() -> void:
 				
 				if tile.has_node("CollisionShape"):
 					tile.get_node("CollisionShape").set_deferred("disabled", false)
-				
-				# BUG DA SOMBRA CORRIGIDO AQUI:
-				if tile.has_node("DropShadow"):
-					tile.get_node("DropShadow").visible = true
 					
 				_board.update_tile_states()
 		)
@@ -1290,8 +1281,6 @@ func _on_undo_pressed() -> void:
 			
 			if tile.has_node("CollisionShape"):
 				tile.get_node("CollisionShape").set_deferred("disabled", false)
-			if tile.has_node("DropShadow"):
-				tile.get_node("DropShadow").visible = true
 				
 			# Resync de animação de Hint: reinicia o Tween das duas metades do par ao mesmo tempo
 			if tile.is_hinted:
@@ -1471,8 +1460,8 @@ func _show_win_popup() -> void:
 		AudioManager.play_sfx(chosen_sfx, 1.0, -8.0)
 
 	current_level += 1
-	var btn = $UILayer/WinPopup/PlayAgainBtn
-	var home_btn = $UILayer/WinPopup/HomeBtn
+	var btn = $PopupLayer/WinPopup/PlayAgainBtn
+	var home_btn = $PopupLayer/WinPopup/HomeBtn
 	
 	if btn:
 		btn.text = "Nível " + str(current_level)

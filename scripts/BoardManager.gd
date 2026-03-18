@@ -271,17 +271,6 @@ func update_tile_states() -> void:
 	for tile in tiles.values():
 		if is_instance_valid(tile) and tile is MahjongTile and not tile.is_matched and not tile.is_in_inventory:
 			tile.set_blocked(not is_tile_free(tile))
-			
-			var is_covered := false
-			for z in range(tile.grid_pos.z + 1, 15):
-				var upper_pos := Vector3i(tile.grid_pos.x, tile.grid_pos.y, z)
-				if tiles.has(upper_pos):
-					var upper_tile = tiles[upper_pos]
-					if is_instance_valid(upper_tile) and upper_tile is MahjongTile and not upper_tile.is_matched and not upper_tile.is_in_inventory:
-						is_covered = true
-						break
-			
-			tile.set_shadow_occlusion(is_covered)
 
 
 func highlight_hint(hint_tiles: Array[MahjongTile]) -> void:

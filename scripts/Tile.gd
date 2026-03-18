@@ -1,8 +1,7 @@
 ## Tile.gd — Peça do Mahjong Solitaire (Godot 4.x)
 ##
 ## Area2D com visual premium de bloco de resina 3D (formato dominó vertical).
-## Chanfro (bevel) com gradiente, sombra suave, hitbox de precisão.
-## Sprite sheet de gatinhos (atlas) centralizado na face.
+## Mega Bake: Texto e sombra num único PNG.
 
 class_name MahjongTile
 extends Area2D
@@ -44,50 +43,20 @@ var _is_shaking := false
 
 const TOTAL_TYPES := 20
 
-## ─── Atlas do Sprite Sheet de Gatinhos ─────────────────────────────
-## Imagem cats.png, 5 colunas × 4 linhas, 20 gatinhos (fundo branco, sem labels)
-const ATLAS_COLS: int = 5
-const ATLAS_ROWS: int = 4
-const FRAME_W: float = 2784.0 / ATLAS_COLS
-const FRAME_H: float = 1536.0 / ATLAS_ROWS
+## ─── Cache Dinâmico "Mega Bake" ───────────────────────────────
+static var _baked_textures_cache: Dictionary = {}
 
-## Espessura lateral 3D
-const SIDE_DEPTH := 5.0
-## Padding da face
-const FACE_PADDING := 6.0
-## Hitbox super reduzida nas laterais para ignorar as bordas grossas transparentes (35% menor)
-const HITBOX_SHRINK := 0.35
-
-## Textura compartilhada
-static var _master_atlas: Texture2D = null
-static var _base_atlas_tex: AtlasTexture = null
-static var _cat_texture_cache: Dictionary = {}
-
-static func _load_atlas() -> void:
-	if _master_atlas == null:
-		_master_atlas = load("res://assets/tiles/master_atlas.png")
-	if _base_atlas_tex == null:
-		_base_atlas_tex = AtlasTexture.new()
-		_base_atlas_tex.atlas = _master_atlas
-		_base_atlas_tex.region = Rect2(2784, 0, 1173, 1642)
-	if _cat_texture_cache.is_empty():
+static func _init_baked_textures() -> void:
+	if _baked_textures_cache.is_empty():
 		for id in range(1, 21):
-			var idx: int = id - 1
-			var col: int = idx % ATLAS_COLS
-			@warning_ignore("integer_division")
-			var row: int = idx / ATLAS_COLS
-			
-			var tex := AtlasTexture.new()
-			tex.atlas = _master_atlas
-			tex.region = Rect2(col * FRAME_W, row * FRAME_H, FRAME_W, FRAME_H)
-			_cat_texture_cache[id] = tex
+			_baked_textures_cache[id] = load("res://assets/tiles/cat%d.png" % id)
 
 
 func _ready() -> void:
 	input_pickable = true
 	collision_layer = 1
 	collision_mask = 1
-	_load_atlas()
+	_init_baked_textures()
 	_build_visuals()
 
 
@@ -122,95 +91,41 @@ func cells_occupied() -> Array[Vector2i]:
 	]
 
 
-# ─── Atlas ──────────────────────────────────────────────────────────
-
-func _create_cat_atlas_texture(id: int) -> AtlasTexture:
-	return _cat_texture_cache[id]
-
-
-# ─── Visuais: Bloco Dominó de Resina ───────────────────────────────
+# ─── Visuais: Bloco Dominó de Resina (Mega Bake) ───────────────────────────────
 
 func _build_visuals() -> void:
-	# ── Base: imagem premium do azulejo 3D ──
-	var base_sprite := Sprite2D.new()
-	base_sprite.texture = _base_atlas_tex
-	base_sprite.name = "Base"
-	
-	var base_w: float = base_sprite.texture.get_width()
-	var base_h: float = base_sprite.texture.get_height()
-	var scale_x := tile_size.x / base_w
-	var scale_y := tile_size.y / base_h
-	base_sprite.scale = Vector2(scale_x, scale_y)
-	
-	# ── Sombra de Profundidade estrutural ──
-	var drop_shadow := Sprite2D.new()
-	drop_shadow.texture = base_sprite.texture
-	drop_shadow.scale = Vector2(scale_x, scale_y)
-	drop_shadow.position = Vector2(2.5, 4.0) # Sombra sutil de relevo (mais centrada)
-	drop_shadow.modulate = Color(0, 0, 0, 0.25) # Requisitado: sombra dura a 0.25
-	drop_shadow.name = "DropShadow"
-	add_child(drop_shadow)
-	
-	add_child(base_sprite)
-	
-	# ── Definição da Face Útil ──
-	# tile_base.png tem chanfros 3D no TOPO e na DIREITA.
-	# Centro da face útil em relação ao centro da imagem total:
-	var face_center_x := -(base_w * 0.04) * scale_x  # Empurra para ESQUERDA
-	var face_center_y :=  (base_h * 0.025) * scale_y  # Empurra para BAIXO
-	var center_offset := Vector2(face_center_x, face_center_y)
-	
-	# Dimensões da face útil (descontando chanfros)
-	var face_useful_w: float = tile_size.x * 0.90
-	var face_useful_h: float = tile_size.y * 0.90
-	
-	# ── Sticker do Gato ──
-	var tex_atlas := _create_cat_atlas_texture(cat_id)
-	
-	# Scale: ajustar o frame inteiro para caber na face útil.
-	# O espaçamento branco do atlas serve como padding natural.
-	var scale_fit: float = minf(face_useful_w / FRAME_W, face_useful_h / FRAME_H)
-	
-	# Sombra do sticker (efeito "adesivo colado")
-	var sticker_shadow := Sprite2D.new()
-	sticker_shadow.texture = tex_atlas
-	sticker_shadow.modulate = Color(0, 0, 0, 0.2) # Requisitado: sombra dura a 0.2
-	sticker_shadow.scale = Vector2(scale_fit, scale_fit)
-	sticker_shadow.position = center_offset + Vector2(1.0, 1.5)
-	sticker_shadow.name = "StickerShadow"
-	add_child(sticker_shadow)
-	
-	# Sticker principal
 	_sprite = Sprite2D.new()
-	_sprite.texture = tex_atlas
-	_sprite.scale = Vector2(scale_fit, scale_fit)
-	_sprite.position = center_offset
-	_sprite.name = "CatFace"
+	_sprite.texture = _baked_textures_cache[cat_id]
+	_sprite.name = "TileSprite"
 	add_child(_sprite)
+	
+	# Usar escala caso o asset seja maior/menor que tilesize
+	var tex_size := _sprite.texture.get_size()
+	if tex_size.x > 0 and tex_size.y > 0:
+		_sprite.scale = tile_size / tex_size
 	
 	# ── Hitbox de precisão ──
 	_collision_shape = CollisionShape2D.new()
 	var shape := RectangleShape2D.new()
 	
-	# Adiciona 10 pixels extras para cobrir o chanfro 3D e facilitar o toque mobile
+	# Dimensões de hit reduzidas do tamanho puro da tile para descontar sombra externa do png.
+	var face_useful_w: float = tile_size.x * 0.90
+	var face_useful_h: float = tile_size.y * 0.90
+	
+	# Adiciona 10 pixels extras
 	var hitbox_padding := 10.0 
 	shape.size = Vector2(face_useful_w + hitbox_padding, face_useful_h + hitbox_padding) 
 	
 	_collision_shape.shape = shape
 	_collision_shape.name = "CollisionShape"
-	_collision_shape.position = center_offset
 	add_child(_collision_shape)
-
 
 
 # ─── Update Visuals ─────────────────────────────────────────────────
 
 func update_sticker() -> void:
-	var new_tex = _create_cat_atlas_texture(cat_id)
 	if _sprite:
-		_sprite.texture = new_tex
-	if has_node("StickerShadow"):
-		get_node("StickerShadow").texture = new_tex
+		_sprite.texture = _baked_textures_cache[cat_id]
 
 func _update_visuals() -> void:
 	if not is_inside_tree():
@@ -238,7 +153,6 @@ func _update_visuals() -> void:
 func set_blocked(_blocked: bool) -> void:
 	if is_selected:
 		return
-	# Removido o escurecimento (modulate). A peça fica sempre colorida.
 	modulate = Color(1.0, 1.0, 1.0)
 	if _sprite:
 		_sprite.modulate = Color(1.0, 1.0, 1.0)
@@ -370,11 +284,6 @@ func animate_lift() -> void:
 		modulate = Color(1.1, 1.1, 1.1, 1.0)
 		
 	z_index = 4000
-	
-	if has_node("DropShadow"):
-		var shadow = get_node("DropShadow")
-		shadow.position = Vector2(4.0, 6.0)
-		shadow.modulate = Color(0, 0, 0, 0.08)
 
 
 func animate_drop() -> void:
@@ -391,14 +300,4 @@ func animate_drop() -> void:
 		z_index = get_calculated_z_index()
 		if not is_hinted:
 			modulate = Color.WHITE
-		
-		if has_node("DropShadow"):
-			var shadow = get_node("DropShadow")
-			shadow.position = Vector2(2.5, 4.0)
-			shadow.modulate = Color(0, 0, 0, 0.25)
 	)
-
-func set_shadow_occlusion(is_covered: bool) -> void:
-	"""Oculta/exibe DropShadow mantendo a hitbox intocada para mecânica Shake."""
-	if has_node("DropShadow"):
-		get_node("DropShadow").visible = not is_covered

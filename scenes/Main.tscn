@@ -131,7 +131,10 @@ texture_normal = ExtResource("8_btn_undo")
 ignore_texture_size = true
 stretch_mode = 5
 
-[node name="DimOverlay" type="ColorRect" parent="UILayer" unique_id=74823901]
+[node name="PopupLayer" type="CanvasLayer" parent="." unique_id=88888888]
+layer = 100
+
+[node name="DimOverlay" type="ColorRect" parent="PopupLayer" unique_id=74823901]
 visible = false
 anchors_preset = 15
 anchor_right = 1.0
@@ -140,7 +143,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0, 0, 0, 0.5)
 
-[node name="WinPopup" type="TextureRect" parent="UILayer" unique_id=2019978420]
+[node name="WinPopup" type="TextureRect" parent="PopupLayer" unique_id=2019978420]
 visible = false
 custom_minimum_size = Vector2(440, 572)
 anchors_preset = 8
@@ -158,7 +161,7 @@ texture = ExtResource("6_next_bg")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="PlayAgainBtn" type="Button" parent="UILayer/WinPopup" unique_id=1071776058]
+[node name="PlayAgainBtn" type="Button" parent="PopupLayer/WinPopup" unique_id=1071776058]
 layout_mode = 0
 offset_left = 116.0
 offset_top = 345.0
@@ -169,7 +172,7 @@ theme_override_font_sizes/font_size = 28
 text = "Nível 2"
 flat = true
 
-[node name="HomeBtn" type="Button" parent="UILayer/WinPopup" unique_id=73921838]
+[node name="HomeBtn" type="Button" parent="PopupLayer/WinPopup" unique_id=73921838]
 layout_mode = 0
 offset_left = 110.0
 offset_top = 449.0
@@ -180,7 +183,7 @@ theme_override_font_sizes/font_size = 28
 text = "Sair"
 flat = true
 
-[node name="PausePopup" type="TextureRect" parent="UILayer" unique_id=89123741]
+[node name="PausePopup" type="TextureRect" parent="PopupLayer" unique_id=89123741]
 visible = false
 custom_minimum_size = Vector2(400, 520)
 anchors_preset = 8
@@ -198,7 +201,7 @@ theme = ExtResource("3_theme")
 texture = ExtResource("4_popup_bg")
 expand_mode = 1
 
-[node name="SoundToggle" type="CheckButton" parent="UILayer/PausePopup" unique_id=213934256]
+[node name="SoundToggle" type="CheckButton" parent="PopupLayer/PausePopup" unique_id=213934256]
 layout_mode = 0
 offset_left = 30.0
 offset_top = 155.0
@@ -215,7 +218,7 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_popup_btn")
 button_pressed = true
 flat = true
 
-[node name="RestartBtn" type="Button" parent="UILayer/PausePopup" unique_id=984383987]
+[node name="RestartBtn" type="Button" parent="PopupLayer/PausePopup" unique_id=984383987]
 layout_mode = 0
 offset_left = 271.0
 offset_top = 462.0
@@ -224,7 +227,7 @@ offset_bottom = 502.0
 focus_mode = 0
 flat = true
 
-[node name="ClosePauseBtn" type="Button" parent="UILayer/PausePopup" unique_id=7410283]
+[node name="ClosePauseBtn" type="Button" parent="PopupLayer/PausePopup" unique_id=7410283]
 layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
@@ -237,4 +240,5 @@ grow_horizontal = 0
 focus_mode = 0
 flat = true
 
-[node name="AdPopup" parent="UILayer" unique_id=490014247 instance=ExtResource("9_adpopup")]
+[node name="AdPopup" parent="PopupLayer" unique_id=490014247 instance=ExtResource("9_adpopup")]
+
