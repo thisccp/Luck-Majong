@@ -46,10 +46,10 @@ const TOTAL_TYPES := 20
 
 ## ─── Atlas do Sprite Sheet de Gatinhos ─────────────────────────────
 ## Imagem cats.png, 5 colunas × 4 linhas, 20 gatinhos (fundo branco, sem labels)
-var FRAME_W: float = 0.0
-var FRAME_H: float = 0.0
 const ATLAS_COLS: int = 5
 const ATLAS_ROWS: int = 4
+const FRAME_W: float = 2784.0 / ATLAS_COLS
+const FRAME_H: float = 1536.0 / ATLAS_ROWS
 
 ## Espessura lateral 3D
 const SIDE_DEPTH := 5.0
@@ -59,21 +59,28 @@ const FACE_PADDING := 6.0
 const HITBOX_SHRINK := 0.35
 
 ## Textura compartilhada
-static var _cat_atlas: Texture2D = null
-static var _shadow_material: ShaderMaterial = null
-static var _base_texture: Texture2D = null
+static var _master_atlas: Texture2D = null
+static var _base_atlas_tex: AtlasTexture = null
+static var _cat_texture_cache: Dictionary = {}
 
 static func _load_atlas() -> void:
-	if _cat_atlas == null:
-		_cat_atlas = load("res://assets/tiles/cats.png")
-	if _shadow_material == null:
-		_shadow_material = ShaderMaterial.new()
-		var shader_path := "res://assets/shaders/blur_shadow.gdshader"
-		if FileAccess.file_exists(shader_path):
-			_shadow_material.shader = load(shader_path)
-			_shadow_material.set_shader_parameter("blur_amount", 8.0)
-	if _base_texture == null:
-		_base_texture = load("res://assets/tiles/tile_base.png")
+	if _master_atlas == null:
+		_master_atlas = load("res://assets/tiles/master_atlas.png")
+	if _base_atlas_tex == null:
+		_base_atlas_tex = AtlasTexture.new()
+		_base_atlas_tex.atlas = _master_atlas
+		_base_atlas_tex.region = Rect2(2784, 0, 1173, 1642)
+	if _cat_texture_cache.is_empty():
+		for id in range(1, 21):
+			var idx: int = id - 1
+			var col: int = idx % ATLAS_COLS
+			@warning_ignore("integer_division")
+			var row: int = idx / ATLAS_COLS
+			
+			var tex := AtlasTexture.new()
+			tex.atlas = _master_atlas
+			tex.region = Rect2(col * FRAME_W, row * FRAME_H, FRAME_W, FRAME_H)
+			_cat_texture_cache[id] = tex
 
 
 func _ready() -> void:
@@ -85,7 +92,7 @@ func _ready() -> void:
 
 
 func get_calculated_z_index() -> int:
-	return grid_pos.z * 500 + grid_pos.y * 20 + grid_pos.x
+	return grid_pos.z * 10
 
 
 func calculate_target_pos(cell_w: float, cell_h: float, tile_w: float, tile_h: float, z_off_x: float, z_off_y: float) -> Vector2:
@@ -118,36 +125,15 @@ func cells_occupied() -> Array[Vector2i]:
 # ─── Atlas ──────────────────────────────────────────────────────────
 
 func _create_cat_atlas_texture(id: int) -> AtlasTexture:
-	var atlas_tex := AtlasTexture.new()
-	atlas_tex.atlas = _cat_atlas
-	var idx: int = id - 1
-	var col: int = idx % ATLAS_COLS
-	@warning_ignore("integer_division")
-	var row: int = idx / ATLAS_COLS
-	
-	# Região limpa: cada célula inteira do grid.
-	# O espaçamento branco faz parte da célula e serve como margem natural.
-	atlas_tex.region = Rect2(
-		col * FRAME_W,
-		row * FRAME_H,
-		FRAME_W,
-		FRAME_H
-	)
-	return atlas_tex
+	return _cat_texture_cache[id]
 
 
 # ─── Visuais: Bloco Dominó de Resina ───────────────────────────────
 
 func _build_visuals() -> void:
-	# Calcular dimensões do frame dinamicamente na primeira peça
-	if FRAME_W == 0.0 or FRAME_H == 0.0:
-		FRAME_W = float(_cat_atlas.get_width()) / float(ATLAS_COLS)
-		FRAME_H = float(_cat_atlas.get_height()) / float(ATLAS_ROWS)
-		print("[MahjongTile] Atlas 5x4 calculado: Frame=", FRAME_W, "x", FRAME_H)
-	
 	# ── Base: imagem premium do azulejo 3D ──
 	var base_sprite := Sprite2D.new()
-	base_sprite.texture = _base_texture
+	base_sprite.texture = _base_atlas_tex
 	base_sprite.name = "Base"
 	
 	var base_w: float = base_sprite.texture.get_width()
@@ -161,8 +147,7 @@ func _build_visuals() -> void:
 	drop_shadow.texture = base_sprite.texture
 	drop_shadow.scale = Vector2(scale_x, scale_y)
 	drop_shadow.position = Vector2(2.5, 4.0) # Sombra sutil de relevo (mais centrada)
-	drop_shadow.modulate = Color(0, 0, 0, 0.15) # Um pouco mais visível
-	drop_shadow.material = _shadow_material
+	drop_shadow.modulate = Color(0, 0, 0, 0.25) # Requisitado: sombra dura a 0.25
 	drop_shadow.name = "DropShadow"
 	add_child(drop_shadow)
 	
@@ -189,10 +174,9 @@ func _build_visuals() -> void:
 	# Sombra do sticker (efeito "adesivo colado")
 	var sticker_shadow := Sprite2D.new()
 	sticker_shadow.texture = tex_atlas
-	sticker_shadow.modulate = Color(0, 0, 0, 0.12) # Levemente mais visível
+	sticker_shadow.modulate = Color(0, 0, 0, 0.2) # Requisitado: sombra dura a 0.2
 	sticker_shadow.scale = Vector2(scale_fit, scale_fit)
 	sticker_shadow.position = center_offset + Vector2(1.0, 1.5)
-	sticker_shadow.material = _shadow_material
 	sticker_shadow.name = "StickerShadow"
 	add_child(sticker_shadow)
 	
@@ -411,5 +395,10 @@ func animate_drop() -> void:
 		if has_node("DropShadow"):
 			var shadow = get_node("DropShadow")
 			shadow.position = Vector2(2.5, 4.0)
-			shadow.modulate = Color(0, 0, 0, 0.15)
+			shadow.modulate = Color(0, 0, 0, 0.25)
 	)
+
+func set_shadow_occlusion(is_covered: bool) -> void:
+	"""Oculta/exibe DropShadow mantendo a hitbox intocada para mecânica Shake."""
+	if has_node("DropShadow"):
+		get_node("DropShadow").visible = not is_covered

@@ -57,10 +57,12 @@
 * [x] **6.9 Otimização de GPU e Térmica**: Movida para o final do projeto (Fase 7.18).
 * [x] **6.10 Sistema de Atmosfera Zen (Estrutura Inicial)**: Playlists ambientes (Floresta, Casa, Chuva).
 * [x] **6.11 Cleanup de Áudio Legado**: Remoção completa do sistema de BGM Lo-fi e arquivos redundantes.
-* [ ] **6.12 Vacina do Match & Vitória Física (Prioridade 0)** — **[Gemini 3.1 Pro (High)]**: Resolução de condição de corrida (Race Condition) que prende peças no slot e correção do bug de tabuleiro vazio sem tela de vitória. Implementar checagem rigorosa de instâncias físicas e casting seguro de IDs.
+* [ ] **6.12 Vacina do Match & Vitória Física (Prioridade 0)** — **[Gemini 3.1 Pro (High)]**: Resolução de condição de corrida (Race Condition) que prende peças no slot (na verdade parece ocorrer ao usar os botões 'reiniciar' do menu de pausa e reiniciar do menu de game over, quando estes botões são utilizados as peças param de dar match) e correção do bug de tabuleiro vazio sem tela de vitória. Implementar checagem rigorosa de instâncias físicas e casting seguro de IDs.
 * [x] **6.13 Atmosfera Zen Contínua (Seamless)** — **[Gemini 3 Flash]**: Remover `Timer` de silêncio e implementar loop ininterrupto de sons ambientes com transições suaves (crossfade) para maior imersão.
 * [ ] **6.14 Revisão de Áudio (Alteração de fim de jogo e derrota)** — **[Gemini 3 Flash]**: Alterar audios de miados e efeitos felinos nas telas de Vitória e Derrota por que agora o som zen de fundo tem esses efeitos, trocar por efeitos satisfatórios e leves.
 * [ ] **6.15 Fever Mode Dinâmico (Áudio e Efeitos)** — **[Gemini 3 Flash]**: Escalonar complexidade sonora e impacto visual do Fever Mode baseado progressivamente no Tier atingido.
+* [ ] **6.16 Novos Sons Zen (Vitória/Derrota)** — **[Gemini 3 Flash]**: Substituição direta dos sons de fim de jogo para manter a atmosfera imersiva.
+* [ ] **6.17 Otimização Extrema de GPU (POCO X3 e Mid-ranges)** — **[Gemini 3.1 Pro (High)]**: Implementar estritamente as diretrizes do **"Documento de Otimizações Consolidadas (Boas Práticas a Manter) (DOCUMENTO EXTERNO)"**. Inclui adoção do Master Atlas, Cache de Instâncias (`AtlasTexture`), Hard Shadows, Z-Index matemático unificado e Oclusão Pura para aniquilar o *Overdraw* e restaurar o *Batching* antes da refatoração estrutural.
 
 ### 🏗️ Fase R: Refatoração e Desacoplamento Arquitetural (Estratégico)
 * [ ] **R.1 Extração de Responsabilidades** — **[Claude Sonnet 4.6 (Thinking)]**: Mover Score, Inventário e Ads para Singletons/Nodes independentes.

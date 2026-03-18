@@ -63,6 +63,7 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="BoardManager" type="Node2D" parent="BoardContainer" unique_id=1518675537]
+y_sort_enabled = true
 script = ExtResource("2")
 
 [node name="UILayer" type="CanvasLayer" parent="." unique_id=1285879559]
