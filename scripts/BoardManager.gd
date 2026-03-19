@@ -14,9 +14,9 @@ signal tile_pressed(tile: MahjongTile)
 ## Tamanho de uma célula. Dimensionado para densidade sólida e sem vãos (B)
 const TILE_W := 108.0
 const CELL_W := 44.0  # TILE_W / 2 para peças da mesma camada ficarem coladas sem sobrepor
-const CELL_H := 48.0  # TILE_H / 2 para encostar perfeitamente verticalmente
+const CELL_H := 58.0  # TILE_H / 2 para encostar perfeitamente verticalmente
 ## Tamanho real do tile, forma "parruda", robusta e mais quadrada (A)
-const TILE_H := 105.0
+const TILE_H := 130.0
 ## Offset 3D por camada Z. (Efeito de pirâmide/escada sobrepondo intensamente as peças de baixo)
 const Z_OFFSET_X := -18.0  # Mantido recuo X (esquerda)
 const Z_OFFSET_Y := -35.0  # Verticalização (B): ~36% de recuo Y (cima) cobrindo ~1/3 da altura da peça abaixo
