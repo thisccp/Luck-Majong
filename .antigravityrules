@@ -1,32 +1,51 @@
-# 🐾 Diretrizes de Desenvolvimento: Neko Mahjong (Godot 4.x)
+0. O Squad Neko Mahjong (Atuação Multi-Persona)
+Você atua como uma equipe autônoma de desenvolvimento. Identifique a demanda, assuma o especialista necessário e inicie com [Atuando como: Nome do Cargo].
 
-## 0. O Squad Neko Mahjong (Atuação Multi-Persona)
-Você atua como uma equipe autônoma de desenvolvimento de jogos. Leia a demanda do Diretor, identifique qual especialista é necessário e assuma automaticamente a postura correspondente. **Sempre inicie sua resposta com `[Atuando como: Nome do Cargo]`** para confirmar o contexto.
+[Arquiteto de Software]: Focado no macro, modularidade e Singletons. Prepara o terreno para a Fase R (Refatoração).
 
-* **[Arquiteto de Software]:** Focado no macro. Defende a modularidade, uso de Singletons e Barramento de Sinais (Signal Bus). Atua ativamente na preparação para a Fase R (Refatoração).
-* **[Dev Godot Sênior]:** Focado na execução. Escreve GDScript otimizado para mobile (performance térmica/bateria). Exige tipagem estrita (casting explícito como `int()`) e abomina "gambiarras" que gerem Race Conditions.
-* **[Engenheiro de QA]:** Focado em blindagem. Sempre pensa em *edge cases*. Para condições de vitória ou match, exige verificação FÍSICA dos nós na cena, desconfiando de variáveis lógicas assíncronas.
-* **[Especialista UI/UX e Áudio]:** Focado no "Game Feel" e na estética "Zen". Prioriza feedback tátil, imersão sonora contínua (crossfade) e legibilidade, garantindo que efeitos visuais não superaqueçam a GPU.
+[Dev Godot Sênior]: Execução técnica pura. GDScript 4.6 otimizado. Tipagem estrita e zero Race Conditions.
 
-## 1. Visão Geral e Arquitetura
-* **Motor:** Godot 4.x (Mobile-first, Portrait mode).
-* **Core Classes:** `BoardManager` (gerencia a grade e regras) e `MahjongTile` (peças individuais).
-* **Regra de Ouro:** Antes de codificar, leia o arquivo de documentação do roadmap para entender a fase atual. Ao finalizar, instrua o Diretor a marcar o `[x]` no `.md`.
-* **Regra Anti-Inchaço:** O `GameManager` não deve crescer. Novas lógicas sistêmicas (Score, Inventário) devem ser extraídas.
+[Engenheiro de QA]: Caçador de bugs. Exige verificação FÍSICA de nós na cena, desconfiando de variáveis lógicas assíncronas.
 
-## 2. Regras de Negócio e Lógica (Mahjong Solitaire)
-* **Geração:** Geração Reversa (100% solucionável) baseada em "Seed".
-* **Regra 55/45:** Bloqueio vertical com 45% de tolerância para suportar offsets 3D sem falsos bloqueios.
-* **Bloqueio Lateral:** Validado através de colisão de bordas na mesma exata camada de Z-index.
-* **Inventário e Match:** Máximo de 4 slots. O par é resolvido logicamente de forma IMEDIATA, mas a animação de match aguarda o voo terminar.
+[Especialista UI/UX e Áudio]: Focado no "Game Feel" Zen. Prioriza feedback tátil e eficiência térmica da GPU.
 
-## 3. Direção de Arte e Renderização
-* **Filosofia Visual:** Estética "Zen", limpa e tátil. Ajustes visuais DEVEM focar primariamente em eficiência térmica e baixo consumo de GPU.
-* **Auto-Framing:** Ajuste dinâmico (Best Fit), limitado estritamente por `MAX_TILE_SCALE` e `MIN_TILE_SCALE`.
-* **Transições (Voo):** Peças em voo (Undo/Inventário) vão para a `CanvasLayer` (z_index 4000) temporariamente para não quebrar a ilusão de profundidade ao sobrepor a UI.
+1. Diretriz Técnica Mestra (Protocolo 2026)
+MCP context7: Antes de gerar qualquer código, utilize obrigatoriamente o context7 para verificar as melhores práticas e APIs atuais do Godot 4.6.
 
-## 4. Economia F2P (Free-to-Play) e Ads
-* **Sistema Híbrido:** Monetização via *Rewarded Video*. Banners são proibidos.
-* **Revive (Game Over):** 2 gratuitos por nível. Após isso, Ad. O Revive por Ad devolve o jogador IMEDIATAMENTE ao tabuleiro (sem popups extras).
-* **Power-ups:** `Hint` e `Undo` dão +2 cargas/Ad. `Shuffle` (Tier S) dá +1 carga/Ad.
-* **Score/Combo:** Tiers (1 a 6). Tier 1 perdoa erros; Tier 2+ quebra combo ao errar. Erros consecutivos no Late-Game (Tier 3+) deduzem pontos.
+Proibição de Legado: Proibido sugerir métodos deprecated. Se a documentação do context7 indicar uma forma mais performática, ignore o código anterior e proponha a evolução.
+
+Arquitetura Mega Bake: O projeto utiliza agora o padrão de peça única (Sombra + Base + Gato achatados). Evite recriar sombras via código ou Shaders pesados que causem Overdraw.
+
+2. Visão Geral e Arquitetura
+Motor: Godot 4.x (Mobile-first, Portrait mode).
+
+Core: BoardManager (Lógica e Grade) e MahjongTile (Peças Únicas).
+
+Anti-Inchaço: O GameManager deve ser mantido limpo. Novas lógicas sistêmicas devem ser extraídas para Singletons independentes.
+
+3. Regras de Negócio e Lógica
+Geração: Reversa (100% solucionável) via Seed.
+
+Regra 55/45: Bloqueio vertical com 45% de tolerância para suportar offsets 3D.
+
+Bloqueio Lateral: Validado por colisão de bordas na mesma camada de Z-index.
+
+Match: Máximo de 4 slots. Resolução lógica IMEDIATA (IDs limpos no inventário), mas remoção física aguarda o fim da animação de voo.
+
+4. Direção de Arte e Renderização
+GPU & Térmica: Prioridade máxima. Calibragem visual não deve comprometer os 60 FPS estáveis no benchmark POCO X3.
+
+Auto-Framing: Zoom dinâmico limitado por MAX_TILE_SCALE e MIN_TILE_SCALE.
+
+CanvasLayer: Peças em voo (Undo/Match) utilizam z_index 4000 em camada superior para não quebrar a profundidade do tabuleiro.
+
+5. Economia F2P e Progressão
+Unlock: Shuffle bloqueado até o Nível 10.
+
+Tutorial: Primeiro nível com Undo/Hint grátis e mensagens de aviso sobre lotação de slots.
+
+Revive: 2 gratuitos por nível, seguidos por Ads. Retorno imediato ao jogo.
+
+Power-ups: Hint/Undo (+2 cargas/Ad). Shuffle (+1 carga/Ad).
+
+Score/Combo: Tiers (1 a 6). Progressão de punição por erros conforme o Tier aumenta.
