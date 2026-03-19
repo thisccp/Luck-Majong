@@ -65,9 +65,12 @@
     * [x] **Calibragem Visual**: Ajuste de `TILE_W/H` para garantir o "Beijo de Pixel" com a nova arte.
     * [x] **Blindagem de UI**: Uso de Z-Index/CanvasLayer no Menu de Pausa para cobrir peças nos slots.
 * [x] **6.18 Calibragem de Proporção (Peças "Gordinhas")** — **[Gemini 3 Flash]**: Concluído. Proporção final ajustada para 108x130 (Aspect Ratio ~1.2) com CELL_H em 58.0, restaurando a silhueta premium das peças Mega Bake.
-* [ ] **6.12 Vacina do Match & Vitória Física (Prioridade 0)** — **[Gemini 3.1 Pro (High)]**: Resolução de condição de corrida (Race Condition) que prende peças no slot e correção do bug de tabuleiro vazio sem tela de vitória. Implementar checagem rigorosa de instâncias físicas e casting seguro de IDs.
-* [ ] **6.14 Revisão de Áudio (Limpeza de Fim de Jogo)** — **[Gemini 3 Flash]**: Alterar audios de miados e efeitos felinos nas telas de Vitória e Derrota para efeitos satisfatórios e leves, integrados à atmosfera zen.
-* [ ] **6.15 Fever Mode Dinâmico (Áudio e Efeitos)** — **[Gemini 3 Flash]**: Escalonar complexidade sonora e impacto visual do Fever Mode baseado progressivamente no Tier atingido.
+* [x] **6.12 Vacina do Match & Vitória Física (Prioridade 0)** — **[Gemini 3.1 Pro (High)]**: Concluído. Resolvido o bug crítico de "Match Zumbi" e "Vitória Fantasma" que ocorria ao reiniciar a partida. A causa raiz era uma ilusão de ótica gerada pelo Object Pooling (Fase 6.8), onde as peças recicladas não atualizavam suas texturas nativas. Corrigido com a chamada de `update_sticker()` no setup do `Tile.gd`, garantindo sincronia perfeita entre lógica e renderização.Implementar checagem rigorosa de instâncias físicas e casting seguro de IDs.
+* [ ] **6.14 Revisão de Áudio (Limpeza de Fim de Jogo)** — **[Gemini 3 Flash]**: Remoção completa dos efeitos sonoros felinos (miados) disparados ao abrir as telas de Vitória e Game Over, garantindo que o fim da partida seja limpo e não conflite com a futura trilha de conclusão.
+* [ ] **6.15 Sistema de Áudio Zen Procedural e Barramentos (Buses)** — **[Gemini 3.1 Pro High]**: *Substitui e atualiza as antigas etapas de background e efeitos felinos.* Implementação de áudio dinâmico e otimizado utilizando Audio Buses nativos do Godot 4.6 (`Ambient`, `Cats`, `SFX`). Inclui gerador procedural de miados/ronronados aleatórios (.wav leves) sobrepostos a faixas contínuas de fundo (.ogg), permitindo que o jogador silencie cada camada de forma independente.
+* [ ] **6.16 Fever Mode Dinâmico (Áudio e Efeitos)** — **[Gemini 3 Flash]**: Escalonar complexidade sonora e impacto visual do Fever Mode baseado progressivamente no Tier atingido.
+* [ ] **6.19 Refatoração da Perspectiva Isométrica (Estilo Bloco Sólido)** — **[Gemini 3.1 Pro High]**: *Substitui a antiga auditoria de oclusão.* Redesenho da geometria da grade (`CELL` e `Z_OFFSET` no BoardManager) para imitar a perspectiva de blocos sólidos empilhados (referência: Vita Mahjong), eliminando a ilusão de sobreposição na mesma camada. Inclui a recalibragem do `Auto-Framing` para suportar o novo tamanho físico do tabuleiro e a atualização definitiva da regra de oclusão vertical e lateral.
+* [ ] **6.20 Homologação Multi-Device (Aspect Ratios)** — **[Engenheiro de QA]**: Bateria de testes de responsividade simulando 3 perfis extremos de tela no Godot (Ultrawide 20:9, Padrão 16:9 e Tablet 4:3). Validação do comportamento das âncoras da HUD e da escala matemática do `Auto-Framing` do BoardManager para garantir experiência idêntica em qualquer aparelho geométrico.
 
 ### 🏗️ Fase R: Refatoração e Desacoplamento Arquitetural (Estratégico)
 * [ ] **R.1 Extração de Responsabilidades** — **[Claude Sonnet 4.6 (Thinking)]**: Mover Score, Inventário e Ads para Singletons/Nodes independentes.
@@ -99,12 +102,11 @@
 * [ ] **7.22 Desbloqueio Progressivo de Power-ups** — **[Gemini 3.1 Pro (Low)]**: Travar o uso do Shuffle no início do jogo e liberá-lo na HUD apenas após o Nível 10, criando sensação de progressão e evitando sobrecarga cognitiva no jogador iniciante.
 * [ ] **7.23 Perspectiva 3D Dinâmica (Offsets Variáveis)** — **[Gemini 3.1 Pro (High)]**: Refatorar `Z_OFFSET_X` e `Z_OFFSET_Y` no `BoardManager` de `const` para `var`. Permitir que a geração procedural crie layouts com ângulos de câmera variados (ex: torres vistas mais de cima ou mais de lado).
 
+* [ ] **B.1 Monitor de Performance HUD (Contingência)** — **[Engenheiro de QA]**: Criação de um script "Raio-X" descartável (`DebugMonitor.gd`) para ser instanciado no CanvasLayer superior. Deve exibir FPS atual e consumo de Memória RAM na tela do aparelho físico, caso sejam reportados gargalos de lentidão ou aquecimento durante as fases finais de teste.
+
 ---
 
 ## 🚨 2. Problemas Conhecidos e Prioridades Críticas
-* **P0 - Match Zumbi (Race Condition)**: Peças idênticas entram no slot e não disparam a resolução do match após reiniciar o nível via menu (Foco do item 6.12).
-* **P0 - Vitória Fantasma**: Tabuleiro limpo e inventário vazio, porém o nível não termina pois instâncias residuais seguram as condições de vitória (Foco do item 6.12).
-* **Alinhamento Z**: Ajuste fino de `Z_OFFSET_X/Y` pendente para perfeccionismo visual (Fase 6.17 Final).
 
 ---
 
