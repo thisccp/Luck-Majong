@@ -9,18 +9,23 @@ extends Node2D
 ## Sinal emitido quando uma peça é clicada.
 signal tile_pressed(tile: MahjongTile)
 
-# ─── Constantes de layout ───────────────────────────────────────────
+# ─── Constantes de Layout (Calibragem Mega Bake) ──────────────────────
 
-## Tamanho de uma célula. Dimensionado para densidade sólida e sem vãos (B)
+## Largura visual do 'carimbo' (inclui a madeira + transparência da sombra lateral)
 const TILE_W := 108.0
-const CELL_W := 44.0  # TILE_W / 2 para peças da mesma camada ficarem coladas sem sobrepor
-const CELL_H := 58.0  # TILE_H / 2 para encostar perfeitamente verticalmente
-## Tamanho real do tile, forma "parruda", robusta e mais quadrada (A)
+## Altura visual do 'carimbo' (inclui a madeira + transparência da sombra inferior)
 const TILE_H := 130.0
-## Offset 3D por camada Z. (Efeito de pirâmide/escada sobrepondo intensamente as peças de baixo)
-const Z_OFFSET_X := -18.0  # Mantido recuo X (esquerda)
-const Z_OFFSET_Y := -35.0  # Verticalização (B): ~36% de recuo Y (cima) cobrindo ~1/3 da altura da peça abaixo
-## Número de tipos de estampa.
+
+## Distância real da grade horizontal. Calibrada para o 'Beijo de Pixel' entre madeiras
+const CELL_W := 44.0  
+## Distância real da grade vertical. Calibrada para evitar sobreposição excessiva no mesmo nível
+const CELL_H := 58.0  
+
+## Offset 3D por camada Z (Efeito de escada/cascata entre andares)
+const Z_OFFSET_X := -18.0  # Deslocamento lateral para cada nível de altura
+const Z_OFFSET_Y := -35.0  # Deslocamento vertical para revelar a bordinha da peça de baixo
+
+## Número de tipos de estampa (Gatos disponíveis no pool)
 const NUM_TYPES := 20
 
 # ─── Estado do jogo ─────────────────────────────────────────────────
