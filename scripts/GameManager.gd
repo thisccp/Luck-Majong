@@ -1517,12 +1517,22 @@ func _hide_popups() -> void:
 	_set_hud_disabled(false)
 
 func _set_hud_disabled(disabled: bool) -> void:
-	if is_instance_valid(_btn_shuffle):
-		_btn_shuffle.disabled = disabled
-	if is_instance_valid(_btn_hint):
-		_btn_hint.disabled = disabled
-	if is_instance_valid(_btn_undo):
-		_btn_undo.disabled = disabled
+	var hud_buttons = [_btn_shuffle, _btn_hint, _btn_undo]
+	
+	for btn in hud_buttons:
+		if is_instance_valid(btn):
+			btn.disabled = disabled
+			
+			# Se a HUD foi desativada (ex: Popup abriu), força o botão a soltar
+			if disabled and btn.has_meta("juicy_orig_scale"):
+				# Mata qualquer animação de "esmagamento" que ficou presa
+				if btn.has_meta("juicy_tween"):
+					var old_tween: Tween = btn.get_meta("juicy_tween")
+					if is_instance_valid(old_tween) and old_tween.is_valid():
+						old_tween.kill()
+				# Restaura o tamanho original instantaneamente
+				btn.scale = btn.get_meta("juicy_orig_scale")
+
 	if is_instance_valid(_board):
 		_board.is_input_locked = disabled
 
