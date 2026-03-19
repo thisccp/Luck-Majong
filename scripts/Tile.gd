@@ -80,6 +80,9 @@ func setup(pos: Vector3i, type_id: int, size: Vector2) -> void:
 	cat_id = type_id
 	tile_size = size
 	z_index = get_calculated_z_index()
+	
+	# A CURA DO POOLING: Força a atualização da imagem quando a peça é reciclada do BoardManager
+	update_sticker()
 
 
 func cells_occupied() -> Array[Vector2i]:
