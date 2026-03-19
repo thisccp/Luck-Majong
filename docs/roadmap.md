@@ -29,7 +29,7 @@
 * [x] **4.1 Hint V2 (Dica Inteligente)**: Prioridade para esvaziar slots, persistência visual e trava anti-spam. Correção visual para desligar dica no Game Over.
 * [x] **4.2 Reverse (Undo)**: Retorno ao grid com animação de voo e Z-index dinâmico.
 * [x] **4.3 Drag & Peek (Arrasto Livre)**: Mecânica tátil com retorno elástico, protegendo o estado visual.
-* [x] **4.4 UI de Cargas e Ads**: Remoção de bloqueio visual, adição de labels numéricos e popup de recarga (+2 usos) individual por poder.
+* [x] **4.4 UI de Cargas e Ads**: Remoção de bloqueio visual, adição de labels numéricos e popup genérico de recarga (+2 usos) individual por poder.
 
 ### ✅ Pré-Fase 5: Refatoração e Otimização Arquitetural (Concluído)
 * [x] **Separação de Responsabilidades**: Refatoração da interface de Ads/Popups para cenas independentes (`.tscn`), blindando a lógica principal de UI gerada por código.
@@ -54,53 +54,57 @@
 * [x] **6.7 SFX de Progressão**: Gatilhos sonoros para Tiers de Combo (ciclos de 5) e Fever Mode.
 * [x] **6.8 Blindagem de CPU e Performance (S25)**: Object Pooling, Caching de Bloqueio e Reset de Estado concluídos.
 * [x] **6.8.1 Hotfix de Alinhamento (Undo/Revive)**: Correção de coordenadas pós-zoom.
+* [x] **6.9 Otimização de GPU e Térmica**: Movida para o final do projeto (Fase 7.18).
 * [x] **6.10 Sistema de Atmosfera Zen (Estrutura Inicial)**: Playlists ambientes (Floresta, Casa, Chuva).
 * [x] **6.11 Cleanup de Áudio Legado**: Remoção completa do sistema de BGM Lo-fi e arquivos redundantes.
-* [x] **6.13 Atmosfera Zen Contínua (Seamless)**: Remover `Timer` de silêncio e implementar loop ininterrupto de sons ambientes com transições suaves (crossfade) para maior imersão.
-* [x] **6.17 Otimização Extrema de GPU (POCO X3 e Mid-ranges) [PIVOT MEGA BAKE]**:
-    * [x] **Pivô de Arquitetura**: Abandono da montagem dinâmica de peças (Sombra + Base + Gato).
-    * [x] **Arquitetura "Mega Bake"**: Transição para assets únicos (Peça achatada em PNG único contendo Sombra + Base + Gato) visando reduzir o processamento de transparências (Overdraw) em até 75%.
-    * [x] **Calibragem de Grade**: Ajuste das constantes `TILE_W/H` no `BoardManager` para garantir o "Beijo de Pixel" com a nova arte.
-    * [x] **Sincronia de Render**: Adição de `await process_frame` para evitar flashes de tabuleiro vazio.
-* [ ] **6.12 Vacina do Match & Vitória Física (Prioridade 0)** — **[Gemini 3.1 Pro (High)]**: Resolução de condição de corrida (Race Condition) que prende peças no slot ao usar botões 'reiniciar' (Pausa/Game Over) e correção do tabuleiro vazio sem vitória.
-* [ ] **6.14 Revisão de Áudio (Alteração de fim de jogo e derrota)** — **[Gemini 3 Flash]**: Trocar miados de Vitória/Derrota por efeitos satisfatórios e leves, integrados à atmosfera zen.
-* [ ] **6.15 Fever Mode Dinâmico (Áudio e Efeitos)** — **[Gemini 3 Flash]**: Escalonar impacto sonoro e visual baseado no Tier atingido.
-* [ ] **6.16 Novos Sons Zen (Vitória/Derrota)** — **[Gemini 3 Flash]**: Substituição direta de áudios de fim de jogo.
+* [x] **6.13 Atmosfera Zen Contínua (Seamless)** — **[Gemini 3 Flash]**: Remover `Timer` de silêncio e implementar loop ininterrupto de sons ambientes com transições suaves (crossfade) para maior imersão.
+* [x] **6.17 Otimização Extrema de GPU (POCO X3 e Mid-ranges) [PIVOT MEGA BAKE]** — **[Gemini 3.1 Pro (High)]**:
+    * [x] **Pivô de Arquitetura**: Abandono da montagem dinâmica de peças. Transição completa para a Arquitetura "Mega Bake" (1 Peça = 1 Imagem única contendo Sombra + Base + Gato achatados no Photoshop) reduzindo Overdraw em 75%.
+    * [x] **Downscale de Assets**: Redução drástica da resolução das peças para aliviar banda de GPU e VRAM.
+    * [x] **Sincronia de Render**: Adição de `await process_frame` no GameManager para evitar flashes de tabuleiro vazio na intro.
+    * [x] **Calibragem Visual**: Ajuste de `TILE_W/H` para garantir o "Beijo de Pixel" com a nova arte.
+    * [x] **Blindagem de UI**: Uso de Z-Index/CanvasLayer no Menu de Pausa para cobrir peças nos slots.
+* [x] **6.18 Calibragem de Proporção (Peças "Gordinhas")** — **[Gemini 3 Flash]**: Concluído. Proporção final ajustada para 108x130 (Aspect Ratio ~1.2) com CELL_H em 58.0, restaurando a silhueta premium das peças Mega Bake.
+* [ ] **6.12 Vacina do Match & Vitória Física (Prioridade 0)** — **[Gemini 3.1 Pro (High)]**: Resolução de condição de corrida (Race Condition) que prende peças no slot e correção do bug de tabuleiro vazio sem tela de vitória. Implementar checagem rigorosa de instâncias físicas e casting seguro de IDs.
+* [ ] **6.14 Revisão de Áudio (Limpeza de Fim de Jogo)** — **[Gemini 3 Flash]**: Alterar audios de miados e efeitos felinos nas telas de Vitória e Derrota para efeitos satisfatórios e leves, integrados à atmosfera zen.
+* [ ] **6.15 Fever Mode Dinâmico (Áudio e Efeitos)** — **[Gemini 3 Flash]**: Escalonar complexidade sonora e impacto visual do Fever Mode baseado progressivamente no Tier atingido.
 
 ### 🏗️ Fase R: Refatoração e Desacoplamento Arquitetural (Estratégico)
 * [ ] **R.1 Extração de Responsabilidades** — **[Claude Sonnet 4.6 (Thinking)]**: Mover Score, Inventário e Ads para Singletons/Nodes independentes.
 * [ ] **R.2 Finite State Machine (FSM)** — **[Claude Opus 4.6 (Thinking)]**: Controle rígido de estados (IDLE, PIECE_FLYING, MATCH_ANIM, PAUSED).
-* [ ] **R.3 Barramento de Sinais** — **[Gemini 3.1 Pro (High)]**: Substituição de caminhos diretos (`get_node`) por sinais.
+* [ ] **R.3 Barramento de Sinais** — **[Gemini 3.1 Pro (High)]**: Substituição de caminhos diretos (`get_node`) por sinais para UI modular.
 
 ### ⏳ Fase 7: Backlog, Retenção (Meta-Jogo) e UX (Futuro)
-* [ ] **7.1 Meta-Jogo (Sistema de Coleção)**: Área de galeria para desbloqueio de gatos.
-* [ ] **7.2 Progressão Temática**: Introdução de raças e novos temas visuais.
-* [ ] **7.3 Expansão do Catálogo de Formatos**: Novos layouts (Fases Respiro vs. Fases Boss).
-* [ ] **7.4 Recursos Visuais Finais**: Splash Screens, Logos e Assets definitivos.
-* [ ] **7.5 UI e Menus**: Menu de Título, Loading e retrabalho final dos popups.
-* [ ] **7.6 Onboarding (Tutorial)**: Mini-tabuleiro interativo de ensino.
-* [ ] **7.7 Funcionalidades Online**: Placares globais e amigos.
-* [ ] **7.8 Sistema de Recompensas por Marcos**: Conceder cargas permanentes de poderes.
-* [ ] **7.9 Persistência de Sessão**: Cloud Save e Local State.
-* [ ] **7.11 Feedback Tátil (Haptic Feedback)**: Vibrações sincronizadas.
-* [ ] **7.12 Modos de Jogo Alternativos**: Gatos Dourados, Time Attack, Modo Memória.
-* [ ] **7.13 Recompensas e Vitórias Diárias**: Sistema de login diário.
-* [ ] **7.14 Sistema de Moeda In-Game**: "Soft Currency" para a Galeria.
-* [ ] **7.15 Polimento Visual (Fever Mode)**: Partículas e efeitos de alto nível.
-* [ ] **7.16 Integração do SDK de Monetização**: Plugins reais (AdMob/AppLovin).
-* [ ] **7.17 Modelo de Monetização Premium**: Versão paga sem anúncios.
-* [ ] **7.18 Polimento de Sombras e GPU**: Estudo de sombras premium (Foco Térmico).
-* [ ] **7.19 Lembrete de Inatividade**: Feedback visual e sonoro para jogadores parados.
-* [ ] **7.20 Poder de Match Automático via Ads**: Botão flutuante pós-inatividade.
-* [ ] **7.21 Smart Hint V3 (Segurança e Camadas)**: Algoritmo profundo que evita Game Over e analisa obstruções espaciais 3D nas camadas inferiores.
-* [ ] **7.22 Recompensa de "Caminho Perfeito"**: Feedback para jogadas que seguem a rota original do algoritmo reverso.
+* [ ] **7.1 Meta-Jogo (Sistema de Coleção)** — **[Gemini 3.1 Pro (High)]**: Área de galeria onde o jogador desbloqueia novos tipos de gatos.
+* [ ] **7.2 Progressão Temática e Expansão de Peças** — **[Gemini 3 Flash]**: Mudança de tema visual e introdução de novas peças baseadas em raças de gatos.
+* [ ] **7.3 Expansão do Catálogo de Formatos** — **[Gemini 3.1 Pro (High)]**: Criação de novos layouts (Fases Respiro vs. Fases Boss).
+* [ ] **7.4 Recursos Visuais Finais** — **[Gemini 3 Flash]**: Assets definitivos, Splash Screens e Logos.
+* [ ] **7.5 UI e Menus** — **[Gemini 3.1 Pro (Low)]**: Menu de Título, Sistema de Loading e retrabalho final dos popups.
+* [ ] **7.6 Onboarding e Tutorial Dinâmico** — **[Gemini 3.1 Pro (High)]**: Mini-tabuleiro interativo pré-nível 1 ensinando bloqueio lateral e regra 55/45. No Nível 1: Poderes Undo e Hint gratuitos (Shuffle travado). Exibir aviso de segurança ("Cuidado para não encher os espaços") na primeira vez que o jogador acumular 3 peças sem match no slot.
+* [ ] **7.7 Funcionalidades Online** — **[Claude Sonnet 4.6 (Thinking)]**: Placares globais/amigos.
+* [ ] **7.8 Sistema de Recompensas por Marcos** — **[Gemini 3.1 Pro (High)]**: Conceder cargas permanentes de poderes ao completar milestones.
+* [ ] **7.9 Persistência de Sessão** — **[Gemini 3.1 Pro (High)]**: Cloud Save e Local State.
+* [x] **7.10 Nova Animação de Match**: Integrada com sucesso na Fase 6.6.
+* [ ] **7.11 Feedback Tátil (Haptic Feedback)** — **[Gemini 3 Flash]**: Vibrações sincronizadas (Android/iOS).
+* [ ] **7.12 Modos de Jogo Alternativos** — **[Claude Sonnet 4.6 (Thinking)]**: Gatos Dourados, Time Attack, Modo Memória.
+* [ ] **7.13 Recompensas e Vitórias Diárias** — **[Gemini 3.1 Pro (High)]**: Sistema de login diário.
+* [ ] **7.14 Sistema de Moeda In-Game** — **[Gemini 3.1 Pro (High)]**: "Soft Currency" para a Galeria.
+* [ ] **7.15 Polimento Visual (Fever Mode)** — **[Gemini 3 Flash]**: Partículas no "Fever Mode" para níveis altos de combo.
+* [ ] **7.16 Integração do SDK de Monetização** — **[Gemini 3.1 Pro (High)]**: Substituição do simulador pelo plugin real (AdMob/AppLovin).
+* [ ] **7.17 Modelo de Monetização Premium** — **[Gemini 3.1 Pro (High)]**: Versão paga para remoção de anúncios.
+* [ ] **7.18 Polimento de Sombras e GPU** — **[Gemini 3 Flash]**: Estudo de sombras premium sem custo excessivo de GPU (Foco Térmico pós Mega-Bake).
+* [ ] **7.19 Lembrete de Inatividade (Idle Reminder)** — **[Gemini 3.1 Pro (Low)]**: Acionar som indicativo e efeito visual (piscar) nos botões de Hint e Shuffle se o jogador ficar inativo.
+* [ ] **7.20 Poder de Match Automático via Ads** — **[Gemini 3.1 Pro (High)]**: Botão flutuante pós-inatividade para match automático.
+* [ ] **7.21 Smart Hint V3 (Segurança e Camadas)** — **[Claude Opus 4.6 (Thinking)]**: Evitar Game Over garantindo que a dica de tabuleiro só aconteça se houver `vagas >= 2`. Adicionar verificação algorítmica profunda para sugerir remoção de peças obstruindo pares na camada inferior (resolução espacial 3D).
+* [ ] **7.22 Desbloqueio Progressivo de Power-ups** — **[Gemini 3.1 Pro (Low)]**: Travar o uso do Shuffle no início do jogo e liberá-lo na HUD apenas após o Nível 10, criando sensação de progressão e evitando sobrecarga cognitiva no jogador iniciante.
+* [ ] **7.23 Perspectiva 3D Dinâmica (Offsets Variáveis)** — **[Gemini 3.1 Pro (High)]**: Refatorar `Z_OFFSET_X` e `Z_OFFSET_Y` no `BoardManager` de `const` para `var`. Permitir que a geração procedural crie layouts com ângulos de câmera variados (ex: torres vistas mais de cima ou mais de lado).
 
 ---
 
 ## 🚨 2. Problemas Conhecidos e Prioridades Críticas
-* **P0 - Match Zumbi (Race Condition)**: Peças idênticas no slot não resolvem após reiniciar o nível via menu (Foco 6.12).
-* **P0 - Vitória Fantasma**: Nível não termina com tabuleiro limpo (Foco 6.12).
-* **P1 - Alinhamento Z**: Ajuste fino de `Z_OFFSET_X/Y` pendente (Status: Estável).
+* **P0 - Match Zumbi (Race Condition)**: Peças idênticas entram no slot e não disparam a resolução do match após reiniciar o nível via menu (Foco do item 6.12).
+* **P0 - Vitória Fantasma**: Tabuleiro limpo e inventário vazio, porém o nível não termina pois instâncias residuais seguram as condições de vitória (Foco do item 6.12).
+* **Alinhamento Z**: Ajuste fino de `Z_OFFSET_X/Y` pendente para perfeccionismo visual (Fase 6.17 Final).
 
 ---
 
@@ -109,19 +113,28 @@
 | Mundo | Faixa de Níveis | Tema Atmosférico | Arquivos (res://assets/audio/bgm/) |
 | :--- | :--- | :--- | :--- |
 | **0** | 1-10, 31-40... | Floresta (Forest) | `bgs_forest_1` a `4` |
-| **1** | 11-20, 41-50... | Casa Zen (House) | `bgs_house_1` e `2` |
+| **1** | 11-20, 41-50... | Casa Zen (House) | `bgs_house_1` |
 | **2** | 21-30, 51-60... | Jardim de Chuva (Rain) | `bgs_rain_1` e `2` |
 
----
-
-## 📱 4. Status de Hardware (POCO X3 NFC / S25 Benchmark)
-* **Performance**: 60 FPS Estável (GPU Otimizada via Mega Bake).
-* **Eficiência Térmica**: Melhorada (Fim da montagem dinâmica de camadas).
-* **Proporção**: Portrait-First (Otimizado para Pillar de 6 colunas).
+* **Lógica de Playlist**: Shuffle inteligente dentro do tema do mundo. (PENDENTE)
+* **Persistência**: O áudio não reinicia ao carregar novos níveis do mesmo mundo.
+* **Contínuo e Sem Fim**: Trilhas sonoras encadeadas em loop infinito, sem espaços de silêncio (crossfade suave ja existe nas faixas).
 
 ---
 
-## 🧠 5. Configuração de Modelos (Antigravity)
-* **Gemini 3 Flash**: Tweaks visuais, UI simples, Áudio e Haptics.
-* **Gemini 3.1 Pro (High)**: Mecânicas Core, Race Conditions (P0) e SDKs.
-* **Claude Sonnet/Opus 4.6**: Refatorações sistêmicas (Fase R) e Algoritmos Matemáticos.
+## 📱 4. Status de Hardware (Benchmark)
+* **Portrait-First**: Design otimizado para smartphones (Pillar de 6 colunas).
+* **CPU Status**: Otimizada (5min CPU / 20min Tela).
+* **Bateria Status**: Estável (1,5% / 20min Tela).
+* **FPS**: Travado em 60Hz para controle de estabilidade térmica testes: Galaxy S25.
+* **Monetização**: Sustentada por Ads (Emulação de Sucesso).
+* **FPS**: 60Hz Estável (Status: Concluído via Mega Bake) testes: POCO X3 NFC.
+
+---
+
+## 🧠 5. Modelos Disponíveis no Antigravity (Guia de Eficiência)
+Para economia de cota e precisão arquitetural, a execução de prompts deve sempre obedecer ao balanceamento abaixo:
+* **Gemini 3 Flash**: *Eficiência e Velocidade.* Ideal para substituições pontuais, lógica de UI simples, configuração de áudio, tweaks visuais e Haptic Feedback.
+* **Gemini 3.1 Pro (Low)**: *Interfaces e Lógica Leve.* Bom para lidar com estruturação de menus e eventos simples (ex: Idle Reminder).
+* **Gemini 3.1 Pro (High)**: *Resolução de Conflitos e Sistemas Base.* Otimizado para manipular mecânicas core, corrigir race conditions severas, implementar SDKs ou gerenciar APIs locais.
+* **Claude Sonnet 4.6 (Thinking)**: *Arquitetura Profunda.* Reservado estritamente para grandes refatorações sistêmicas (Fase R), Máquina de Estados (FSM) e integrações complexas.
