@@ -20,6 +20,10 @@ config/version="0.1.0"
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.6")
 
+[audio]
+
+buses/default_bus_layout="uid://b5s02qngd"
+
 [autoload]
 
 AudioManager="*res://scripts/AudioManager.gd"
@@ -28,9 +32,11 @@ AudioManager="*res://scripts/AudioManager.gd"
 
 window/size/viewport_width=720
 window/size/viewport_height=1280
+window/frame_pacing/android/enable_frame_pacing=false
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=1
+window/vsync/vsync_mode=0
 
 [input]
 
