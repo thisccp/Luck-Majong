@@ -241,4 +241,3 @@ focus_mode = 0
 flat = true
 
 [node name="AdPopup" parent="PopupLayer" unique_id=490014247 instance=ExtResource("9_adpopup")]
-
