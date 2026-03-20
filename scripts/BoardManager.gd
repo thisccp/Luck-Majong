@@ -17,7 +17,7 @@ const TILE_W := 108.0
 const TILE_H := 130.0
 
 ## Distância real da grade horizontal. Calibrada para encoste perfeito das faces (metade de 98px)
-const CELL_W := 44.6  
+const CELL_W := 43.7  
 ## Distância real da grade vertical. Calibrada para sobreposição consistente na mesma altura Z
 const CELL_H := 58.0  
 
