@@ -66,11 +66,6 @@ var sfx_shuffle: AudioStream = preload("res://assets/audio/sfx/shuffle_click.wav
 var sfx_all_btn: AudioStream = preload("res://assets/audio/sfx/all_btn.wav")
 var sfx_popup_open: AudioStream = preload("res://assets/audio/sfx/popup_open.wav")
 var sfx_match_impact: AudioStream = preload("res://assets/audio/sfx/tile_match.wav")  # Impacto do choque de match
-var sfx_win_1: AudioStream = preload("res://assets/audio/sfx/win_popup_1.wav")
-var sfx_win_2: AudioStream = preload("res://assets/audio/sfx/win_popup_2.wav")
-var sfx_win_3: AudioStream = preload("res://assets/audio/sfx/win_popup_3.wav")
-var sfx_lose_1: AudioStream = preload("res://assets/audio/sfx/lose_popup_1.wav")
-var sfx_lose_2: AudioStream = preload("res://assets/audio/sfx/lose_popup_2.wav")
 var sfx_combo: AudioStream = preload("res://assets/audio/sfx/combo.wav")
 var sfx_fever: AudioStream = preload("res://assets/audio/sfx/fever.wav")
 
@@ -78,13 +73,7 @@ var _last_combo_sfx_time: int = 0
 var _last_fever_sfx_time: int = 0
 const AUDIO_COOLDOWN_MS: int = 150
 
-var _win_sfx_list: Array[AudioStream] = []
-var _last_win_sfx: AudioStream = null
-
-var _lose_sfx_list: Array[AudioStream] = []
-var _last_lose_sfx: AudioStream = null
-
-# ─── Ads System ──────────────────────────────────────────────────────
+# --- Ads System ---
 var ad_requester: String = ""
 @onready var _ad_popup: ColorRect = $PopupLayer/AdPopup
 var _hint_label: Label
@@ -131,9 +120,6 @@ func _ready() -> void:
 	add_child(_effect_layer)
 
 	AudioManager.update_ambient(current_level)
-	
-	_win_sfx_list = [sfx_win_1, sfx_win_2, sfx_win_3]
-	_lose_sfx_list = [sfx_lose_1, sfx_lose_2]
 	
 	_btn_shuffle.pressed.connect(_on_shuffle_pressed)
 	_btn_hint.pressed.connect(_on_hint_pressed)
@@ -605,7 +591,7 @@ func _on_tile_pressed(tile: MahjongTile) -> void:
 		return
 		
 	# SFX: Peça livre clicada com sucesso
-	AudioManager.play_sfx(sfx_tile_click, 1.0, -5.0)
+	AudioManager.play_sfx(sfx_tile_click, 1.0, -4.0)
 		
 	_add_to_inventory(tile)
 
@@ -961,7 +947,7 @@ func _executar_animacao_choque_e_desintegracao(peca_a: MahjongTile, peca_b: Mahj
 		# ATO 3: REAÇÃO — no frame exato do impacto
 		impact.finished.connect(func():
 			# SFX de colisão no momento do contato
-			AudioManager.play_sfx(sfx_match_impact, 1.35, -5.0)
+			AudioManager.play_sfx(sfx_match_impact, 1.35, -2.0)
 
 			# Contador compartilhado entre as 2 peças (closure por referência)
 			var done_count := [0]
@@ -1019,16 +1005,6 @@ func _reorganize_slots() -> void:
 # ═══════════════════════════════════════════════════════════════════════
 
 func _show_game_over_popup() -> void:
-	var available_sfx: Array[AudioStream] = []
-	for sfx in _lose_sfx_list:
-		if sfx != _last_lose_sfx:
-			available_sfx.append(sfx)
-			
-	if not available_sfx.is_empty():
-		var chosen_sfx: AudioStream = available_sfx.pick_random()
-		_last_lose_sfx = chosen_sfx
-		AudioManager.play_sfx(chosen_sfx, 1.0, -18.0)
-
 	_game_paused = true
 	_dim_overlay.visible = true
 	_dim_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -1449,16 +1425,6 @@ func _on_shuffle_pressed() -> void:
 # ═══════════════════════════════════════════════════════════════════════
 
 func _show_win_popup() -> void:
-	var available_sfx: Array[AudioStream] = []
-	for sfx in _win_sfx_list:
-		if sfx != _last_win_sfx:
-			available_sfx.append(sfx)
-			
-	if not available_sfx.is_empty():
-		var chosen_sfx: AudioStream = available_sfx.pick_random()
-		_last_win_sfx = chosen_sfx
-		AudioManager.play_sfx(chosen_sfx, 1.0, -8.0)
-
 	current_level += 1
 	var btn = $PopupLayer/WinPopup/PlayAgainBtn
 	var home_btn = $PopupLayer/WinPopup/HomeBtn
