@@ -16,14 +16,18 @@ const TILE_W := 108.0
 ## Altura visual do 'carimbo' (inclui a madeira + transparência da sombra inferior)
 const TILE_H := 130.0
 
-## Distância real da grade horizontal. Calibrada para o 'Beijo de Pixel' entre madeiras
-const CELL_W := 44.0  
-## Distância real da grade vertical. Calibrada para evitar sobreposição excessiva no mesmo nível
+## Distância real da grade horizontal. Calibrada para encoste perfeito das faces (metade de 98px)
+const CELL_W := 44.6  
+## Distância real da grade vertical. Calibrada para sobreposição consistente na mesma altura Z
 const CELL_H := 58.0  
 
-## Offset 3D por camada Z (Efeito de escada/cascata entre andares)
-const Z_OFFSET_X := -18.0  # Deslocamento lateral para cada nível de altura
-const Z_OFFSET_Y := -35.0  # Deslocamento vertical para revelar a bordinha da peça de baixo
+## Offset 3D por camada Z (Estilo Bloco Sólido - simulando a espessura física exata da madeira)
+const Z_OFFSET_X := -8.0   # Deslocamento lateral para cada andar superior
+const Z_OFFSET_Y := -14.0  # Deslocamento vertical para cada andar superior
+
+## Dimensões restritas da Face superior (área clicável e intersecção lógica)
+const FACE_W := 98.0
+const FACE_H := 116.0
 
 ## Número de tipos de estampa (Gatos disponíveis no pool)
 const NUM_TYPES := 20
@@ -98,12 +102,12 @@ func recalculate_all_blocking() -> void:
 		tile_rects[tile] = Rect2(
 			tile.grid_pos.x * CELL_W + tile.grid_pos.z * Z_OFFSET_X + tile.pixel_offset.x,
 			tile.grid_pos.y * CELL_H + tile.grid_pos.z * Z_OFFSET_Y + tile.pixel_offset.y,
-			TILE_W, TILE_H
+			FACE_W, FACE_H
 		)
 
 	for tile in active:
 		var tile_rect: Rect2 = tile_rects[tile]
-		var tile_area = TILE_W * TILE_H
+		var face_area = FACE_W * FACE_H
 		var total_overlap = 0.0
 		var is_blocked_above = false
 		
@@ -121,7 +125,7 @@ func recalculate_all_blocking() -> void:
 			var intersection := tile_rect.intersection(other_rect)
 			total_overlap += intersection.get_area()
 			
-			if total_overlap / tile_area >= 0.45:
+			if total_overlap / face_area >= 0.25:
 				is_blocked_above = true
 				break
 		
@@ -354,6 +358,7 @@ func _inject_boost_pairs(slots: Array[Vector3i], pairs_amount: int) -> void:
 	Encontra posições válidas suportadas no layout para socar pares a mais (aumentando a pirâmide atômica).
 	As injeções buscam o Z atual de um bloco base e injetam em Z+1 sobre células seguras validas.
 	"""
+	return # CONGELAMENTO PROCEDURAL: Garante que os layouts permaneçam estritamente no formato base projetado.
 	if pairs_amount <= 0: return
 	var injection_count = pairs_amount * 2
 	
@@ -631,13 +636,13 @@ func _find_free_slots_for_generation(
 	var free: Array[Vector3i] = []
 	
 	for slot: Vector3i in remaining:
-		# --- Bloqueio por sobreposição — Regra 90/10 (pixel-based) ---
+		# --- Bloqueio por sobreposição — Regra 65/35 (pixel-based com Face) ---
 		var tile_rect := Rect2(
 			slot.x * CELL_W + slot.z * Z_OFFSET_X,
 			slot.y * CELL_H + slot.z * Z_OFFSET_Y,
-			TILE_W, TILE_H
+			FACE_W, FACE_H
 		)
-		var tile_area := TILE_W * TILE_H
+		var face_area := FACE_W * FACE_H
 		var total_overlap := 0.0
 		
 		for rem_pos: Vector3i in remaining:
@@ -647,12 +652,12 @@ func _find_free_slots_for_generation(
 			var other_rect := Rect2(
 				rem_pos.x * CELL_W + rem_pos.z * Z_OFFSET_X,
 				rem_pos.y * CELL_H + rem_pos.z * Z_OFFSET_Y,
-				TILE_W, TILE_H
+				FACE_W, FACE_H
 			)
 			var intersection := tile_rect.intersection(other_rect)
 			total_overlap += intersection.get_area()
 		
-		var blocked_above := (total_overlap / tile_area) >= 0.45
+		var blocked_above := (total_overlap / face_area) >= 0.35
 		if blocked_above:
 			continue
 		

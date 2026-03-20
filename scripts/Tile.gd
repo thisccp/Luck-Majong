@@ -111,9 +111,9 @@ func _build_visuals() -> void:
 	_collision_shape = CollisionShape2D.new()
 	var shape := RectangleShape2D.new()
 	
-	# Dimensões de hit reduzidas do tamanho puro da tile para descontar sombra externa do png.
-	var face_useful_w: float = tile_size.x * 0.90
-	var face_useful_h: float = tile_size.y * 0.90
+	# Dimensões de hit restritas especificamente à área "Face" da peça (Bloking Solid)
+	var face_useful_w: float = 98.0 * 0.95
+	var face_useful_h: float = 116.0 * 0.95
 	
 	# Adiciona 10 pixels extras
 	var hitbox_padding := 10.0 
