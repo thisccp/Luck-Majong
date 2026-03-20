@@ -66,9 +66,8 @@
     * [x] **Blindagem de UI**: Uso de Z-Index/CanvasLayer no Menu de Pausa para cobrir peças nos slots.
 * [x] **6.18 Calibragem de Proporção (Peças "Gordinhas")** — **[Gemini 3 Flash]**: Concluído. Proporção final ajustada para 108x130 (Aspect Ratio ~1.2) com CELL_H em 58.0, restaurando a silhueta premium das peças Mega Bake.
 * [x] **6.12 Vacina do Match & Vitória Física (Prioridade 0)** — **[Gemini 3.1 Pro (High)]**: Concluído. Resolvido o bug crítico de "Match Zumbi" e "Vitória Fantasma" que ocorria ao reiniciar a partida. A causa raiz era uma ilusão de ótica gerada pelo Object Pooling (Fase 6.8), onde as peças recicladas não atualizavam suas texturas nativas. Corrigido com a chamada de `update_sticker()` no setup do `Tile.gd`, garantindo sincronia perfeita entre lógica e renderização.Implementar checagem rigorosa de instâncias físicas e casting seguro de IDs.
-* [ ] **6.14 Revisão de Áudio (Limpeza de Fim de Jogo)** — **[Gemini 3 Flash]**: Remoção completa dos efeitos sonoros felinos (miados) disparados ao abrir as telas de Vitória e Game Over, garantindo que o fim da partida seja limpo e não conflite com a futura trilha de conclusão.
-* [ ] **6.15 Sistema de Áudio Zen Procedural e Barramentos (Buses)** — **[Gemini 3.1 Pro High]**: *Substitui e atualiza as antigas etapas de background e efeitos felinos.* Implementação de áudio dinâmico e otimizado utilizando Audio Buses nativos do Godot 4.6 (`Ambient`, `Cats`, `SFX`). Inclui gerador procedural de miados/ronronados aleatórios (.wav leves) sobrepostos a faixas contínuas de fundo (.ogg), permitindo que o jogador silencie cada camada de forma independente.
-* [ ] **6.16 Fever Mode Dinâmico (Áudio e Efeitos)** — **[Gemini 3 Flash]**: Escalonar complexidade sonora e impacto visual do Fever Mode baseado progressivamente no Tier atingido.
+* [x] **6.14 Revisão de Áudio (Limpeza de Fim de Jogo)** — **[Gemini 3 Flash]**: Remoção completa dos efeitos sonoros felinos (miados) disparados ao abrir as telas de Vitória e Game Over, garantindo que o fim da partida seja limpo e não conflite com a futura trilha de conclusão.
+* [x] **6.15 Sistema de Áudio Zen Procedural e Barramentos (Buses)** — **[Gemini 3.1 Pro High]**: *Substitui e atualiza as antigas etapas de background e efeitos felinos.* Implementação de áudio dinâmico e otimizado utilizando Audio Buses nativos do Godot 4.6 (`Ambient`, `Cats`, `SFX`). Inclui gerador procedural de miados/ronronados aleatórios (.wav leves) sobrepostos a faixas contínuas de fundo (.ogg), permitindo que o jogador silencie cada camada de forma independente.
 * [x] **6.19 Refatoração da Perspectiva Isométrica (Estilo Bloco Sólido)** — **[Gemini 3.1 Pro (High)]**: *Substitui a antiga auditoria de oclusão.* Redesenho da geometria da grade (`CELL` e `Z_OFFSET` no BoardManager) para imitar a perspectiva de blocos sólidos empilhados (referência: Vita Mahjong), eliminando a ilusão de sobreposição na mesma camada. Inclui a recalibragem do `Auto-Framing` para suportar o novo tamanho físico do tabuleiro e a atualização definitiva da regra de oclusão vertical e lateral baseada na nova grade.
 * [ ] **6.20 Homologação Multi-Device (Aspect Ratios)** — **[Engenheiro de QA]**: Bateria de testes de responsividade simulando 3 perfis extremos de tela no Godot (Ultrawide 20:9, Padrão 16:9 e Tablet 4:3). Validação do comportamento das âncoras da HUD e da escala matemática do `Auto-Framing` do BoardManager para garantir experiência idêntica em qualquer aparelho geométrico.
 * [ ] **6.21 Polimento Visual dos Sprites (Sombra Global / Oclusão)** — **[Manual / Photoshop]**: *Adição de uma sombra suave e uniforme contornando 100% da borda do bloco (estilo Vita Mahjong).*
@@ -92,7 +91,7 @@
     * **Curva de Pacing (Respiro vs. Boss):** * *Fases Respiro:* Layouts mais espalhados, planos (poucas camadas Z) e com alta taxa de peças expostas, focados em relaxamento e fluxo rápido.
         * *Fases Boss:* Layouts densos, com estruturas verticais altas (Z=4 ou Z=5), exigindo escavação estratégica e memória, testando o limite da engine de oclusão.
 * [ ] **7.4 Recursos Visuais Finais** — **[Gemini 3 Flash]**: Assets definitivos, Splash Screens e Logos.
-* [ ] **7.5 UI e Menus** — **[Gemini 3.1 Pro (Low)]**: Menu de Título, Sistema de Loading e retrabalho final dos popups.
+* [ ] **7.5 UI e Menus** — **[Gemini 3.1 Pro (Low)]**: Menu de Título, Sistema de Loading e retrabalho final dos popups, adição de 4 novos botões para ligar/desligar, bgm, gatos, sfx de peças, combo/fever e vibração.
 * [ ] **7.6 Onboarding e Tutorial Dinâmico** — **[Gemini 3.1 Pro (High)]**: Mini-tabuleiro interativo pré-nível 1 ensinando bloqueio lateral e regra 55/45. No Nível 1: Poderes Undo e Hint gratuitos (Shuffle travado). Exibir aviso de segurança ("Cuidado para não encher os espaços") na primeira vez que o jogador acumular 3 peças sem match no slot.
 * [ ] **7.7 Funcionalidades Online** — **[Claude Sonnet 4.6 (Thinking)]**: Placares globais/amigos.
 * [ ] **7.8 Sistema de Recompensas por Marcos** — **[Gemini 3.1 Pro (High)]**: Conceder cargas permanentes de poderes ao completar milestones.
@@ -114,6 +113,11 @@
 * [ ] **7.24 Polimento de Game Feel (Tempos de Animação)** — **[Gemini 3 Flash]** *(Prioridade Baixa)*: Ajuste fino nas curvas e durações dos `Tweens`. Reduzir o tempo de voo das peças para a barra de inventário (garantindo que o input não fique travado) e acelerar a animação de fusão/match (afastamento, batida e sumiço) para deixar a jogabilidade mais ágil, "snappy" e recompensadora para jogadores rápidos.
 
 * [ ] **B.1 Monitor de Performance HUD (Contingência)** — **[Engenheiro de QA]**: Criação de um script "Raio-X" descartável (`DebugMonitor.gd`) para ser instanciado no CanvasLayer superior. Deve exibir FPS atual e consumo de Memória RAM na tela do aparelho físico, caso sejam reportados gargalos de lentidão ou aquecimento durante as fases finais de teste.
+
+---
+## 🚨 Etapas descontinuadas temporariamente
+
+**6.16 Fever Mode Dinâmico (Áudio e Efeitos)** — **[Gemini 3 Flash]**: Escalonar complexidade sonora e impacto visual do Fever Mode baseado progressivamente no Tier atingido.
 
 ---
 
