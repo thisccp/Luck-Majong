@@ -1,8 +1,8 @@
 # 🐾 Neko Mahjong - Documentação Técnica Oficial
 
-**Versão:** 84.4
-**Última Atualização:** 18/03/2026
-**Status Atual:** Fase de Otimização Mobile CONCLUÍDA (Arquitetura Mega Bake)
+**Versão:** 84.5
+**Última Atualização:** 20/03/2026
+**Status Atual:** Vacina do Match & Vitória Física CONCLUÍDA (Arquitetura Mega Bake)
 
 ---
 
