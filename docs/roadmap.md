@@ -48,7 +48,7 @@
 * [x] **5.11 Auto-Framing (Zoom Dinâmico)**: Ajuste automático do tamanho das peças/câmera baseado no layout gerado proceduralmente, com travas matemáticas (`MAX_TILE_SCALE` e `MIN_TILE_SCALE`) para garantir proporções perfeitas na tela.
 * [x] **5.12 Sistema de Revive F2P (Bypass Preparatório)**: Implementada a lógica de Revive com 2 usos gratuitos. A opção de Ads atua com bypass direto (sem popup genérica) revivendo a peça imediatamente, mantendo a arquitetura pronta para a injeção do SDK de anúncios reais.
 
-### 🔄 Fase 6: Áudio, Performance Mobile e Correções Críticas (Em Andamento)
+### 🔄 Fase 6: Áudio, Performance Mobile e Correções Críticas
 * [x] **6.1 - 6.5**: Gerenciador de Áudio, SFX do Tabuleiro, Juicy Buttons e SFX de Interface.
 * [x] **6.6 Sincronia de Áudio e Impacto Visual**: Animação de choque físico sincronizada com o som de pedras.
 * [x] **6.7 SFX de Progressão**: Gatilhos sonoros para Tiers de Combo (ciclos de 5) e Fever Mode.
@@ -69,13 +69,13 @@
 * [x] **6.14 Revisão de Áudio (Limpeza de Fim de Jogo)** — **[Gemini 3 Flash]**: Remoção completa dos efeitos sonoros felinos (miados) disparados ao abrir as telas de Vitória e Game Over, garantindo que o fim da partida seja limpo e não conflite com a futura trilha de conclusão.
 * [x] **6.15 Sistema de Áudio Zen Procedural e Barramentos (Buses)** — **[Gemini 3.1 Pro High]**: *Substitui e atualiza as antigas etapas de background e efeitos felinos.* Implementação de áudio dinâmico e otimizado utilizando Audio Buses nativos do Godot 4.6 (`Ambient`, `Cats`, `SFX`). Inclui gerador procedural de miados/ronronados aleatórios (.wav leves) sobrepostos a faixas contínuas de fundo (.ogg), permitindo que o jogador silencie cada camada de forma independente.
 * [x] **6.19 Refatoração da Perspectiva Isométrica (Estilo Bloco Sólido)** — **[Gemini 3.1 Pro (High)]**: *Substitui a antiga auditoria de oclusão.* Redesenho da geometria da grade (`CELL` e `Z_OFFSET` no BoardManager) para imitar a perspectiva de blocos sólidos empilhados (referência: Vita Mahjong), eliminando a ilusão de sobreposição na mesma camada. Inclui a recalibragem do `Auto-Framing` para suportar o novo tamanho físico do tabuleiro e a atualização definitiva da regra de oclusão vertical e lateral baseada na nova grade.
-* [ ] **6.20 Homologação Multi-Device (Aspect Ratios)** — **[Engenheiro de QA]**: Bateria de testes de responsividade simulando 3 perfis extremos de tela no Godot (Ultrawide 20:9, Padrão 16:9 e Tablet 4:3). Validação do comportamento das âncoras da HUD e da escala matemática do `Auto-Framing` do BoardManager para garantir experiência idêntica em qualquer aparelho geométrico.
-* [ ] **6.21 Polimento Visual dos Sprites (Sombra Global / Oclusão)** — **[Manual / Photoshop]**: *Adição de uma sombra suave e uniforme contornando 100% da borda do bloco (estilo Vita Mahjong).*
+* [x] **6.20 Homologação Multi-Device (Aspect Ratios)** — **[Engenheiro de QA]**: Bateria de testes de responsividade simulando 3 perfis extremos de tela no Godot (Ultrawide 20:9, Padrão 16:9 e Tablet 4:3). Validação do comportamento das âncoras da HUD e da escala matemática do `Auto-Framing` do BoardManager para garantir experiência idêntica em qualquer aparelho geométrico.
+* [x] **6.21 Polimento Visual dos Sprites (Sombra Global / Oclusão)** — **[Manual / Photoshop]**: *Adição de uma sombra suave e uniforme contornando 100% da borda do bloco (estilo Vita Mahjong).*
     * **Objetivo:** Dar "peso" físico às peças e resolver a ambiguidade visual de profundidade (Z-Index).
     * **Mecânica Visual:** Peças na mesma camada que se encostam terão suas sombras sobrepostas/mescladas, reforçando a ideia de "bloco contínuo e plano". Peças em camadas superiores projetarão essa sombra diretamente sobre a face clara das peças abaixo, criando um contraste imediato que o olho humano reconhece como diferença de altura.
     * **Ação:** Editar o PNG base da peça no Photoshop, exportar e substituir na engine (não requer alteração de código, apenas calibração caso o tamanho total do PNG mude).
 
-### 🏗️ Fase R: Refatoração e Desacoplamento Arquitetural (Estratégico)
+### 🏗️ Fase R: Refatoração e Desacoplamento Arquitetural (Estratégico) (EM ANDAMENTO)
 * [ ] **R.1 Extração de Responsabilidades** — **[Claude Sonnet 4.6 (Thinking)]**: Mover Score, Inventário e Ads para Singletons/Nodes independentes.
 * [ ] **R.2 Finite State Machine (FSM)** — **[Claude Opus 4.6 (Thinking)]**: Controle rígido de estados (IDLE, PIECE_FLYING, MATCH_ANIM, PAUSED).
 * [ ] **R.3 Barramento de Sinais** — **[Gemini 3.1 Pro (High)]**: Substituição de caminhos diretos (`get_node`) por sinais para UI modular.
