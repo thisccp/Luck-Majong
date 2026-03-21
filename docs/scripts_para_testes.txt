@@ -1,0 +1,38 @@
+COLOCAR NUMEROS NAS PEÇAS PARA TESTE DE CAMADA E REGRAS.
+
+GDScript
+	# ─── FERRAMENTA DE QA BLINDADA (DEBUG DE CAMADAS) ────────────────────────
+	# Verifica se já existe um debug_label para não duplicar se der reload
+	
+	var debug_z_label: Label
+	if debug_z_label:
+		debug_z_label.queue_free()
+		
+	# Criar o nó visual
+	debug_z_label = Label.new()
+	# Forçar a centralização do pivô
+	debug_z_label.anchors_preset = Control.PRESET_CENTER
+	
+	# Usar um tamanho fixo gigante para garantir visibilidade
+	debug_z_label.custom_minimum_size = Vector2(100, 100)
+	debug_z_label.add_theme_font_size_override("font_size", 60)
+	
+	# Cores agressivas para Debug
+	debug_z_label.add_theme_color_override("font_color", Color.RED)
+	debug_z_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	debug_z_label.add_theme_constant_override("outline_size", 15)
+	
+	debug_z_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	debug_z_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	
+	# Centralizar na peça (peças centradas tem ponto 0,0 no meio)
+	debug_z_label.position = Vector2(-50, -60) # Ajuste fino para a testa do gato
+	
+	# Definir o Z-Index do NÓ para garantir que fique em cima da arte do gato
+	debug_z_label.top_level = false
+	debug_z_label.z_index = 50
+	
+	add_child(debug_z_label)
+	
+	# Definir o texto AGORA, garantindo que o grid_pos.z já foi populado pelo setup externo
+	debug_z_label.text = str(grid_pos.z)
