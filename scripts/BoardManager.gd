@@ -17,13 +17,13 @@ const TILE_W := 108.0
 const TILE_H := 130.0
 
 ## Distância real da grade horizontal. Calibrada para encoste perfeito das faces (metade de 98px)
-const CELL_W := 43.7  
+const CELL_W := 43.7
 ## Distância real da grade vertical. Calibrada para sobreposição consistente na mesma altura Z
-const CELL_H := 58.0  
+const CELL_H := 58.0
 
 ## Offset 3D por camada Z (Estilo Bloco Sólido - simulando a espessura física exata da madeira)
-const Z_OFFSET_X := -8.0   # Deslocamento lateral para cada andar superior
-const Z_OFFSET_Y := -14.0  # Deslocamento vertical para cada andar superior
+const Z_OFFSET_X := -8.0 # Deslocamento lateral para cada andar superior
+const Z_OFFSET_Y := -14.0 # Deslocamento vertical para cada andar superior
 
 ## Dimensões restritas da Face superior (área clicável e intersecção lógica)
 const FACE_W := 98.0
@@ -118,7 +118,7 @@ func recalculate_all_blocking() -> void:
 			var is_above: bool = (other.grid_pos.z > tile.grid_pos.z)
 			var is_visually_in_front: bool = (other.grid_pos.z == tile.grid_pos.z and other.position.y > tile.position.y)
 			
-			if not (is_above or is_visually_in_front): 
+			if not (is_above or is_visually_in_front):
 				continue
 			
 			var other_rect: Rect2 = tile_rects[other]
@@ -321,7 +321,7 @@ func get_level_profile(level: int) -> Dictionary:
 	if cur_phase >= 1 and cur_phase <= 4:
 		# Fase 1~4: Fácil / Aquecimento
 		variety = 6 + (cur_phase * 2) # N1=8 ... N4=14
-		boost_pairs = randi() % 2     # 0 a 1 pares físicos a mais
+		boost_pairs = randi() % 2 # 0 a 1 pares físicos a mais
 	elif cur_phase == 5:
 		# Fase 5: Pico Médio (Aumento drástico base)
 		variety = 14
@@ -333,11 +333,11 @@ func get_level_profile(level: int) -> Dictionary:
 	elif cur_phase >= 7 and cur_phase <= 9:
 		# Fase 7~9: Escalada rumo ao Boss
 		variety = 12 + ((cur_phase - 6) * 1) # N7=13 ... N9=15
-		boost_pairs = randi() % 2 + 1        # 1 a 2 pares extras
+		boost_pairs = randi() % 2 + 1 # 1 a 2 pares extras
 	elif cur_phase == 10:
 		# Fase 10: Boss
 		variety = min(18 + randi() % 3, NUM_TYPES) # 18 a 20 variações de gatos (tensão altíssima de pareamento falso no inventário)
-		boost_pairs = 3 + randi() % 2              # 3 ou 4 pares inteiros a mais fisicamente pendurados em Z acima
+		boost_pairs = 3 + randi() % 2 # 3 ou 4 pares inteiros a mais fisicamente pendurados em Z acima
 		
 	# Escalada infinita pós mundo 0
 	variety = clampi(variety + (world_index * 2), 1, NUM_TYPES)
@@ -381,7 +381,7 @@ func _inject_boost_pairs(slots: Array[Vector3i], pairs_amount: int) -> void:
 			var left_support = map_temp.has(Vector3i(pos.x - 2, pos.y, pos.z))
 			var right_support = map_temp.has(Vector3i(pos.x + 2, pos.y, pos.z))
 			# Permite injetar Z+1 se ancorar no bloco e tiver amigos vizinhos da mesma base (espalhamento orgânico)
-			if left_support or right_support or randf() > 0.6: 
+			if left_support or right_support or randf() > 0.6:
 				possible_spawns.append(inject_pos)
 			
 	possible_spawns.shuffle()
@@ -490,16 +490,16 @@ func _load_shape_pyramid() -> Array[Vector3i]:
 	"""Base subindo gradativamente até Z=4."""
 	var slots: Array[Vector3i] = []
 	# Z=0 (6 colunas)
-	for x in [0,2,4,6,8,10]:
+	for x in [0, 2, 4, 6, 8, 10]:
 		for y in range(0, 13, 2): slots.append(Vector3i(x, y, 0))
 	# Z=1 (4 colunas centrais)
-	for x in [2,4,6,8]:
+	for x in [2, 4, 6, 8]:
 		for y in range(2, 11, 2): slots.append(Vector3i(x, y, 1))
 	# Z=2 (2 colunas centrais)
-	for x in [4,6]:
+	for x in [4, 6]:
 		for y in range(4, 9, 2): slots.append(Vector3i(x, y, 2))
 	# Z=3 (2 colunas centrais)
-	for x in [4,6]:
+	for x in [4, 6]:
 		for y in range(5, 8, 2): slots.append(Vector3i(x, y, 3))
 	# Z=4 
 	slots.append(Vector3i(4, 6, 4))
@@ -511,19 +511,19 @@ func _load_shape_twin_peaks() -> Array[Vector3i]:
 	"""Duas torres gigantes com Z=4, separadas e com meio vazio."""
 	var slots: Array[Vector3i] = []
 	# Z=0 conectando elas + pontes nas bordas
-	for x in [0,2,8,10]:
+	for x in [0, 2, 8, 10]:
 		for y in range(0, 13, 2): slots.append(Vector3i(x, y, 0))
-	for x in [4,6]:
-		for y in [0, 12]: slots.append(Vector3i(x, y, 0)) 
+	for x in [4, 6]:
+		for y in [0, 12]: slots.append(Vector3i(x, y, 0))
 		
 	# Z=1 (Torres)
-	for x in [0,2,8,10]:
+	for x in [0, 2, 8, 10]:
 		for y in range(2, 11, 2): slots.append(Vector3i(x, y, 1))
 	# Z=2
-	for x in [0,2,8,10]:
+	for x in [0, 2, 8, 10]:
 		for y in range(4, 9, 2): slots.append(Vector3i(x, y, 2))
 	# Z=3
-	for x in [0,2,8,10]:
+	for x in [0, 2, 8, 10]:
 		for y in range(5, 8, 2): slots.append(Vector3i(x, y, 3))
 	# Z=4
 	slots.append(Vector3i(0, 6, 4)); slots.append(Vector3i(2, 6, 4))
@@ -562,11 +562,11 @@ func _load_shape_flat_field() -> Array[Vector3i]:
 	"""Tabuleiro espalhado e raso. Limitado a ~58 peças."""
 	var slots: Array[Vector3i] = []
 	# Z=0
-	for x in [0,2,4,6,8,10]:
+	for x in [0, 2, 4, 6, 8, 10]:
 		for y in range(0, 14, 2): slots.append(Vector3i(x, y, 0))
 	
 	# Z=1 espalhadas 
-	for x in [2,4,6,8]:
+	for x in [2, 4, 6, 8]:
 		for y in [2, 6, 10]:
 			slots.append(Vector3i(x, y, 1))
 	return slots
@@ -723,10 +723,10 @@ func _test_overlap_layout() -> Dictionary:
 
 func _render_board() -> void:
 	"""Cria os nós de tile e posiciona no tabuleiro."""
-	await get_tree().process_frame  # Garante Sincronização de Frame para resize
+	await get_tree().process_frame # Garante Sincronização de Frame para resize
 	
 	_clear_children()
-	self.scale = Vector2.ONE  # Reset scale antes de recalcular
+	self.scale = Vector2.ONE # Reset scale antes de recalcular
 	self.position = Vector2.ZERO
 	
 	if tiles.is_empty():
@@ -918,7 +918,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	
 	if event.pressed:
 		# PRESS: Iniciar o Drag & Peek se possível
-		
 		# Query: encontrar TODAS as peças sob o ponto de clique
 		var space_state := get_world_2d().direct_space_state
 		var query := PhysicsPointQueryParameters2D.new()
@@ -940,7 +939,7 @@ func _unhandled_input(event: InputEvent) -> void:
 					topmost_tile = collider
 					
 		if topmost_tile == null:
-			return  # Nenhuma peça sob o cursor
+			return # Nenhuma peça sob o cursor
 			
 		get_viewport().set_input_as_handled()
 		
@@ -1002,3 +1001,22 @@ func _clear_children() -> void:
 			_tile_pool.push_back(child)
 		else:
 			child.queue_free()
+
+func fix_visual_sort_order() -> void:
+	"""Reordena os filhos na SceneTree para garantir a sobreposição 2.5D correta.
+	Corrige o bug visual do Undo/Revive onde peças voltavam por cima das vizinhas erradas."""
+	var active_nodes = []
+	for child in get_children():
+		if child is MahjongTile:
+			active_nodes.append(child)
+	
+	# Ordena usando a mesma lógica de quando o nível é gerado
+	active_nodes.sort_custom(func(a: MahjongTile, b: MahjongTile) -> bool:
+		if a.grid_pos.z != b.grid_pos.z: return a.grid_pos.z < b.grid_pos.z
+		if a.grid_pos.y != b.grid_pos.y: return a.grid_pos.y < b.grid_pos.y
+		return a.grid_pos.x < b.grid_pos.x
+	)
+	
+	# Aplica a nova ordem de desenho na engine
+	for i in range(active_nodes.size()):
+		move_child(active_nodes[i], i)

@@ -1136,6 +1136,7 @@ func _execute_revive_logic() -> void:
 					tile.get_node("CollisionShape").set_deferred("disabled", false)
 					
 				_board.update_tile_states()
+				_board.fix_visual_sort_order()
 		)
 
 
@@ -1275,6 +1276,7 @@ func _on_undo_pressed() -> void:
 			
 			# Recalcular as regras de bloqueio APÓS a peça aterrar
 			_board.update_tile_states()
+			_board.fix_visual_sort_order()
 	)
 
 func _update_hint_button() -> void:
