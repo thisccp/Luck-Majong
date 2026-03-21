@@ -24,6 +24,9 @@ var _last_bgm_track: AudioStream = null
 var _is_bgm_active: bool = false
 var _saved_position: float = 0.0
 
+# --- VARIÁVEIS DE SISTEMA (HAPTIC) ---
+var haptic_enabled: bool = true
+
 # --- VARIÁVEIS DE PROCEDURAL (CATS) ---
 var _cat_player: AudioStreamPlayer
 var _cat_streams: Array[AudioStream] = []
@@ -122,6 +125,10 @@ func play_ui_sfx(stream: AudioStream, pitch: float = 1.0, volume: float = 0.0) -
 	ui_player.pitch_scale = pitch
 	ui_player.volume_db = volume
 	ui_player.play()
+
+func play_haptic(duration_ms: int) -> void:
+	if haptic_enabled:
+		Input.vibrate_handheld(duration_ms)
 
 # ═══════════════════════════════════════════════════════════════
 # API DE AMBIENTE / BGM & CATS

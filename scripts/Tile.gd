@@ -166,6 +166,7 @@ func play_error_shake() -> void:
 	if _is_shaking or is_in_inventory or is_matched or is_dragging:
 		return
 	
+	AudioManager.play_haptic(35)
 	_is_shaking = true
 	var orig_x = position.x
 	_shake_tween = create_tween()

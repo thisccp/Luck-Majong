@@ -592,6 +592,7 @@ func _on_tile_pressed(tile: MahjongTile) -> void:
 		
 	# SFX: Peça livre clicada com sucesso
 	AudioManager.play_sfx(sfx_tile_click, 1.0, -4.0)
+	AudioManager.play_haptic(7)
 		
 	_add_to_inventory(tile)
 
@@ -948,6 +949,7 @@ func _executar_animacao_choque_e_desintegracao(peca_a: MahjongTile, peca_b: Mahj
 		impact.finished.connect(func():
 			# SFX de colisão no momento do contato
 			AudioManager.play_sfx(sfx_match_impact, 1.35, -2.0)
+			AudioManager.play_haptic(50)
 
 			# Contador compartilhado entre as 2 peças (closure por referência)
 			var done_count := [0]
