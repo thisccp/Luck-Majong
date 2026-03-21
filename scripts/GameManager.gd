@@ -80,6 +80,7 @@ var ad_requester: String = ""
 var _hint_label: Label
 var _undo_label: Label
 var _shuffle_label: Label
+var _shuffle_unlock_label: Label
 
 # ─── Progressão e Pontuação ─────────────────────────────────────────
 var current_level: int = 1
@@ -1394,12 +1395,27 @@ func _show_floating_message(msg_text: String) -> void:
 
 
 func _update_shuffle_button() -> void:
-	if _shuffle_label:
-		_shuffle_label.text = str(shuffle_charges) if shuffle_charges > 0 else "+"
+	if not is_instance_valid(_btn_shuffle): return
+	
+	# Regra 7.22: Desbloqueio Progressivo (Nível 10)
+	if current_level < 10:
+		_btn_shuffle.disabled = true
+		_btn_shuffle.modulate = Color(0.4, 0.4, 0.4, 1.0) # Deixa o botão cinza/apagado
+		if _shuffle_label:
+			_shuffle_label.text = "🔒" # Emoji de cadeado no lugar do número
+		if _shuffle_unlock_label:
+			_shuffle_unlock_label.visible = true
+	else:
+		_btn_shuffle.disabled = false
+		_btn_shuffle.modulate = Color.WHITE # Restaura a cor original
+		if _shuffle_label:
+			_shuffle_label.text = str(shuffle_charges) if shuffle_charges > 0 else "+"
+		if _shuffle_unlock_label:
+			_shuffle_unlock_label.visible = false
 
 
 func _on_shuffle_pressed() -> void:
-	if _game_paused or _tiles_in_flight.size() > 0 or _fading_animations > 0 or _pending_animations > 0 or _board.is_shuffling:
+	if _game_paused or _tiles_in_flight.size() > 0 or _fading_animations > 0 or _pending_animations > 0 or _board.is_shuffling or current_level < 10:
 		return
 		
 	if shuffle_charges <= 0:
@@ -1494,7 +1510,12 @@ func _set_hud_disabled(disabled: bool) -> void:
 	
 	for btn in hud_buttons:
 		if is_instance_valid(btn):
-			btn.disabled = disabled
+			# BLINDAGEM PROGRESSIVA (7.22): 
+			# Se for o botão de Shuffle e o nível for menor que 10, ele DEVE ficar desabilitado sempre.
+			if btn == _btn_shuffle and current_level < 10:
+				btn.disabled = true
+			else:
+				btn.disabled = disabled
 			
 			# Se a HUD foi desativada (ex: Popup abriu), força o botão a soltar
 			if disabled and btn.has_meta("juicy_orig_scale"):
@@ -1558,6 +1579,19 @@ func _build_power_labels() -> void:
 	_shuffle_label.offset_right = 10
 	_shuffle_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_btn_shuffle.add_child(_shuffle_label)
+
+	# --- Label de Desbloqueio do Shuffle (Lv. 10) ---
+	_shuffle_unlock_label = Label.new()
+	_shuffle_unlock_label.text = "Lv. 10"
+	_shuffle_unlock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_shuffle_unlock_label.add_theme_font_size_override("font_size", 22)
+	_shuffle_unlock_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4)) # Vermelhinho para indicar bloqueio
+	_shuffle_unlock_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	_shuffle_unlock_label.add_theme_constant_override("outline_size", 6)
+	_shuffle_unlock_label.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_shuffle_unlock_label.offset_bottom = 25 # Empurra para baixo do botão
+	_shuffle_unlock_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_btn_shuffle.add_child(_shuffle_unlock_label)
 
 
 func _show_ad_popup() -> void:
