@@ -27,6 +27,7 @@ buses/default_bus_layout="uid://b5s02qngd"
 [autoload]
 
 AudioManager="*res://scripts/AudioManager.gd"
+SceneLoader="*res://scripts/SceneLoader.gd"
 
 [display]
 

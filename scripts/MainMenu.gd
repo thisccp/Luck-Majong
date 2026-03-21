@@ -4,8 +4,6 @@ extends Control
 @onready var _btn_options: TextureButton = $OptionsButton
 @onready var _btn_quit: TextureButton = $QuitButton
 
-@onready var _fade_overlay: ColorRect = $FadeOverlay
-
 @onready var _dim_background: ColorRect = $MenuPopups/DimBackground
 @onready var _options_popup: PanelContainer = $MenuPopups/OptionsPopup
 @onready var _quit_popup: PanelContainer = $MenuPopups/QuitPopup
@@ -25,9 +23,6 @@ func _ready() -> void:
 	_setup_juicy_button(_btn_play, _on_play_pressed)
 	_setup_juicy_button(_btn_options, _on_options_pressed)
 	_setup_juicy_button(_btn_quit, _on_quit_pressed)
-	
-	_fade_overlay.color = Color(0, 0, 0, 0)
-	_fade_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
 	_dim_background.modulate.a = 0.0
 	_dim_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -62,15 +57,21 @@ func _on_play_pressed() -> void:
 		return
 	_is_transitioning = true
 	
+	# Desabilita os botões para evitar duplo clique
+	_btn_play.disabled = true
+	_btn_options.disabled = true
+	_btn_quit.disabled = true
+	
 	AudioManager.play_sfx(sfx_all_btn, 1.0, 0.0)
 	
-	# Transição Anti-Flash Cinza
-	_fade_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	# FORÇA o botão a voltar para a escala original (1.0), ignorando o bloqueio do sinal
 	var tween := create_tween()
-	tween.tween_property(_fade_overlay, "color:a", 1.0, 0.4).set_trans(Tween.TRANS_QUAD)
+	tween.tween_property(_btn_play, "scale", Vector2(1.0, 1.0), 0.2).set_trans(Tween.TRANS_BACK)
 	
-	await tween.finished
-	get_tree().change_scene_to_file("res://scenes/MainGame.tscn")
+	# Espera o tempo exato para a animação do botão terminar de quicar e a tela escurecer
+	await get_tree().create_timer(0.35).timeout
+	
+	get_node("/root/SceneLoader").transition_to_game()
 
 func _on_options_pressed() -> void:
 	if _is_transitioning:
