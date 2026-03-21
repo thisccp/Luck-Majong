@@ -20,6 +20,7 @@ extends Control
 # ─── Inventário (4 Slots) ───────────────────────────────────────────
 
 const MAX_INVENTORY := 4
+const TILE_SLOT_SCALE := 0.93
 var _inventory: Array[MahjongTile] = []
 var _inventory_slots: Array[Control] = []
 var _inventory_bar: HBoxContainer
@@ -684,28 +685,32 @@ func _fly_tile_to_slot(tile: MahjongTile, slot_index: int) -> void:
 	var start_screen_pos: Vector2 = tile.global_position
 	var start_scale: Vector2 = tile.global_scale
 
-	# Reparentar ao UILayer ANTES do voo (para ficar acima do slots.png)
+	# Reparentar ao UILayer ANTES do voo
 	if tile.get_parent() == _board:
 		_board.remove_child(tile)
 		$UILayer.add_child(tile)
 
+	tile.z_as_relative = false # <-- ISSO FORÇA A PEÇA A PASSAR POR CIMA DE TUDO
 	tile.z_index = 4000
-	tile.position = start_screen_pos
-	tile.scale = start_scale # Preservar proporção do tabuleiro imediatamente após reparentar!
+	tile.global_position = start_screen_pos # <-- Usando global_position!
+	tile.scale = start_scale
 
-	# Posição-alvo: centro do bolso FINAL TEÓRICO (slot reservado)
 	var target_pos: Vector2 = _get_slot_center(slot_index)
+	var target_scale := Vector2(TILE_SLOT_SCALE, TILE_SLOT_SCALE)
 
-	# Escala-alvo: Reduzido a 80% da escala perfeita do tabuleiro para manter consistência sem deformar lateralmente.
-	var target_scale := _board.scale * 0.80
-
-	# Tween vinculado ao TILE — independente de qualquer outro tween
 	var tween := tile.create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(tile, "position", target_pos, 0.32) \
-		.set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_OUT)
+	# <-- Usando global_position e TRANS_QUAD para não engasgar
+	tween.tween_property(tile, "global_position", target_pos, 0.32) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.tween_property(tile, "scale", target_scale, 0.32) \
-		.set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_OUT)
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	
+	tween.finished.connect(func():
+		if is_instance_valid(tile):
+			tile.z_as_relative = true # Devolve a regra original
+			tile.z_index = 0
+	)
 
 	await tween.finished
 
@@ -989,17 +994,16 @@ func _reorganize_slots() -> void:
 
 		var pocket_center: Vector2 = _get_slot_center(i)
 		
-		# z_index dinâmico: peças mais à esquerda ficam abaixo das da direita
+	# z_index dinâmico: peças mais à esquerda ficam abaixo das da direita
 		tile.z_index = 50 + i
 
 		# Só animar se a peça não está já na posição correta
-		if tile.position.distance_to(pocket_center) > 2.0:
-			# Tween vinculado ao TILE — independente dos outros tiles
+		if tile.global_position.distance_to(pocket_center) > 2.0:
 			var slide := tile.create_tween()
-			slide.tween_property(tile, "position", pocket_center, 0.2) \
+			slide.tween_property(tile, "global_position", pocket_center, 0.2) \
 				.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
 		else:
-			tile.position = pocket_center
+			tile.global_position = pocket_center
 
 
 # ═══════════════════════════════════════════════════════════════════════

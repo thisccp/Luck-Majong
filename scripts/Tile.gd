@@ -207,7 +207,7 @@ func play_match_animation() -> void:
 
 func play_disintegrate_nonblocking(on_done: Callable = Callable()) -> void:
 	"""Desintegração fire-and-forget — NÃO usa await, não bloqueia input.
-	Fase 1 (0.05s): squash elástico leve (scale x1.15).
+	Fase 1 (0.05s): squash elástico sutil (scale x1.25).
 	Fase 2 (0.15s): colapso para 0 + fade simultâneo.
 	Chama on_done() ao terminar (opcional)."""
 	is_matched = true
@@ -220,10 +220,10 @@ func play_disintegrate_nonblocking(on_done: Callable = Callable()) -> void:
 	
 	var cur_scale := scale
 	
-	# Fase 1: squash elástico rápido
+	# Fase 1: squash elástico rápido (pulso de match)
 	_disintegrate_tween = create_tween()
 	_disintegrate_tween.tween_property(self , "scale",
-		Vector2(cur_scale.x * 1.15, cur_scale.y * 1.15), 0.05) \
+		Vector2(cur_scale.x * 1.25, cur_scale.y * 1.25), 0.05) \
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	
 	# Fase 2: colapso + fade em paralelo
