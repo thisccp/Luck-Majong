@@ -87,9 +87,9 @@ func setup(pos: Vector3i, type_id: int, size: Vector2) -> void:
 
 func cells_occupied() -> Array[Vector2i]:
 	return [
-		Vector2i(grid_pos.x, grid_pos.y), 
+		Vector2i(grid_pos.x, grid_pos.y),
 		Vector2i(grid_pos.x + 1, grid_pos.y),
-		Vector2i(grid_pos.x, grid_pos.y + 1), 
+		Vector2i(grid_pos.x, grid_pos.y + 1),
 		Vector2i(grid_pos.x + 1, grid_pos.y + 1)
 	]
 
@@ -116,8 +116,8 @@ func _build_visuals() -> void:
 	var face_useful_h: float = 116.0 * 0.95
 	
 	# Adiciona 10 pixels extras
-	var hitbox_padding := 10.0 
-	shape.size = Vector2(face_useful_w + hitbox_padding, face_useful_h + hitbox_padding) 
+	var hitbox_padding := 10.0
+	shape.size = Vector2(face_useful_w + hitbox_padding, face_useful_h + hitbox_padding)
 	
 	_collision_shape.shape = shape
 	_collision_shape.name = "CollisionShape"
@@ -144,9 +144,9 @@ func _update_visuals() -> void:
 		modulate = Color(1.3, 1.25, 0.85, 1.0)
 		_select_tween = create_tween()
 		_select_tween.set_loops()
-		_select_tween.tween_property(self, "scale", Vector2(1.08, 1.08), 0.3)\
+		_select_tween.tween_property(self , "scale", Vector2(1.08, 1.08), 0.3) \
 			.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
-		_select_tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.3)\
+		_select_tween.tween_property(self , "scale", Vector2(1.0, 1.0), 0.3) \
 			.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
 	else:
 		modulate = Color.WHITE
@@ -174,13 +174,13 @@ func play_error_shake() -> void:
 	var dur = 0.04
 	
 	# Vai e vem rápido no eixo X
-	_shake_tween.tween_property(self, "position:x", orig_x + offset, dur)
-	_shake_tween.tween_property(self, "position:x", orig_x - offset, dur * 2)
-	_shake_tween.tween_property(self, "position:x", orig_x + (offset / 2.0), dur * 1.5)
-	_shake_tween.tween_property(self, "position:x", orig_x, dur)
+	_shake_tween.tween_property(self , "position:x", orig_x + offset, dur)
+	_shake_tween.tween_property(self , "position:x", orig_x - offset, dur * 2)
+	_shake_tween.tween_property(self , "position:x", orig_x + (offset / 2.0), dur * 1.5)
+	_shake_tween.tween_property(self , "position:x", orig_x, dur)
 	
 	_shake_tween.tween_callback(func():
-		position.x = orig_x  # Garante o alinhamento no final
+		position.x = orig_x # Garante o alinhamento no final
 		_is_shaking = false
 	)
 
@@ -195,9 +195,9 @@ func play_match_animation() -> void:
 	
 	var match_tween := create_tween()
 	match_tween.set_parallel(true)
-	match_tween.tween_property(self, "scale", Vector2(0.0, 0.0), 0.3)\
+	match_tween.tween_property(self , "scale", Vector2(0.0, 0.0), 0.3) \
 		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_BACK)
-	match_tween.tween_property(self, "modulate:a", 0.0, 0.25)\
+	match_tween.tween_property(self , "modulate:a", 0.0, 0.25) \
 		.set_ease(Tween.EASE_IN)
 	
 	await match_tween.finished
@@ -222,18 +222,18 @@ func play_disintegrate_nonblocking(on_done: Callable = Callable()) -> void:
 	
 	# Fase 1: squash elástico rápido
 	_disintegrate_tween = create_tween()
-	_disintegrate_tween.tween_property(self, "scale",
-		Vector2(cur_scale.x * 1.15, cur_scale.y * 1.15), 0.05)\
+	_disintegrate_tween.tween_property(self , "scale",
+		Vector2(cur_scale.x * 1.15, cur_scale.y * 1.15), 0.05) \
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	
 	# Fase 2: colapso + fade em paralelo
 	_disintegrate_tween.tween_callback(func():
 		var phase2 := create_tween()
 		phase2.set_parallel(true)
-		phase2.tween_property(self, "scale", Vector2.ZERO, 0.15)\
+		phase2.tween_property(self , "scale", Vector2.ZERO, 0.23) \
 			.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_BACK)
-		phase2.tween_property(self, "modulate:a", 0.0, 0.12)\
-			.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+		phase2.tween_property(self , "modulate:a", 0.0, 0.20) \
+			.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_SINE)
 		phase2.finished.connect(func():
 			visible = false
 			if _collision_shape:
@@ -253,9 +253,9 @@ func play_hint_glow() -> void:
 	
 	_select_tween = create_tween()
 	_select_tween.set_loops()
-	_select_tween.tween_property(self, "modulate", Color(1.35, 1.25, 0.9, 1.0), 0.5)\
+	_select_tween.tween_property(self , "modulate", Color(1.35, 1.25, 0.9, 1.0), 0.5) \
 		.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
-	_select_tween.tween_property(self, "modulate", Color(1.1, 1.05, 0.95, 1.0), 0.5)\
+	_select_tween.tween_property(self , "modulate", Color(1.1, 1.05, 0.95, 1.0), 0.5) \
 		.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
 
 
@@ -297,7 +297,7 @@ func animate_drop() -> void:
 	is_dragging = false
 	
 	var drop_tween := create_tween()
-	drop_tween.tween_property(self, "global_position", start_pos, 0.2)\
+	drop_tween.tween_property(self , "global_position", start_pos, 0.2) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		
 	drop_tween.tween_callback(func():

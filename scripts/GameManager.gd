@@ -65,7 +65,7 @@ var sfx_undo: AudioStream = preload("res://assets/audio/sfx/undo_click.wav")
 var sfx_shuffle: AudioStream = preload("res://assets/audio/sfx/shuffle_click.wav")
 var sfx_all_btn: AudioStream = preload("res://assets/audio/sfx/all_btn.wav")
 var sfx_popup_open: AudioStream = preload("res://assets/audio/sfx/popup_open.wav")
-var sfx_match_impact: AudioStream = preload("res://assets/audio/sfx/tile_match.wav")  # Impacto do choque de match
+var sfx_match_impact: AudioStream = preload("res://assets/audio/sfx/tile_match.wav") # Impacto do choque de match
 var sfx_combo: AudioStream = preload("res://assets/audio/sfx/combo.wav")
 var sfx_fever: AudioStream = preload("res://assets/audio/sfx/fever.wav")
 
@@ -84,10 +84,10 @@ var _shuffle_label: Label
 var current_level: int = 1
 
 var current_score: int = 0
-var current_match_score: int = 250   # Sobe +35 por combo, cap 600, piso 250
-var current_combo: int = 0           # Combos consecutivos
-var highest_tier: int = 1            # 1-6, nunca diminui
-var consecutive_non_combos: int = 0  # Non-combos seguidos
+var current_match_score: int = 250 # Sobe +35 por combo, cap 600, piso 250
+var current_combo: int = 0 # Combos consecutivos
+var highest_tier: int = 1 # 1-6, nunca diminui
+var consecutive_non_combos: int = 0 # Non-combos seguidos
 var tiles_slotted_since_last_match: int = 0
 
 var _score_label: Label
@@ -111,7 +111,7 @@ var _effect_layer: CanvasLayer
 
 func _ready() -> void:
 	# Trava de Performance para evitar aquecimento
-	Engine.max_fps = 60 
+	Engine.max_fps = 60
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED)
 	
 	_effect_layer = CanvasLayer.new()
@@ -156,8 +156,8 @@ func _ready() -> void:
 	$PopupLayer/PausePopup/ClosePauseBtn.pressed.connect(_on_pause_close_pressed)
 
 	_hide_popups()
-	_set_ui_mouse_filters(self)
-	_apply_juicy_to_all_buttons(self)
+	_set_ui_mouse_filters(self )
+	_apply_juicy_to_all_buttons(self )
 
 	await get_tree().create_timer(0.3).timeout
 	_load_background()
@@ -249,7 +249,7 @@ func _build_level_intro() -> void:
 	_level_intro_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_level_intro_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	_level_intro_overlay.visible = false
-	_level_intro_overlay.z_index = 0 
+	_level_intro_overlay.z_index = 0
 	$PopupLayer.add_child(_level_intro_overlay)
 
 	var center_container = CenterContainer.new()
@@ -275,7 +275,7 @@ func _build_level_intro() -> void:
 	_warning_label.text = "NÍVEL DIFÍCIL!"
 	_warning_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_warning_label.add_theme_font_size_override("font_size", 42)
-	_warning_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2)) 
+	_warning_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))
 	_warning_label.add_theme_color_override("font_outline_color", Color.BLACK)
 	_warning_label.add_theme_constant_override("outline_size", 6)
 	_warning_label.visible = false
@@ -298,10 +298,10 @@ func play_level_intro(level: int, is_hard_level: bool) -> void:
 		_warning_label.visible = false
 		
 	var tween = create_tween()
-	tween.tween_property(_level_intro_overlay, "modulate:a", 1.0, 0.4)\
+	tween.tween_property(_level_intro_overlay, "modulate:a", 1.0, 0.4) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.tween_interval(1.5)
-	tween.tween_property(_level_intro_overlay, "modulate:a", 0.0, 0.5)\
+	tween.tween_property(_level_intro_overlay, "modulate:a", 0.0, 0.5) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.finished.connect(func():
 		_level_intro_overlay.visible = false
@@ -321,11 +321,11 @@ func _build_inventory_bar() -> void:
 
 	var vbox = $UILayer/VBox
 	vbox.add_child(bar_container)
-	vbox.move_child(bar_container, 1)   # Após TopMargin(0), antes do Spacer
+	vbox.move_child(bar_container, 1) # Após TopMargin(0), antes do Spacer
 
 	# Imagem da barra de madeira
 	var slots_tex: Texture2D = load("res://assets/tiles/slots.png")
-	_inventory_bar = HBoxContainer.new()  # Reutilizar var para referência
+	_inventory_bar = HBoxContainer.new() # Reutilizar var para referência
 	_inventory_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var bar_img := TextureRect.new()
@@ -333,7 +333,7 @@ func _build_inventory_bar() -> void:
 	bar_img.texture = slots_tex
 	bar_img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	bar_img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	bar_img.custom_minimum_size = Vector2(460, 180)  # Forçado maior (460x180) para acomodar melhor a proporção parruda
+	bar_img.custom_minimum_size = Vector2(460, 180) # Forçado maior (460x180) para acomodar melhor a proporção parruda
 	bar_img.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar_container.add_child(bar_img)
 
@@ -702,10 +702,10 @@ func _fly_tile_to_slot(tile: MahjongTile, slot_index: int) -> void:
 	# Tween vinculado ao TILE — independente de qualquer outro tween
 	var tween := tile.create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(tile, "position", target_pos, 0.35)\
-		.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
-	tween.tween_property(tile, "scale", target_scale, 0.35)\
-		.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
+	tween.tween_property(tile, "position", target_pos, 0.32) \
+		.set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_OUT)
+	tween.tween_property(tile, "scale", target_scale, 0.32) \
+		.set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_OUT)
 
 	await tween.finished
 
@@ -922,13 +922,13 @@ func _executar_animacao_choque_e_desintegracao(peca_a: MahjongTile, peca_b: Mahj
 	# Peças recuam 15px para fora e crescem 10% — cria tensão antes do impacto
 	var anticipate := create_tween()
 	anticipate.set_parallel(true)
-	anticipate.tween_property(peca_a, "position", pos_a + dir_a * 15.0, 0.08)\
+	anticipate.tween_property(peca_a, "position", pos_a + dir_a * 15.0, 0.08) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	anticipate.tween_property(peca_b, "position", pos_b + dir_b * 15.0, 0.08)\
+	anticipate.tween_property(peca_b, "position", pos_b + dir_b * 15.0, 0.08) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	anticipate.tween_property(peca_a, "scale", scale_a * 1.1, 0.08)\
+	anticipate.tween_property(peca_a, "scale", scale_a * 1.1, 0.08) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	anticipate.tween_property(peca_b, "scale", scale_b * 1.1, 0.08)\
+	anticipate.tween_property(peca_b, "scale", scale_b * 1.1, 0.08) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 	# ── ATO 2 + 3: após a antecipação ──
@@ -940,9 +940,9 @@ func _executar_animacao_choque_e_desintegracao(peca_a: MahjongTile, peca_b: Mahj
 		# ATO 2: CHOQUE (0.07s) — movimento seco e violento para o centro
 		var impact := create_tween()
 		impact.set_parallel(true)
-		impact.tween_property(peca_a, "position", midpoint, 0.07)\
+		impact.tween_property(peca_a, "position", midpoint, 0.07) \
 			.set_trans(Tween.TRANS_CIRC).set_ease(Tween.EASE_IN)
-		impact.tween_property(peca_b, "position", midpoint, 0.07)\
+		impact.tween_property(peca_b, "position", midpoint, 0.07) \
 			.set_trans(Tween.TRANS_CIRC).set_ease(Tween.EASE_IN)
 
 		# ATO 3: REAÇÃO — no frame exato do impacto
@@ -996,7 +996,7 @@ func _reorganize_slots() -> void:
 		if tile.position.distance_to(pocket_center) > 2.0:
 			# Tween vinculado ao TILE — independente dos outros tiles
 			var slide := tile.create_tween()
-			slide.tween_property(tile, "position", pocket_center, 0.2)\
+			slide.tween_property(tile, "position", pocket_center, 0.2) \
 				.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
 		else:
 			tile.position = pocket_center
@@ -1059,7 +1059,6 @@ func _on_revive() -> void:
 		# AdMob.show_rewarded_video("revive")
 		# O próprio SDK do Android/iOS pausará o jogo e, em caso de sucesso, 
 		# chamará a nossa função _execute_revive_logic() automaticamente.
-		
 		# Por enquanto (Ambiente de Testes), pulamos a popup genérica de 
 		# recarga de poderes e forçamos o sucesso do Ad instantaneamente:
 		ad_requester = "revive"
@@ -1113,9 +1112,9 @@ func _execute_revive_logic() -> void:
 		
 		var tween := create_tween()
 		tween.set_parallel(true)
-		tween.tween_property(tile, "global_position", target_global, 0.35)\
+		tween.tween_property(tile, "global_position", target_global, 0.35) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
-		tween.tween_property(tile, "scale", _board.global_scale, 0.35)\
+		tween.tween_property(tile, "scale", _board.global_scale, 0.35) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
 			
 		tween.chain().tween_callback(func():
@@ -1237,11 +1236,11 @@ func _on_undo_pressed() -> void:
 	tween.set_parallel(true)
 	# Animar a posição GLOBAL dele até o destino (como ele tá na default CanvasLayer/Viewport,
 	# global_position == canvas screen position)
-	tween.tween_property(tile, "global_position", target_global, 0.3)\
+	tween.tween_property(tile, "global_position", target_global, 0.3) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	# Escalar de volta baseando-se na escala do próprio Board (já que ele tá no UILayer)
 	var target_global_scale = _board.global_scale
-	tween.tween_property(tile, "scale", target_global_scale, 0.3)\
+	tween.tween_property(tile, "scale", target_global_scale, 0.3) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 		
 	tween.chain().tween_callback(func():
@@ -1372,7 +1371,7 @@ func _show_floating_message(msg_text: String) -> void:
 	var tween := create_tween()
 	var base_y = container.position.y
 	
-	tween.tween_property(container, "modulate:a", 1.0, 0.25)\
+	tween.tween_property(container, "modulate:a", 1.0, 0.25) \
 		.set_ease(Tween.EASE_OUT)
 		
 	tween.tween_interval(1.8)
@@ -1380,9 +1379,9 @@ func _show_floating_message(msg_text: String) -> void:
 	var fade_out = create_tween()
 	fade_out.set_parallel(true)
 	# Espera o tween principal liberar o fading (no delay)
-	fade_out.tween_property(container, "position:y", base_y - 80.0, 0.6)\
+	fade_out.tween_property(container, "position:y", base_y - 80.0, 0.6) \
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD).set_delay(2.05)
-	fade_out.tween_property(container, "modulate:a", 0.0, 0.6)\
+	fade_out.tween_property(container, "modulate:a", 0.0, 0.6) \
 		.set_ease(Tween.EASE_IN).set_delay(2.05)
 		
 	fade_out.chain().tween_callback(func(): container.queue_free())
@@ -1413,7 +1412,7 @@ func _on_shuffle_pressed() -> void:
 	# ── Limpar qualquer Hint ativo antes de embaralhar ──
 	is_hint_active = false
 	active_hint_cat_id = -1
-	_board.clear_selection()   # Limpa glow de todas as peças do tabuleiro
+	_board.clear_selection() # Limpa glow de todas as peças do tabuleiro
 	# Limpar glow de peças no inventário também
 	for inv_tile in _inventory:
 		if is_instance_valid(inv_tile) and inv_tile.is_hinted:
@@ -1555,7 +1554,6 @@ func _build_power_labels() -> void:
 	_btn_shuffle.add_child(_shuffle_label)
 
 
-
 func _show_ad_popup() -> void:
 	_game_paused = true
 	_set_hud_disabled(true)
@@ -1572,7 +1570,7 @@ func _on_ad_reward_claimed() -> void:
 		undo_charges += 2
 		_update_undo_button()
 	elif ad_requester == "shuffle":
-		shuffle_charges += 1  # <-- Reduzido para balanceamento F2P
+		shuffle_charges += 1 # <-- Reduzido para balanceamento F2P
 		_update_shuffle_button()
 	elif ad_requester == "revive":
 		_execute_revive_logic()
@@ -1619,9 +1617,9 @@ func spawn_floating_score(score: int, base_position: Vector2) -> void:
 	
 	var tween = create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(float_label, "global_position:y", float_label.global_position.y - 80.0, 1.0)\
+	tween.tween_property(float_label, "global_position:y", float_label.global_position.y - 80.0, 1.0) \
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-	tween.tween_property(float_label, "modulate:a", 0.0, 1.0)\
+	tween.tween_property(float_label, "modulate:a", 0.0, 1.0) \
 		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
 		
 	tween.chain().tween_callback(func():
@@ -1634,12 +1632,12 @@ func spawn_floating_score(score: int, base_position: Vector2) -> void:
 # ═══════════════════════════════════════════════════════════════════════
 
 const TIER_COLORS: Array = [
-	Color(0.5, 1.0, 0.5, 1.0),   # Tier 1: Verde Claro
-	Color(0.0, 0.7, 0.2, 1.0),   # Tier 2: Verde Escuro
-	Color(0.3, 0.5, 1.0, 1.0),   # Tier 3: Azul
-	Color(0.6, 0.2, 0.9, 1.0),   # Tier 4: Roxo
-	Color(1.0, 0.85, 0.0, 1.0),  # Tier 5: Dourado
-	Color(1.0, 0.3, 0.3, 1.0),   # Tier 6: Arco-íris (cor inicial do ciclo)
+	Color(0.5, 1.0, 0.5, 1.0), # Tier 1: Verde Claro
+	Color(0.0, 0.7, 0.2, 1.0), # Tier 2: Verde Escuro
+	Color(0.3, 0.5, 1.0, 1.0), # Tier 3: Azul
+	Color(0.6, 0.2, 0.9, 1.0), # Tier 4: Roxo
+	Color(1.0, 0.85, 0.0, 1.0), # Tier 5: Dourado
+	Color(1.0, 0.3, 0.3, 1.0), # Tier 6: Arco-íris (cor inicial do ciclo)
 ]
 
 const RAINBOW_COLORS: Array = [
@@ -1660,13 +1658,13 @@ func _setup_fever_vignette() -> void:
 	_fever_vignette.modulate.a = 0.0
 	
 	_fever_vignette_style = StyleBoxFlat.new()
-	_fever_vignette_style.bg_color = Color(0, 0, 0, 0)  # Centro totalmente transparente
+	_fever_vignette_style.bg_color = Color(0, 0, 0, 0) # Centro totalmente transparente
 	_fever_vignette_style.border_width_left = 60
 	_fever_vignette_style.border_width_top = 60
 	_fever_vignette_style.border_width_right = 60
 	_fever_vignette_style.border_width_bottom = 60
-	_fever_vignette_style.border_blend = true  # Degradê suave da borda para o centro
-	_fever_vignette_style.border_color = Color(1, 1, 1, 0)  # Inicia transparente
+	_fever_vignette_style.border_blend = true # Degradê suave da borda para o centro
+	_fever_vignette_style.border_color = Color(1, 1, 1, 0) # Inicia transparente
 	_fever_vignette.add_theme_stylebox_override("panel", _fever_vignette_style)
 	
 	$UILayer.add_child(_fever_vignette)
@@ -1698,9 +1696,9 @@ func update_tier_vfx(tier: int) -> void:
 	_fever_vignette.modulate.a = 1.0
 	_fever_breathe_tween = create_tween()
 	_fever_breathe_tween.set_loops()
-	_fever_breathe_tween.tween_property(_fever_vignette, "modulate:a", 0.4, 1.2)\
+	_fever_breathe_tween.tween_property(_fever_vignette, "modulate:a", 0.4, 1.2) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_fever_breathe_tween.tween_property(_fever_vignette, "modulate:a", 1.0, 1.2)\
+	_fever_breathe_tween.tween_property(_fever_vignette, "modulate:a", 1.0, 1.2) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	
 	# Tier 6: Arco-íris — ciclo de cores na borda
@@ -1709,7 +1707,7 @@ func update_tier_vfx(tier: int) -> void:
 		_fever_rainbow_tween.set_loops()
 		for i in range(RAINBOW_COLORS.size()):
 			var next_i = (i + 1) % RAINBOW_COLORS.size()
-			_fever_rainbow_tween.tween_property(_fever_vignette_style, "border_color", RAINBOW_COLORS[next_i], 0.5)\
+			_fever_rainbow_tween.tween_property(_fever_vignette_style, "border_color", RAINBOW_COLORS[next_i], 0.5) \
 				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
@@ -1750,27 +1748,27 @@ func spawn_combo_message(combo: int) -> void:
 	else:
 		pos_y = screen_size.y * 0.35
 	
-	var start_x = screen_size.x + 100.0  # Fora da tela à direita
+	var start_x = screen_size.x + 100.0 # Fora da tela à direita
 	var center_x = (screen_size.x - combo_label.size.x) / 2.0
-	var exit_x = -combo_label.size.x - 100.0  # Fora da tela à esquerda
+	var exit_x = - combo_label.size.x - 100.0 # Fora da tela à esquerda
 	
 	combo_label.global_position = Vector2(start_x, pos_y)
 	
 	# Animação sequencial: Slide In → Wait → Slide Out
 	var tween = create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(combo_label, "global_position:x", center_x, 0.4)\
+	tween.tween_property(combo_label, "global_position:x", center_x, 0.4) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.tween_property(combo_label, "modulate:a", 1.0, 0.4)\
+	tween.tween_property(combo_label, "modulate:a", 1.0, 0.4) \
 		.set_ease(Tween.EASE_OUT)
 	
 	tween.chain().tween_interval(0.8)
 	
 	var slide_out = create_tween()
 	slide_out.set_parallel(true)
-	slide_out.tween_property(combo_label, "global_position:x", exit_x, 0.4)\
+	slide_out.tween_property(combo_label, "global_position:x", exit_x, 0.4) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN).set_delay(1.6)
-	slide_out.tween_property(combo_label, "modulate:a", 0.0, 0.4)\
+	slide_out.tween_property(combo_label, "modulate:a", 0.0, 0.4) \
 		.set_ease(Tween.EASE_IN).set_delay(1.6)
 	
 	slide_out.chain().tween_callback(func():

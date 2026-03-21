@@ -18,3 +18,4 @@ export_presets.cfg
 *.apk.idsig
 *.idsig
 nekomahjong.apk.idsig
+.vscode/settings.json
