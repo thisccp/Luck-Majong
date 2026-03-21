@@ -247,10 +247,11 @@ func _build_level_intro() -> void:
 
 	_level_intro_overlay = ColorRect.new()
 	_level_intro_overlay.name = "LevelIntroOverlay"
-	_level_intro_overlay.color = Color(0, 0, 0, 0.6)
+	_level_intro_overlay.color = Color(0, 0, 0, 1.0)
 	_level_intro_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_level_intro_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	_level_intro_overlay.visible = false
+	_level_intro_overlay.visible = true
+	_level_intro_overlay.modulate.a = 1.0
 	_level_intro_overlay.z_index = 0
 	$PopupLayer.add_child(_level_intro_overlay)
 
@@ -288,8 +289,8 @@ func _build_level_intro() -> void:
 
 func play_level_intro(level: int, is_hard_level: bool) -> void:
 	is_input_locked = true
-	_level_intro_overlay.modulate.a = 0.0
 	_level_intro_overlay.visible = true
+	_level_intro_overlay.modulate.a = 1.0
 	
 	_level_label.text = "Nível %d" % level
 	if is_hard_level:
@@ -300,8 +301,6 @@ func play_level_intro(level: int, is_hard_level: bool) -> void:
 		_warning_label.visible = false
 		
 	var tween = create_tween()
-	tween.tween_property(_level_intro_overlay, "modulate:a", 1.0, 0.4) \
-		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.tween_interval(1.5)
 	tween.tween_property(_level_intro_overlay, "modulate:a", 0.0, 0.5) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
