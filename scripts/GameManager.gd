@@ -1885,3 +1885,21 @@ func _on_juicy_up(btn: BaseButton) -> void:
 	btn.set_meta("juicy_tween", tween)
 	# Transição elástica rápida
 	tween.tween_property(btn, "scale", orig_scale, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		if SceneLoader.is_transitioning or is_input_locked:
+			# 1. TRAVA DE INTRODUÇÃO: Se o input está travado (intro rolando), ignora o botão voltar!
+			return
+			
+		if _ad_popup.visible:
+			_ad_popup.hide()
+			if not _game_over_popup.visible:
+				_game_paused = false
+				_set_hud_disabled(false)
+		elif _pause_popup.visible:
+			_on_pause_close_pressed()
+		elif _game_over_popup.visible or _win_popup.visible:
+			get_node("/root/SceneLoader").transition_to_menu()
+		else:
+			get_node("/root/SceneLoader").transition_to_menu()

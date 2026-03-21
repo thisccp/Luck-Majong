@@ -14,7 +14,6 @@ extends Control
 
 
 var sfx_all_btn: AudioStream = preload("res://assets/audio/sfx/all_btn.wav")
-var _is_transitioning: bool = false
 
 func _ready() -> void:
 	# Inicia o som ambiente zen e miados
@@ -41,21 +40,20 @@ func _setup_juicy_button(btn: TextureButton, pressed_callable: Callable) -> void
 	btn.pressed.connect(pressed_callable)
 
 func _on_btn_down(btn: TextureButton) -> void:
-	if _is_transitioning:
+	if SceneLoader.is_transitioning:
 		return
 	var tween := create_tween()
 	tween.tween_property(btn, "scale", Vector2(0.85, 0.85), 0.1).set_trans(Tween.TRANS_QUAD)
 
 func _on_btn_up(btn: TextureButton) -> void:
-	if _is_transitioning:
+	if SceneLoader.is_transitioning:
 		return
 	var tween := create_tween()
 	tween.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.2).set_trans(Tween.TRANS_BACK)
 
 func _on_play_pressed() -> void:
-	if _is_transitioning:
+	if SceneLoader.is_transitioning:
 		return
-	_is_transitioning = true
 	
 	# Desabilita os botões para evitar duplo clique
 	_btn_play.disabled = true
@@ -74,13 +72,13 @@ func _on_play_pressed() -> void:
 	get_node("/root/SceneLoader").transition_to_game()
 
 func _on_options_pressed() -> void:
-	if _is_transitioning:
+	if SceneLoader.is_transitioning:
 		return
 	AudioManager.play_sfx(sfx_all_btn, 1.0, 0.0)
 	_show_popup(_options_popup)
 
 func _on_quit_pressed() -> void:
-	if _is_transitioning:
+	if SceneLoader.is_transitioning:
 		return
 	AudioManager.play_sfx(sfx_all_btn, 1.0, 0.0)
 	_show_popup(_quit_popup)
@@ -102,3 +100,12 @@ func _close_popups() -> void:
 func _on_confirm_quit_pressed() -> void:
 	AudioManager.play_sfx(sfx_all_btn, 1.0, 0.0)
 	get_tree().quit()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		if SceneLoader.is_transitioning:
+			return
+		if _options_popup.visible or _quit_popup.visible:
+			_close_popups()
+		else:
+			_on_quit_pressed()

@@ -1,5 +1,6 @@
 extends Node
 
+var is_transitioning: bool = false
 var _transition_layer: CanvasLayer
 var _fade_rect: ColorRect
 
@@ -21,6 +22,7 @@ func _ready() -> void:
 	_transition_layer.add_child(_fade_rect)
 
 func transition_to_game() -> void:
+	is_transitioning = true
 	# Bloqueia qualquer clique passante
 	_fade_rect.mouse_filter = Control.MOUSE_FILTER_STOP
 	
@@ -52,3 +54,26 @@ func transition_to_game() -> void:
 	
 	# Libera cliques
 	_fade_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	is_transitioning = false
+
+func transition_to_menu() -> void:
+	is_transitioning = true
+	# Bloqueia qualquer clique passante
+	_fade_rect.mouse_filter = Control.MOUSE_FILTER_STOP
+	
+	# Fade-to-Black (escurecer)
+	var tween_in = create_tween()
+	tween_in.tween_property(_fade_rect, "modulate:a", 1.0, 0.5).set_ease(Tween.EASE_IN_OUT)
+	await tween_in.finished
+	
+	# Muda a cena
+	get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
+	
+	# Clarear a tela
+	var tween_out = create_tween()
+	tween_out.tween_property(_fade_rect, "modulate:a", 0.0, 0.6).set_ease(Tween.EASE_IN_OUT)
+	await tween_out.finished
+	
+	# Libera cliques
+	_fade_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	is_transitioning = false
