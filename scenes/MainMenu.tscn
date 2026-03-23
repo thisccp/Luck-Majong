@@ -1,12 +1,13 @@
-[gd_scene load_steps=6 format=3 uid="uid://dmsmmenu8384"]
+[gd_scene format=3 uid="uid://dmsmmenu8384"]
 
-[ext_resource type="Script" path="res://scripts/MainMenu.gd" id="1_menu"]
-[ext_resource type="Texture2D" path="res://assets/bg/bg_main_menu.png" id="2_bg"]
-[ext_resource type="Texture2D" path="res://assets/btn/btn_style_play.png" id="3_btn"]
-[ext_resource type="Texture2D" path="res://assets/btn/btn_style_options.png" id="4_opt"]
-[ext_resource type="Texture2D" path="res://assets/btn/btn_style_quit.png" id="5_quit"]
+[ext_resource type="Script" uid="uid://c22hk7dtguywf" path="res://scripts/MainMenu.gd" id="1_menu"]
+[ext_resource type="Texture2D" uid="uid://2rsduu0orabr" path="res://assets/bg/bg_main_menu.png" id="2_bg"]
+[ext_resource type="Texture2D" uid="uid://8leljywao86g" path="res://assets/btn/btn_style_play.png" id="3_btn"]
+[ext_resource type="Texture2D" uid="uid://chap0kmm8wx4p" path="res://assets/btn/btn_style_options.png" id="4_opt"]
+[ext_resource type="Texture2D" uid="uid://behqiu1fsl655" path="res://assets/btn/btn_style_quit.png" id="5_quit"]
+[ext_resource type="Script" uid="uid://cm4sx5oel5isy" path="res://scripts/QuitPopup.gd" id="6_826wr"]
 
-[node name="MainMenu" type="Control"]
+[node name="MainMenu" type="Control" unique_id=663357535]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -15,7 +16,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_menu")
 
-[node name="Background" type="TextureRect" parent="."]
+[node name="Background" type="TextureRect" parent="." unique_id=1849285031]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -26,7 +27,7 @@ texture = ExtResource("2_bg")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="PlayButton" type="TextureButton" parent="."]
+[node name="PlayButton" type="TextureButton" parent="." unique_id=528045573]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -43,24 +44,24 @@ texture_normal = ExtResource("3_btn")
 ignore_texture_size = true
 stretch_mode = 4
 
-[node name="Label" type="Label" parent="PlayButton"]
+[node name="Label" type="Label" parent="PlayButton" unique_id=1513629364]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.30
+anchors_preset = -1
+anchor_right = 1.3
 anchor_bottom = 0.85
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_font_sizes/font_size = 35
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 35
 text = "JOGAR"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="OptionsButton" type="TextureButton" parent="."]
+[node name="OptionsButton" type="TextureButton" parent="." unique_id=675166031]
 layout_mode = 1
-anchors_preset = 3
+anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
@@ -75,22 +76,22 @@ texture_normal = ExtResource("4_opt")
 ignore_texture_size = true
 stretch_mode = 4
 
-[node name="Label" type="Label" parent="OptionsButton"]
+[node name="Label" type="Label" parent="OptionsButton" unique_id=340430693]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.30
+anchors_preset = -1
+anchor_right = 1.3
 anchor_bottom = 0.85
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_font_sizes/font_size = 35
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 35
 text = "OPÇÕES"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="QuitButton" type="TextureButton" parent="."]
+[node name="QuitButton" type="TextureButton" parent="." unique_id=1596246914]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -107,22 +108,22 @@ texture_normal = ExtResource("5_quit")
 ignore_texture_size = true
 stretch_mode = 4
 
-[node name="Label" type="Label" parent="QuitButton"]
+[node name="Label" type="Label" parent="QuitButton" unique_id=1902204874]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.30
+anchors_preset = -1
+anchor_right = 1.3
 anchor_bottom = 0.88
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_font_sizes/font_size = 35
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 35
 text = "SAIR"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="FadeOverlay" type="ColorRect" parent="."]
+[node name="FadeOverlay" type="ColorRect" parent="." unique_id=1193564220]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -132,9 +133,9 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0, 0, 0, 0)
 
-[node name="MenuPopups" type="CanvasLayer" parent="."]
+[node name="MenuPopups" type="CanvasLayer" parent="." unique_id=1216688017]
 
-[node name="DimBackground" type="ColorRect" parent="MenuPopups"]
+[node name="DimBackground" type="ColorRect" parent="MenuPopups" unique_id=1335839497]
 modulate = Color(1, 1, 1, 0)
 anchors_preset = 15
 anchor_right = 1.0
@@ -144,7 +145,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0, 0, 0, 0.7)
 
-[node name="OptionsPopup" type="PanelContainer" parent="MenuPopups"]
+[node name="OptionsPopup" type="PanelContainer" parent="MenuPopups" unique_id=483993646]
 visible = false
 anchors_preset = 8
 anchor_left = 0.5
@@ -158,76 +159,33 @@ offset_bottom = 150.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MenuPopups/OptionsPopup"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MenuPopups/OptionsPopup" unique_id=740018869]
 layout_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MenuPopups/OptionsPopup/VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="MenuPopups/OptionsPopup/VBoxContainer" unique_id=1345283133]
 layout_mode = 2
 alignment = 1
 
-[node name="Title" type="Label" parent="MenuPopups/OptionsPopup/VBoxContainer/HBoxContainer"]
+[node name="Title" type="Label" parent="MenuPopups/OptionsPopup/VBoxContainer/HBoxContainer" unique_id=1002815307]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Opções"
 horizontal_alignment = 1
 
-[node name="CloseOptionsBtn" type="Button" parent="MenuPopups/OptionsPopup/VBoxContainer/HBoxContainer"]
+[node name="CloseOptionsBtn" type="Button" parent="MenuPopups/OptionsPopup/VBoxContainer/HBoxContainer" unique_id=227702622]
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
 text = "X"
 
-[node name="Spacer" type="Control" parent="MenuPopups/OptionsPopup/VBoxContainer"]
+[node name="Spacer" type="Control" parent="MenuPopups/OptionsPopup/VBoxContainer" unique_id=1837440615]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="QuitPopup" type="PanelContainer" parent="MenuPopups"]
-visible = false
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -200.0
-offset_top = -100.0
-offset_right = 200.0
-offset_bottom = 100.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="MenuPopups/QuitPopup"]
-layout_mode = 2
-alignment = 1
-
-[node name="HBoxContainer" type="HBoxContainer" parent="MenuPopups/QuitPopup/VBoxContainer"]
-layout_mode = 2
-alignment = 1
-
-[node name="Title" type="Label" parent="MenuPopups/QuitPopup/VBoxContainer/HBoxContainer"]
-layout_mode = 2
+[node name="QuitPopup" type="Control" parent="MenuPopups" unique_id=1512922491]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
 size_flags_horizontal = 3
-text = "Sair"
-horizontal_alignment = 1
-
-[node name="CloseQuitBtn" type="Button" parent="MenuPopups/QuitPopup/VBoxContainer/HBoxContainer"]
-custom_minimum_size = Vector2(40, 40)
-layout_mode = 2
-text = "X"
-
-[node name="Spacer" type="Control" parent="MenuPopups/QuitPopup/VBoxContainer"]
-custom_minimum_size = Vector2(0, 20)
-layout_mode = 2
-
-[node name="Message" type="Label" parent="MenuPopups/QuitPopup/VBoxContainer"]
-layout_mode = 2
-text = "Tem certeza que quer sair?"
-horizontal_alignment = 1
-
-[node name="Spacer2" type="Control" parent="MenuPopups/QuitPopup/VBoxContainer"]
-layout_mode = 2
 size_flags_vertical = 3
-
-[node name="ConfirmQuitBtn" type="Button" parent="MenuPopups/QuitPopup/VBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 4
-theme_override_colors/font_color = Color(1, 0, 0, 1)
-text = " Sair "
+script = ExtResource("6_826wr")

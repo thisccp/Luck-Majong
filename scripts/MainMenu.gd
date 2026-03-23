@@ -6,11 +6,9 @@ extends Control
 
 @onready var _dim_background: ColorRect = $MenuPopups/DimBackground
 @onready var _options_popup: PanelContainer = $MenuPopups/OptionsPopup
-@onready var _quit_popup: PanelContainer = $MenuPopups/QuitPopup
+@onready var _quit_popup: Control = $MenuPopups/QuitPopup
 
 @onready var _btn_close_options: Button = $MenuPopups/OptionsPopup/VBoxContainer/HBoxContainer/CloseOptionsBtn
-@onready var _btn_close_quit: Button = $MenuPopups/QuitPopup/VBoxContainer/HBoxContainer/CloseQuitBtn
-@onready var _btn_confirm_quit: Button = $MenuPopups/QuitPopup/VBoxContainer/ConfirmQuitBtn
 
 
 var sfx_all_btn: AudioStream = preload("res://assets/audio/sfx/all_btn.wav")
@@ -29,8 +27,8 @@ func _ready() -> void:
 	_quit_popup.hide()
 	
 	_btn_close_options.pressed.connect(_close_popups)
-	_btn_close_quit.pressed.connect(_close_popups)
-	_btn_confirm_quit.pressed.connect(_on_confirm_quit_pressed)
+	_quit_popup.quit_confirmed.connect(_on_confirm_quit_pressed)
+	_quit_popup.close_requested.connect(_close_popups)
 
 func _setup_juicy_button(btn: TextureButton, pressed_callable: Callable) -> void:
 	# Necessário recálculo simples para o pivô central do TextureButton
